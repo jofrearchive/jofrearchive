@@ -695,6 +695,31 @@ body{
   cursor:pointer;
 }
 
+/* ===== SITE HEADER (logo -> home) ===== */
+.siteHeader{
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 9999;
+  pointer-events: auto;
+}
+
+.siteHeader a{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.siteHeader img{
+  height: 34px;   /* ajusta tamaño */
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.55));
+  opacity: .92;
+}
+.siteHeader img:hover{ opacity: 1; }
+
 </style>
 
 <script>
