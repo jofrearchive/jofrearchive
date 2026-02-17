@@ -555,12 +555,16 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   --ink:#e8e2d6;
 }
 
-  body{
+body{
   margin:0;
   background:var(--bg);
-  color:var(--ink);
-  font-family:'EB Garamond', serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
   overflow:hidden;
+  font-family:'EB Garamond', serif;
+  color:var(--ink);
 }
 
 
