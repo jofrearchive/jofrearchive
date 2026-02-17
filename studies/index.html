@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Studies — Project Wall (Fixed Columns)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --muted:rgba(232,226,214,.72);
+  --line:rgba(232,226,214,.16);
+  --line2:rgba(232,226,214,.12);
+  --panel:rgba(10,10,10,.88);
+  --panel2:rgba(0,0,0,.35);
+  --mono:"Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --serif:"EB Garamond", serif;
+  --shadow:0 40px 90px rgba(0,0,0,.72);
+}
+
+*{box-sizing:border-box}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--serif);
+  overflow:hidden; /* ✅ columns fixed, no global scroll */
+}
+
+/* Vitrine background (same as demo) */
+#vitrine-bg{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
+    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.42)),
+    #0b0b0b;
+}
+#vitrine-bg::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0px, rgba(255,255,255,.010) 1px, transparent 2px, transparent 5px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.007) 0px, rgba(255,255,255,.007) 1px, transparent 2px, transparent 9px);
+  opacity:.18; mix-blend-mode:overlay;
+}
+#glass{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.08), transparent 25%),
+    radial-gradient(900px 650px at 60% 25%, rgba(255,255,255,.06), transparent 55%);
+  opacity:.22; mix-blend-mode:screen;
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,0,.88) 100%);
+  opacity:.55;
+}
+
+/* Header (same behavior) */
+.siteHeader{
+  position:fixed; top:0; left:0; right:0;
+  height: calc(96px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  display:flex; align-items:center; justify-content:center;
+  z-index: 1000;
+  pointer-events:none;
+}
+.siteHeader a{pointer-events:auto; text-decoration:none}
+.siteHeader img{height:56px; width:auto; display:block; opacity:.92}
+.siteHeader img:hover{opacity:1}
+
+/* Fixed viewport layout */
+.page{
+  position:relative;
+  z-index:10;
+  height:100vh;
+  padding: calc(110px + env(safe-area-inset-top)) clamp(10px, 2.2vw, 22px) clamp(10px, 2.2vw, 22px);
+}
+.wrap{
+  width:min(1320px, 100%);
+  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 260px 1fr 420px;
+  gap:14px;
+  align-items:stretch;
+}
+
+/* Panels (left + viewer) */
+.panel{
+  border:1px solid var(--line2);
+  background: linear-gradient(180deg, rgba(10,10,10,.86), rgba(0,0,0,.46));
+  box-shadow: var(--shadow);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.panel::before{
+  content:"";
+  position:absolute; inset:10px;
+  pointer-events:none;
+  background:
+    linear-gradient(var(--line),var(--line)) left top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 22px no-repeat;
+  opacity:.85;
+  z-index:0;
+}
+.panelHeader{
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.92);
+  position:relative;
+  z-index:2;
+}
+.kicker{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  font-size:11px;
+  opacity:.68;
+  margin-bottom:6px;
+}
+.titleRow{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.h1{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:16px;
+}
+.pill{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+.panelBody{
+  padding:14px 16px 16px;
+  position:relative;
+  z-index:2;
+  min-height:0;
+  flex:1;
+}
+.hr{height:1px;background:rgba(232,226,214,.12);margin:12px 0}
+
+/* Controls */
+.input{
+  width:100%;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  color:var(--ink);
+  padding:10px 10px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.10em;
+  font-size:11px;
+  outline:none;
+}
+.row{display:flex; gap:10px; flex-wrap:wrap}
+.btn{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  color:var(--ink);
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(232,226,214,.22);
+  padding:10px 12px;
+  cursor:pointer;
+  opacity:.92;
+  transition:all .2s ease;
+}
+.btn:hover{opacity:1;background:rgba(255,255,255,.05)}
+.btn.active{
+  background: rgba(255,255,255,.08);
+  border-color: rgba(232,226,214,.40);
+}
+.smallHint{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.62;
+}
+
+/* Left column scroll ONLY inside its body (optional) */
+.leftScroll{
+  overflow:auto;
+  scrollbar-width:none;
+}
+.leftScroll::-webkit-scrollbar{width:0;height:0}
+
+/* Wall column: fixed shell + internal scroll only */
+.wall{
+  border:1px solid rgba(232,226,214,.12);
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    radial-gradient(900px 650px at 50% 30%, rgba(232,226,214,.075), transparent 58%),
+    rgba(0,0,0,.18);
+  position:relative;
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.wall::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(900px 650px at 50% 30%, rgba(255,255,255,.06), transparent 60%);
+  opacity:.35;
+}
+.wallTop{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; flex-wrap:wrap;
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.72);
+  position:relative;
+  z-index:2;
+}
+.wallTitle{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:14px;
+}
+.counter{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  opacity:.72;
+}
+
+/* ✅ ONLY THIS AREA SCROLLS */
+.wallScroll{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.wallScroll::-webkit-scrollbar{width:0;height:0}
+
+.wallGrid{
+  padding:14px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+
+/* Cards (same as demo) */
+.card{
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(0,0,0,.22);
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  transform: translateZ(0);
+}
+.card::before{
+  content:"";
+  position:absolute; inset:-2px;
+  pointer-events:none;
+  background: radial-gradient(520px 240px at 30% 0%, rgba(255,255,255,.10), transparent 60%);
+  opacity:0;
+  transition: opacity .18s ease;
+}
+.card:hover{ border-color: rgba(232,226,214,.26); background: rgba(255,255,255,.03); }
+.card:hover::before{ opacity:.85; }
+
+.thumb{
+  aspect-ratio: 4 / 3;
+  width:100%;
+  background: rgba(255,255,255,.03);
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(232,226,214,.10);
+}
+.thumb img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  filter: saturate(.95) contrast(1.05);
+  opacity:.92;
+}
+.thumb .scan{
+  position:absolute; inset:0; pointer-events:none;
+  background: linear-gradient(180deg, transparent 0%, rgba(232,226,214,.22) 50%, transparent 100%);
+  opacity:.10;
+  transform: translateY(-60%);
+  animation: scan 5.2s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes scan{0%{transform:translateY(-70%)}100%{transform:translateY(80%)}}
+
+.cardBody{padding:12px 12px 11px; position:relative; z-index:2}
+.metaLine{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.78;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.cardTitle{
+  margin:8px 0 8px;
+  font-size:16px;
+  line-height:1.25;
+  opacity:.96;
+}
+.tags{display:flex; gap:8px; flex-wrap:wrap}
+.tag{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.13);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+
+/* Viewer: fixed column, internal scroll in content */
+.viewer{
+  position:relative;
+}
+.viewerMedia{
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(0,0,0,.22);
+  aspect-ratio: 4 / 3;
+  position:relative;
+  overflow:hidden;
+}
+.viewerMedia img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92;filter:saturate(.95) contrast(1.05);}
+.viewerMedia .grid{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.06) 0px, rgba(232,226,214,.06) 1px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 18px);
+  opacity:.20; mix-blend-mode:overlay;
+}
+.viewerContent{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:14px 16px 16px;
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.viewerContent::-webkit-scrollbar{width:0;height:0;}
+.kv{
+  display:flex; justify-content:space-between; gap:10px;
+  padding:6px 0;
+  border-top:1px dashed rgba(232,226,214,.12);
+}
+.kv:first-of-type{border-top:0;padding-top:0;}
+.k{font-family:var(--mono);text-transform:uppercase;letter-spacing:.10em;font-size:10px;opacity:.65;}
+.v{font-family:var(--mono);letter-spacing:.08em;font-size:10px;opacity:.92;text-align:right;}
+.excerpt{
+  margin:12px 0 0;
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.7;
+  letter-spacing:.05em;
+  white-space:pre-wrap;
+  opacity:.92;
+  text-shadow: 0 0 10px rgba(232,226,214,.08), 0 0 2px rgba(232,226,214,.08);
+}
+.viewerFooter{
+  border-top:1px solid rgba(232,226,214,.12);
+  padding:12px 16px;
+  background: rgba(10,10,10,.92);
+  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  position:relative;
+  z-index:2;
+}
+.link{
+  color:var(--ink);
+  text-decoration:none;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  padding:10px 12px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  opacity:.92;
+}
+.link:hover{opacity:1;background:rgba(255,255,255,.05)}
+
+/* Responsive */
+@media (max-width: 1100px){
+  .wrap{grid-template-columns: 260px 1fr}
+  .viewer{display:none}
+}
+@media (max-width: 860px){
+  .wrap{grid-template-columns:1fr}
+  .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));}
+}
+@media (max-width: 520px){
+  .siteHeader{height:calc(84px + env(safe-area-inset-top))}
+  .siteHeader img{height:44px}
+  .wallGrid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<header class="siteHeader" role="banner" aria-label="Primary">
+  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
+    <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
+  </a>
+</header>
+
+<div id="vitrine-bg" aria-hidden="true"></div>
+<div id="glass" aria-hidden="true"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <!-- LEFT: themes + filters -->
+    <aside class="panel" aria-label="Themes">
+      <div class="panelHeader">
+        <div class="kicker">studies / navigation</div>
+        <div class="titleRow">
+          <h2 class="h1">THEMES</h2>
+          <div class="pill" id="pillCount">— items</div>
+        </div>
+      </div>
+      <div class="panelBody leftScroll">
+        <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
+        <div class="hr"></div>
+        <div class="row" id="themeRow"></div>
+        <div class="hr"></div>
+        <div class="row">
+          <button class="btn" id="btnSort">Sort: newest</button>
+          <button class="btn" id="btnReset">Reset</button>
+        </div>
+        <div style="height:12px"></div>
+        <div class="smallHint" id="hint">Scroll happens inside the wall.</div>
+      </div>
+    </aside>
+
+    <!-- CENTER: wall (fixed shell, internal scroll) -->
+    <section class="wall" aria-label="Project wall">
+      <div class="wallTop">
+        <h3 class="wallTitle">PROJECT WALL</h3>
+        <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
+      </div>
+      <div class="wallScroll" id="wallScroll">
+        <div class="wallGrid" id="grid"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: viewer (fixed column) -->
+    <aside class="panel viewer" aria-label="Viewer" id="viewer">
+      <div class="panelHeader">
+        <div class="kicker">retrieval / viewer</div>
+        <div class="titleRow">
+          <h2 class="h1" id="vTitle">SELECT A PROJECT</h2>
+          <div class="pill" id="vTheme">—</div>
+        </div>
+      </div>
+
+      <div class="viewerMedia">
+        <img id="vImg" alt="" src="" style="display:none">
+        <div class="grid" aria-hidden="true"></div>
+      </div>
+
+      <div class="viewerContent">
+        <div id="vMeta"></div>
+        <div class="hr"></div>
+        <div class="excerpt" id="vText">Use the wall to open an entry.</div>
+      </div>
+
+      <div class="viewerFooter">
+        <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
+        <button class="btn" id="vCopy" disabled>Copy</button>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+/* ===== Demo data (replace with real projects) ===== */
+const PROJECTS = [
+  {
+    id:"PR-0001",
+    title:"Konvent — community as infrastructure",
+    year:2024,
+    place:"Catalonia",
+    theme:"Public Space / Territory",
+    tags:["community","residency","territory"],
+    thumb:"https://inside.jofrearchive.com/konvent.gif",
+    images:[
+      "https://inside.jofrearchive.com/konvent.gif",
+      "http://inside.jofrearchive.com/assets/images/konvent-landscape.gif"
+    ],
+    excerpt:
+`Konvent as a living institution: a territory-based community that produces culture through autonomy.
+Focus: constraints, self-organization, and the material conditions of freedom.`,
+    link:"#"
+  },
+  {
+    id:"PR-0002",
+    title:"Identity as procedural fiction",
+    year:2026,
+    place:"—",
+    theme:"Language / Law / Symbols",
+    tags:["law","identity","language"],
+    thumb:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect width='100%25' height='100%25' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%23e8e2d6' stroke-opacity='.22'%3E%3Cpath d='M70 90 H280'/%3E%3Cpath d='M70 130 H520'/%3E%3Cpath d='M70 170 H420'/%3E%3Cpath d='M70 210 H560'/%3E%3Cpath d='M70 250 H360'/%3E%3C/g%3E%3Ctext x='70' y='330' fill='%23e8e2d6' fill-opacity='.75' font-family='monospace' font-size='18'%3ETHOUGHT / LEGAL FICTION%3C/text%3E%3C/svg%3E",
+    images:[],
+    excerpt:
+`A study on how legal identity operates as equivalence: the recognition of a fiction as a body.
+Identity as subordination to a system of procedures.`,
+    link:"#"
+  },
+  {
+    id:"PR-0003",
+    title:"Cellulose solar panel (screen-print tests)",
+    year:2024,
+    place:"India / Spain",
+    theme:"Bioenergy / Materials",
+    tags:["cellulose","serigraphy","solar"],
+    thumb:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect width='100%25' height='100%25' fill='%230a0a0a'/%3E%3Cg stroke='%23e8e2d6' stroke-opacity='.2'%3E%3Cpath d='M80 120 C220 40, 360 260, 520 120' fill='none'/%3E%3Cpath d='M120 210 C260 130, 400 350, 560 210' fill='none'/%3E%3Cpath d='M160 300 C300 220, 440 440, 600 300' fill='none'/%3E%3C/g%3E%3Ctext x='80' y='520' fill='%23e8e2d6' fill-opacity='.75' font-family='monospace' font-size='18'%3EMATERIAL / CELLULOSE%3C/text%3E%3C/svg%3E",
+    images:[],
+    excerpt:
+`Translucent cellulose substrate + conductive layers (N/P). Goal: flexible, transparent panel logic.
+Key issue: layer count vs opacity; conduction vs light transmission.`,
+    link:"#"
+  },
+  {
+    id:"PR-0004",
+    title:"Archive interface as instrument",
+    year:2026,
+    place:"—",
+    theme:"Devices / Interfaces",
+    tags:["oscilloscope","grid","interface"],
+    thumb:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect width='100%25' height='100%25' fill='%230a0a0a'/%3E%3Cg stroke='%23e8e2d6' stroke-opacity='.14'%3E%3Cpath d='M0 100 H800'/%3E%3Cpath d='M0 200 H800'/%3E%3Cpath d='M0 300 H800'/%3E%3Cpath d='M0 400 H800'/%3E%3Cpath d='M100 0 V600'/%3E%3Cpath d='M200 0 V600'/%3E%3Cpath d='M300 0 V600'/%3E%3Cpath d='M400 0 V600'/%3E%3Cpath d='M500 0 V600'/%3E%3Cpath d='M600 0 V600'/%3E%3Cpath d='M700 0 V600'/%3E%3C/g%3E%3Ctext x='70' y='520' fill='%23e8e2d6' fill-opacity='.75' font-family='monospace' font-size='18'%3EDEVICE / SCREEN%3C/text%3E%3C/svg%3E",
+    images:[],
+    excerpt:
+`The wall is a measurement surface. The viewer is retrieval: metadata + signal.
+A project page behaves like an instrument rather than a brochure.`,
+    link:"#"
+  },
+  {
+    id:"PR-0005",
+    title:"Sustained frequencies studies",
+    year:2024,
+    place:"—",
+    theme:"Sound / Frequencies",
+    tags:["minimalism","tone","listening"],
+    thumb:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='600'%3E%3Crect width='100%25' height='100%25' fill='%230a0a0a'/%3E%3Cpath d='M60 420 C160 220, 240 520, 340 320 S520 420, 620 220 S720 520, 760 320' stroke='%23e8e2d6' stroke-opacity='.42' fill='none'/%3E%3Ctext x='60' y='520' fill='%23e8e2d6' fill-opacity='.75' font-family='monospace' font-size='18'%3EAUDIO / SUSTAINED TONE%3C/text%3E%3C/svg%3E",
+    images:[],
+    excerpt:
+`Research into long minimal tones and frequency-centered listening.
+Focus: sustained single-frequency structures, psychoacoustic perception, and narrative trance.`,
+    link:"#"
+  }
+];
+
+/* ===== Themes ===== */
+const THEMES = ["All",
+  "Language / Law / Symbols",
+  "Bioenergy / Materials",
+  "Public Space / Territory",
+  "Devices / Interfaces",
+  "Sound / Frequencies"
+];
+
+/* ===== State ===== */
+let state = { theme:"All", q:"", newestFirst:true, openId:null };
+
+/* ===== DOM ===== */
+const themeRow = document.getElementById("themeRow");
+const qEl = document.getElementById("q");
+const grid = document.getElementById("grid");
+const shownEl = document.getElementById("shown");
+const totalEl = document.getElementById("total");
+const pillCount = document.getElementById("pillCount");
+const btnSort = document.getElementById("btnSort");
+const btnReset = document.getElementById("btnReset");
+
+const vTitle = document.getElementById("vTitle");
+const vTheme = document.getElementById("vTheme");
+const vImg = document.getElementById("vImg");
+const vMeta = document.getElementById("vMeta");
+const vText = document.getElementById("vText");
+const vLink = document.getElementById("vLink");
+const vCopy = document.getElementById("vCopy");
+
+/* ===== Helpers ===== */
+function norm(s){ return String(s||"").toLowerCase().trim(); }
+function escapeHtml(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function filtered(){
+  let items = [...PROJECTS];
+  if(state.theme !== "All") items = items.filter(p => p.theme === state.theme);
+  if(state.q){
+    const q = norm(state.q);
+    items = items.filter(p => norm([p.id,p.title,p.year,p.place,p.theme,(p.tags||[]).join(" "),p.excerpt].join(" ")).includes(q));
+  }
+  items.sort((a,b)=> state.newestFirst ? (b.year - a.year) : (a.year - b.year));
+  return items;
+}
+
+/* ===== Render themes ===== */
+function renderThemes(){
+  themeRow.innerHTML = "";
+  THEMES.forEach(t=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = "btn" + (t === state.theme ? " active" : "");
+    b.textContent = (t === "All") ? "All" : t.split(" / ")[0];
+    b.title = t;
+    b.addEventListener("click", ()=>{ state.theme = t; renderAll(true); });
+    themeRow.appendChild(b);
+  });
+}
+
+/* ===== Wall ===== */
+function renderWall(keepSelection){
+  const items = filtered();
+  totalEl.textContent = PROJECTS.length;
+  shownEl.textContent = items.length;
+  pillCount.textContent = PROJECTS.length + " items";
+
+  grid.innerHTML = "";
+  items.forEach(p=>{
+    const el = document.createElement("div");
+    el.className = "card";
+    el.tabIndex = 0;
+    el.setAttribute("role","button");
+    el.innerHTML = `
+      <div class="thumb">
+        <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
+        <div class="scan" aria-hidden="true"></div>
+      </div>
+      <div class="cardBody">
+        <div class="metaLine"><span>${escapeHtml(p.theme)}</span><span>${escapeHtml(p.year)}</span></div>
+        <div class="cardTitle">${escapeHtml(p.title)}</div>
+        <div class="tags">${(p.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+      </div>
+    `;
+    el.addEventListener("click", ()=> openProject(p.id));
+    el.addEventListener("keydown",(e)=>{
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
+    });
+    grid.appendChild(el);
+  });
+
+  if(items.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "smallHint";
+    empty.style.padding = "14px";
+    empty.textContent = "No matches.";
+    grid.appendChild(empty);
+    state.openId = null;
+    setViewerEmpty();
+    return;
+  }
+
+  // Keep selection or open first visible (desktop)
+  if(keepSelection && state.openId && items.find(x=>x.id===state.openId)){
+    // keep current
+    return;
+  }
+  if(!state.openId || !items.find(x=>x.id===state.openId)){
+    openProject(items[0].id);
+  }
+}
+
+/* ===== Viewer ===== */
+function kvRow(k,v){
+  return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`;
+}
+function setViewerEmpty(){
+  vTitle.textContent = "SELECT A PROJECT";
+  vTheme.textContent = "—";
+  vText.textContent = "Use the wall to open an entry.";
+  vMeta.innerHTML = "";
+  vImg.style.display = "none";
+  vImg.src = "";
+  vLink.style.display = "none";
+  vCopy.disabled = true;
+}
+function fillViewer(p){
+  vTitle.textContent = p.title.toUpperCase();
+  vTheme.textContent = p.theme.split(" / ")[0].toUpperCase();
+
+  vMeta.innerHTML =
+    kvRow("ID", p.id) +
+    kvRow("THEME", p.theme) +
+    kvRow("YEAR", String(p.year)) +
+    kvRow("PLACE", p.place || "—") +
+    kvRow("TAGS", (p.tags||[]).join(", ") || "—");
+
+  vText.textContent = p.excerpt || "—";
+
+  const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  if(imgSrc){
+    vImg.style.display = "block";
+    vImg.src = imgSrc;
+    vImg.alt = p.title;
+  }else{
+    vImg.style.display = "none";
+    vImg.src = "";
+  }
+
+  if(p.link && p.link !== "#"){
+    vLink.style.display = "inline-block";
+    vLink.href = p.link;
+  }else{
+    vLink.style.display = "none";
+  }
+
+  vCopy.disabled = false;
+}
+function openProject(id){
+  const p = PROJECTS.find(x=>x.id===id);
+  if(!p) return;
+  state.openId = id;
+  fillViewer(p);
+}
+
+/* ===== Events ===== */
+qEl.addEventListener("input",(e)=>{
+  state.q = e.target.value;
+  state.openId = null;
+  renderAll(false);
+});
+btnSort.addEventListener("click", ()=>{
+  state.newestFirst = !state.newestFirst;
+  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
+  state.openId = null;
+  renderAll(false);
+});
+btnReset.addEventListener("click", ()=>{
+  state.theme = "All";
+  state.q = "";
+  state.newestFirst = true;
+  state.openId = null;
+  qEl.value = "";
+  btnSort.textContent = "Sort: newest";
+  renderAll(false);
+  setViewerEmpty();
+});
+
+/* Copy */
+async function copyPayload(){
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  if(!p) return false;
+  const payload = `${p.title}\n${p.id} · ${p.theme} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
+  try{ await navigator.clipboard.writeText(payload); return true; }
+  catch(_){ return false; }
+}
+vCopy.addEventListener("click", async ()=>{
+  const ok = await copyPayload();
+  vCopy.textContent = ok ? "Copied" : "Blocked";
+  setTimeout(()=> vCopy.textContent = "Copy", 900);
+});
+
+/* Init */
+function renderAll(keepSelection){
+  renderThemes();
+  renderWall(keepSelection);
+}
+setViewerEmpty();
+renderAll(false);
+</script>
+</body>
+</html>
