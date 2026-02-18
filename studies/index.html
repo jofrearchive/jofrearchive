@@ -901,7 +901,12 @@ renderAll(false);
   const isMobile = isCoarse || uaMobile || (noHover && smallW);
   if(!isMobile) return;
 
+  // Show black screen + Enable VR overlay on mobile
+  document.body.classList.add("bab3d-ready");
+  // (root exists in DOM; CSS shows it in bab3d-ready)
+
   const root = document.getElementById("babylonRoot");
+  if(root) root.setAttribute("aria-hidden","false");
   const canvas = document.getElementById("babylonCanvas");
   const hud = document.getElementById("babHud");
   const hint = document.getElementById("babHint");
@@ -935,6 +940,7 @@ renderAll(false);
     if(_inited) return;
     _inited = true;
 
+    document.body.classList.remove("bab3d-ready");
     document.body.classList.add("bab3d-on");
     root.setAttribute("aria-hidden","false");
     if(startOverlay) startOverlay.style.display = "none";
