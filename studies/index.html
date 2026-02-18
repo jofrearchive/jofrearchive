@@ -510,6 +510,8 @@ body.bab3d-on #babHud, body.bab3d-on #babHint{ display:flex; }
 body.bab3d-on #babHint{ display:block; }
 
 
+
+#babStartBtn:active{ transform: translateY(1px); }
 </style>
 </head>
 
@@ -870,7 +872,7 @@ renderAll(false);
       linear-gradient(180deg, rgba(255,255,255,.04), transparent 55%, rgba(0,0,0,.75)),
       #0b0b0b;
   ">
-    <button type="button" id="babStartBtn" onclick="window.__babEnableVR && window.__babEnableVR()" style="pointer-events:auto;
+    <button type="button" id="babStartBtn" onclick="this.textContent='Starting…'; this.style.opacity='0.7'; var d=document.getElementById('babDebug'); if(d){d.textContent='CLICK OK: starting init';} if(window.__babEnableVR){window.__babEnableVR();} else { if(d){d.textContent='CLICK OK but __babEnableVR missing (JS not running?)';}}" style="pointer-events:auto;
       
       all:unset; cursor:pointer;
       padding:14px 18px;
