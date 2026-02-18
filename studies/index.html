@@ -856,11 +856,13 @@ renderAll(false);
 <script>
 (function(){
   // Mobile-only activation
-  const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 920;
   const ua = navigator.userAgent || "";
+  const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
+  const smallW = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
   const uaMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-  const isMobile = isCoarse || isSmall || uaMobile;
+  // Only enable on real touch devices or truly small no-hover screens
+  const isMobile = isCoarse || uaMobile || (noHover && smallW);
   if(!isMobile) return;
 
   const root = document.getElementById("babylonRoot");
@@ -904,6 +906,7 @@ renderAll(false);
   // Camera: use DeviceOrientationCamera when available (magic-window VR feel)
   const cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.6, 0), scene);
   cam.attachControl(canvas, true);
+  cam.setTarget(new BABYLON.Vector3(0, 1.6, 10));
   cam.minZ = 0.05;
   cam.speed = 0;
   cam.angularSensibility = 2000;
@@ -913,7 +916,7 @@ renderAll(false);
 
   // Simple dome (dish feel)
   const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.5}, scene);
-  dome.position = new BABYLON.Vector3(0, 0, 0);
+  dome.position = new BABYLON.Vector3(0, 0, 6);
   dome.rotation = new BABYLON.Vector3(0, Math.PI, 0);
   const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
   domeMat.backFaceCulling = false;
@@ -945,13 +948,16 @@ renderAll(false);
 
     function setArc(mesh, a){
       const x = Math.sin(a) * R;
-      const z = -Math.cos(a) * R;
+      const z = Math.cos(a) * R;
       mesh.position.set(x, 1.6, z);
     }
     setArc(panelL, -spread);
     setArc(panelM, 0);
     setArc(panelR, spread);
-    panelM.position.z += 0.35;
+    // Pull the arc closer to the camera
+    panelL.position.z += 1.2;
+    panelM.position.z += 1.55;
+    panelR.position.z += 1.2;
   }
   placePanels();
 
