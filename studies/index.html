@@ -440,7 +440,7 @@ body::after{
 }
 #vrState{ opacity:.65; text-transform:uppercase; }
 
-@media (pointer:coarse) and (hover:none) and (max-width: 900px){
+@media (pointer:coarse) and (hover:none){
   /* Hide your desktop layout on real mobile only */
   body{ overflow:hidden; height:100vh; }
   #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
@@ -793,10 +793,19 @@ renderAll(false);
 <script>
 (function(){
   // Real-mobile gate (same logic as CSS)
-  const isMobile =
-    window.matchMedia("(pointer: coarse)").matches &&
-    window.matchMedia("(hover: none)").matches &&
-    window.matchMedia("(max-width: 900px)").matches;
+  const ua = navigator.userAgent || "";
+const tp = navigator.maxTouchPoints || 0;
+const uaMobile = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
+const iPadMasq = /Macintosh/i.test(ua) && tp > 1;
+
+const coarse = window.matchMedia("(pointer: coarse)").matches;
+const noHover = window.matchMedia("(hover: none)").matches;
+
+// Avoid activating on desktop OS even if touch-capable (Surface etc.)
+const desktopOS = (/Windows NT/i.test(ua) || (/Mac OS X/i.test(ua) && !iPadMasq));
+
+// No screen-size logic. Must have touch + (coarse&noHover OR UA mobile OR iPad masquerade) and not desktop OS.
+const isMobile = (tp > 0) && (((coarse && noHover) || uaMobile || iPadMasq)) && !desktopOS;
 
   if(!isMobile) return;
 
@@ -931,94 +940,9 @@ renderAll(false);
       dome.material = domeMat;
 
       // Panels in a concave arc (parabolic feel) — visible Babylon GUI
-            function makeGuiPanel(name, w, h, title){
-        // Shared UI state (created once; reused by the 3 panels).
-        // NOTE: we only touch GUI here, nothing else in the VR infrastructure.
-        const UI = (window.__VR_UI = window.__VR_UI || {});
-        if(!UI.__inited){
-          UI.__inited = true;
-
-          // ---------- Mock data (replace later with real data) ----------
-          UI.categories = ["All","BioSystems","Landscape","Dystopic Pop Art","Cymatics","Public Art","Murals"];
-          UI.projects = [
-            { id:"BIO-0001", title:"Cellulose solar panel (screen-print tests)", year:2024, date:"2024", category:"BioSystems", tags:["cellulose","serigraphy","solar"],
-              excerpt:"Translucent cellulose substrate + conductive layers (N/P).
-Flexible, transparent panel logic.
-
-Goal: low-cost, printable, bio-derived photovoltaics." },
-            { id:"LAN-0001", title:"Leaf-pattern cartography studies", year:2025, date:"2025", category:"Landscape", tags:["plants","pattern","territory"],
-              excerpt:"Landscape read as sediment: layers of presence across territories.
-Leaves as diagram: veins, flows, and memory lines." },
-            { id:"DPA-0001", title:"Carnival of progress (dystopic pop)", year:2024, date:"2024", category:"Dystopic Pop Art", tags:["carnival","critique","spectacle"],
-              excerpt:"Modern society as a carnival: colorful attractions and lights, lacking depth.
-Seduction + collapse." },
-            { id:"CYM-0001", title:"Cymatics studies (frequency patterns)", year:2024, date:"2024", category:"Cymatics", tags:["frequency","pattern","sound"],
-              excerpt:"Cymatic diagrams as visual proof of vibration.
-Signal becomes geometry." },
-            { id:"PUB-0001", title:"Konvent — community as infrastructure", year:2024, date:"2024", category:"Public Art", tags:["community","residency","territory"],
-              excerpt:"Konvent as a living institution: territory-based community producing culture through autonomy.
-Constraints, self-organization, and the material conditions of freedom." },
-            { id:"MUR-0001", title:"Trajectory — walls as coordinates", year:2025, date:"2025", category:"Murals", tags:["wall","cartography","site"],
-              excerpt:"From 2012 to 2025, the trajectory can be read not as chronology, but as sediment.
-The mural as imprint and encounter." }
-          ];
-
-          UI.state = { category:"All", selectedId: UI.projects[0]?.id || null };
-
-          // ---------- Style tokens (match desktop layout) ----------
-          UI.S = {
-            ink: "#e8e2d6",
-            muted: "rgba(232,226,214,0.72)",
-            line: "rgba(255,255,255,0.16)",
-            line2: "rgba(255,255,255,0.12)",
-            panelBg: "rgba(15,15,15,0.78)",
-            chipBg: "rgba(255,255,255,0.03)",
-            chipBgActive: "rgba(255,255,255,0.08)",
-            serif: "EB Garamond, serif",
-            mono: "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-          };
-
-          UI.panels = { categories:null, wall:null, viewer:null };
-
-          UI.filteredProjects = function(){
-            const st = UI.state;
-            let items = UI.projects.slice();
-            if(st.category && st.category !== "All"){
-              items = items.filter(p => p.category === st.category);
-            }
-            // newest first for now (matches your desktop default)
-            items.sort((a,b)=> (b.year||0) - (a.year||0));
-            return items;
-          };
-
-          UI.selectProject = function(id){
-            const p = UI.projects.find(x => x.id === id);
-            if(!p) return;
-            UI.state.selectedId = id;
-            UI.renderAll();
-          };
-
-          UI.setCategory = function(cat){
-            UI.state.category = cat;
-            const items = UI.filteredProjects();
-            UI.state.selectedId = (items[0]?.id) || null;
-            UI.renderAll();
-          };
-
-          UI.renderAll = function(){
-            if(UI.panels.categories) UI.panels.categories.render();
-            if(UI.panels.wall) UI.panels.wall.render();
-            if(UI.panels.viewer) UI.panels.viewer.render();
-          };
-        }
-
-        // ---------- Mesh + base frame ----------
-        const mesh = BABYLON.MeshBuilder.CreatePlane(
-          name,
-          {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE},
-          scene
-        );
-        // Flip mesh so GUI is not mirrored (keep your existing fix)
+      function makeGuiPanel(name, w, h, title){
+        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        // Flip the mesh so text is not mirrored, without breaking GUI layout
         mesh.scaling.x = -1;
 
         const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
@@ -1030,435 +954,39 @@ The mural as imprint and encounter." }
         mesh.material = mat;
 
         const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 900, 1200, false);
-
         const frame = new BABYLON.GUI.Rectangle(name+"_frame");
         frame.width = 0.92;
         frame.height = 0.92;
         frame.thickness = 1;
         frame.cornerRadius = 28;
-        frame.color = UI.S.line;
-        frame.background = UI.S.panelBg;
-        frame.isPointerBlocker = true;
+        frame.color = "rgba(255,255,255,0.16)";
+        frame.background = "rgba(15,15,15,0.78)";
         adt.addControl(frame);
 
-        // Header (title)
         const header = new BABYLON.GUI.TextBlock(name+"_hdr", title);
-        header.height = "76px";
-        header.top = "-41.7%";
-        header.color = UI.S.ink;
-        header.fontFamily = UI.S.serif;
-        header.fontSize = 44;
+        header.height = "70px";
+        header.top = "-42%";
+        header.color = "#e8e2d6";
+        header.fontFamily = "EB Garamond, serif";
+        header.fontSize = 42;
+        header.letterSpacing = "0px";
         header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         header.paddingLeft = "34px";
         frame.addControl(header);
 
-        // Subtle header divider
-        const divider = new BABYLON.GUI.Rectangle(name+"_div");
-        divider.width = 0.86;
-        divider.height = "2px";
-        divider.thickness = 0;
-        divider.background = "rgba(255,255,255,0.12)";
-        divider.top = "-33%";
-        frame.addControl(divider);
-
-        // Content root
-        const root = new BABYLON.GUI.Rectangle(name+"_root");
-        root.width = 0.90;
-        root.height = 0.76;
-        root.top = "8%";
-        root.thickness = 0;
-        root.background = "transparent";
-        frame.addControl(root);
-
-        // Helpers
-        function mkCapsule(label, onClick){
-          const btn = new BABYLON.GUI.Rectangle("cap_"+label);
-          btn.height = "62px";
-          btn.width = 1;
-          btn.thickness = 1;
-          btn.cornerRadius = 38;
-          btn.color = "rgba(232,226,214,0.22)";
-          btn.background = UI.S.chipBg;
-          btn.isPointerBlocker = true;
-          btn.paddingLeft = "0px";
-          btn.paddingRight = "0px";
-
-          const t = new BABYLON.GUI.TextBlock("cap_t_"+label, label);
-          t.color = UI.S.ink;
-          t.fontFamily = UI.S.mono;
-          t.fontSize = 20;
-          t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-          t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-          t.textWrapping = true;
-          btn.addControl(t);
-
-          btn.onPointerEnterObservable.add(()=>{ btn.alpha = 1; btn.background = "rgba(255,255,255,0.05)"; });
-          btn.onPointerOutObservable.add(()=>{ btn.alpha = 1; /* restored by renderActive() */ });
-          btn.onPointerUpObservable.add(()=>{ try{ onClick && onClick(); }catch(e){} });
-
-          btn.__setActive = (active)=>{
-            btn.background = active ? UI.S.chipBgActive : UI.S.chipBg;
-            btn.color = active ? "rgba(232,226,214,0.40)" : "rgba(232,226,214,0.22)";
-          };
-          return btn;
-        }
-
-        function mkSmallMono(text, opacity=0.72){
-          const tb = new BABYLON.GUI.TextBlock("mono_"+Math.random().toString(36).slice(2), text);
-          tb.color = opacity >= 1 ? UI.S.ink : UI.S.muted;
-          tb.alpha = opacity >= 1 ? 1 : opacity / 0.72;
-          tb.fontFamily = UI.S.mono;
-          tb.fontSize = 18;
-          tb.textWrapping = true;
-          tb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          return tb;
-        }
-
-        function mkCard(p){
-          const card = new BABYLON.GUI.Rectangle("card_"+p.id);
-          card.height = "190px";
-          card.width = 1;
-          card.thickness = 1;
-          card.cornerRadius = 18;
-          card.color = "rgba(232,226,214,0.14)";
-          card.background = "rgba(0,0,0,0.22)";
-          card.isPointerBlocker = true;
-          card.paddingLeft = "18px";
-          card.paddingRight = "18px";
-          card.paddingTop = "14px";
-          card.paddingBottom = "14px";
-
-          const stack = new BABYLON.GUI.StackPanel("card_stack_"+p.id);
-          stack.isVertical = true;
-          stack.width = 1;
-          stack.height = 1;
-          stack.spacing = 6;
-          stack.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          card.addControl(stack);
-
-          const meta = new BABYLON.GUI.TextBlock("card_meta_"+p.id, (p.category||"").toUpperCase() + " · " + String(p.year||""));
-          meta.fontFamily = UI.S.mono;
-          meta.fontSize = 16;
-          meta.letterSpacing = "1px";
-          meta.color = "rgba(232,226,214,0.78)";
-          meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          meta.height = "28px";
-          stack.addControl(meta);
-
-          const titleTb = new BABYLON.GUI.TextBlock("card_title_"+p.id, p.title || "—");
-          titleTb.fontFamily = UI.S.serif;
-          titleTb.fontSize = 36;
-          titleTb.color = UI.S.ink;
-          titleTb.height = "72px";
-          titleTb.textWrapping = true;
-          titleTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.addControl(titleTb);
-
-          const tagsTb = new BABYLON.GUI.TextBlock("card_tags_"+p.id, (p.tags||[]).slice(0,3).join("  ·  "));
-          tagsTb.fontFamily = UI.S.mono;
-          tagsTb.fontSize = 15;
-          tagsTb.letterSpacing = "1px";
-          tagsTb.color = "rgba(232,226,214,0.68)";
-          tagsTb.height = "28px";
-          tagsTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.addControl(tagsTb);
-
-          card.onPointerEnterObservable.add(()=>{
-            card.color = "rgba(232,226,214,0.28)";
-            card.background = "rgba(255,255,255,0.03)";
-          });
-          card.onPointerOutObservable.add(()=>{
-            // restore selection styling in render()
-            if(UI.state.selectedId !== p.id){
-              card.color = "rgba(232,226,214,0.14)";
-              card.background = "rgba(0,0,0,0.22)";
-            }
-          });
-          card.onPointerUpObservable.add(()=> UI.selectProject(p.id));
-
-          card.__setActive = (active)=>{
-            if(active){
-              card.color = "rgba(232,226,214,0.40)";
-              card.background = "rgba(255,255,255,0.06)";
-            }else{
-              card.color = "rgba(232,226,214,0.14)";
-              card.background = "rgba(0,0,0,0.22)";
-            }
-          };
-
-          return card;
-        }
-
-        // ---------- Panel: Categories ----------
-        if((title||"").toLowerCase().includes("categories")){
-          const panel = UI.panels.categories || {};
-          UI.panels.categories = panel;
-
-          const stack = new BABYLON.GUI.StackPanel(name+"_cat_stack");
-          stack.isVertical = true;
-          stack.spacing = 10;
-          stack.width = 1;
-          stack.height = 1;
-          stack.paddingLeft = "10px";
-          stack.paddingRight = "10px";
-          stack.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          root.addControl(stack);
-
-          // Small kicker
-          const kicker = new BABYLON.GUI.TextBlock(name+"_kicker", "studies / navigation");
-          kicker.fontFamily = UI.S.mono;
-          kicker.fontSize = 14;
-          kicker.letterSpacing = "2px";
-          kicker.color = "rgba(232,226,214,0.62)";
-          kicker.height = "26px";
-          kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.addControl(kicker);
-
-          const hint = new BABYLON.GUI.TextBlock(name+"_hint", "Tap a category to filter the wall.");
-          hint.fontFamily = UI.S.mono;
-          hint.fontSize = 16;
-          hint.color = "rgba(232,226,214,0.62)";
-          hint.height = "34px";
-          hint.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.addControl(hint);
-
-          // Scrollable categories (so it never overflows)
-          const sv = new BABYLON.GUI.ScrollViewer(name+"_cat_sv");
-          sv.width = 1;
-          sv.height = "82%";
-          sv.thickness = 0;
-          sv.barSize = 8;
-          sv.thumbLength = 0.28;
-          sv.barColor = "rgba(255,255,255,0.10)";
-          sv.thumbColor = "rgba(232,226,214,0.22)";
-          sv.wheelPrecision = 0.02;
-          stack.addControl(sv);
-
-          const inner = new BABYLON.GUI.StackPanel(name+"_cat_inner");
-          inner.isVertical = true;
-          inner.spacing = 10;
-          inner.paddingLeft = "4px";
-          inner.paddingRight = "8px";
-          sv.addControl(inner);
-
-          const btns = [];
-          UI.categories.forEach(cat=>{
-            const b = mkCapsule(cat.toUpperCase(), ()=> UI.setCategory(cat));
-            inner.addControl(b);
-            btns.push({cat, b});
-          });
-
-          panel.render = function(){
-            btns.forEach(({cat,b})=> b.__setActive(cat === UI.state.category));
-          };
-
-          panel.render();
-        }
-
-        // ---------- Panel: Project Wall ----------
-        else if((title||"").toLowerCase().includes("project wall")){
-          const panel = UI.panels.wall || {};
-          UI.panels.wall = panel;
-
-          const top = new BABYLON.GUI.StackPanel(name+"_wall_top");
-          top.isVertical = true;
-          top.spacing = 8;
-          top.width = 1;
-          top.height = "86px";
-          top.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          root.addControl(top);
-
-          const row = new BABYLON.GUI.StackPanel(name+"_wall_row");
-          row.isVertical = false;
-          row.height = "34px";
-          row.width = 1;
-          row.spacing = 10;
-          top.addControl(row);
-
-          const wallLabel = new BABYLON.GUI.TextBlock(name+"_wall_lbl", "PROJECT WALL");
-          wallLabel.fontFamily = UI.S.mono;
-          wallLabel.fontSize = 18;
-          wallLabel.letterSpacing = "2px";
-          wallLabel.color = "rgba(232,226,214,0.78)";
-          wallLabel.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          wallLabel.width = "62%";
-          row.addControl(wallLabel);
-
-          const counter = new BABYLON.GUI.TextBlock(name+"_wall_count", "—");
-          counter.fontFamily = UI.S.mono;
-          counter.fontSize = 16;
-          counter.letterSpacing = "1px";
-          counter.color = "rgba(232,226,214,0.62)";
-          counter.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-          counter.width = "38%";
-          row.addControl(counter);
-
-          const sub = new BABYLON.GUI.TextBlock(name+"_wall_sub", "Tap a card to open it in Viewer.");
-          sub.fontFamily = UI.S.mono;
-          sub.fontSize = 16;
-          sub.color = "rgba(232,226,214,0.62)";
-          sub.height = "34px";
-          sub.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          top.addControl(sub);
-
-          const sv = new BABYLON.GUI.ScrollViewer(name+"_wall_sv");
-          sv.width = 1;
-          sv.height = "86%";
-          sv.thickness = 0;
-          sv.barSize = 8;
-          sv.thumbLength = 0.28;
-          sv.barColor = "rgba(255,255,255,0.10)";
-          sv.thumbColor = "rgba(232,226,214,0.22)";
-          sv.wheelPrecision = 0.02;
-          root.addControl(sv);
-
-          const inner = new BABYLON.GUI.StackPanel(name+"_wall_inner");
-          inner.isVertical = true;
-          inner.spacing = 12;
-          inner.paddingLeft = "10px";
-          inner.paddingRight = "14px";
-          inner.paddingTop = "6px";
-          sv.addControl(inner);
-
-          let cards = [];
-          panel.render = function(){
-            inner.clearControls();
-            cards = [];
-            const items = UI.filteredProjects();
-            counter.text = String(items.length) + " / " + String(UI.projects.length);
-
-            if(items.length === 0){
-              const empty = mkSmallMono("No matches for this category.", 0.72);
-              empty.height = "40px";
-              inner.addControl(empty);
-              return;
-            }
-
-            items.forEach(p=>{
-              const c = mkCard(p);
-              inner.addControl(c);
-              cards.push({id:p.id, c});
-            });
-
-            cards.forEach(({id,c})=> c.__setActive(id === UI.state.selectedId));
-          };
-
-          panel.render();
-        }
-
-        // ---------- Panel: Viewer ----------
-        else {
-          const panel = UI.panels.viewer || {};
-          UI.panels.viewer = panel;
-
-          const wrap = new BABYLON.GUI.StackPanel(name+"_view_wrap");
-          wrap.isVertical = true;
-          wrap.spacing = 10;
-          wrap.width = 1;
-          wrap.height = 1;
-          wrap.paddingLeft = "16px";
-          wrap.paddingRight = "16px";
-          wrap.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          root.addControl(wrap);
-
-          const titleTb = new BABYLON.GUI.TextBlock(name+"_v_title", "SELECT A PROJECT");
-          titleTb.fontFamily = UI.S.serif;
-          titleTb.fontSize = 44;
-          titleTb.color = UI.S.ink;
-          titleTb.height = "96px";
-          titleTb.textWrapping = true;
-          titleTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          wrap.addControl(titleTb);
-
-          const metaRow = new BABYLON.GUI.StackPanel(name+"_v_metaRow");
-          metaRow.isVertical = false;
-          metaRow.height = "34px";
-          metaRow.width = 1;
-          metaRow.spacing = 10;
-          wrap.addControl(metaRow);
-
-          const dateTb = new BABYLON.GUI.TextBlock(name+"_v_date", "—");
-          dateTb.fontFamily = UI.S.mono;
-          dateTb.fontSize = 16;
-          dateTb.letterSpacing = "1px";
-          dateTb.color = "rgba(232,226,214,0.72)";
-          dateTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          dateTb.width = "40%";
-          metaRow.addControl(dateTb);
-
-          const catTb = new BABYLON.GUI.TextBlock(name+"_v_cat", "—");
-          catTb.fontFamily = UI.S.mono;
-          catTb.fontSize = 16;
-          catTb.letterSpacing = "1px";
-          catTb.color = "rgba(232,226,214,0.72)";
-          catTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-          catTb.width = "60%";
-          metaRow.addControl(catTb);
-
-          const line = new BABYLON.GUI.Rectangle(name+"_v_line");
-          line.height = "2px";
-          line.width = 1;
-          line.thickness = 0;
-          line.background = "rgba(255,255,255,0.12)";
-          wrap.addControl(line);
-
-          const sv = new BABYLON.GUI.ScrollViewer(name+"_v_sv");
-          sv.width = 1;
-          sv.height = "64%";
-          sv.thickness = 0;
-          sv.barSize = 8;
-          sv.thumbLength = 0.28;
-          sv.barColor = "rgba(255,255,255,0.10)";
-          sv.thumbColor = "rgba(232,226,214,0.22)";
-          sv.wheelPrecision = 0.02;
-          wrap.addControl(sv);
-
-          const inner = new BABYLON.GUI.StackPanel(name+"_v_inner");
-          inner.isVertical = true;
-          inner.spacing = 10;
-          inner.paddingRight = "10px";
-          sv.addControl(inner);
-
-          const excerptTb = new BABYLON.GUI.TextBlock(name+"_v_text", "Use the wall to open an entry.");
-          excerptTb.fontFamily = UI.S.mono;
-          excerptTb.fontSize = 20;
-          excerptTb.lineSpacing = "10px";
-          excerptTb.color = "rgba(232,226,214,0.82)";
-          excerptTb.textWrapping = true;
-          excerptTb.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          inner.addControl(excerptTb);
-
-          const footerHint = new BABYLON.GUI.TextBlock(name+"_v_hint", "Tip: rotate the phone to browse the arc.");
-          footerHint.fontFamily = UI.S.mono;
-          footerHint.fontSize = 14;
-          footerHint.letterSpacing = "2px";
-          footerHint.color = "rgba(232,226,214,0.50)";
-          footerHint.height = "28px";
-          footerHint.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          wrap.addControl(footerHint);
-
-          panel.render = function(){
-            const p = UI.projects.find(x => x.id === UI.state.selectedId);
-            if(!p){
-              titleTb.text = "SELECT A PROJECT";
-              dateTb.text = "—";
-              catTb.text = "—";
-              excerptTb.text = "Use the wall to open an entry.";
-              return;
-            }
-            titleTb.text = (p.title || "—").toUpperCase();
-            dateTb.text = "DATE · " + String(p.date || p.year || "—");
-            catTb.text = (p.category || "—").toUpperCase();
-            excerptTb.text = p.excerpt || "—";
-          };
-
-          panel.render();
-        }
-
-        // Ensure everything is in sync once all 3 are built
-        // (safe to call; render checks panel existence)
-        UI.renderAll();
+        const body = new BABYLON.GUI.TextBlock(name+"_body",
+          "Panels visible ✅\n\nNext step: connect real data (categories/projects) and add ScrollViewer + buttons.");
+        body.top = "6%";
+        body.color = "rgba(232,226,214,0.82)";
+        body.fontFamily = "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        body.fontSize = 20;
+        body.textWrapping = true;
+        body.lineSpacing = "10px";
+        body.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        body.paddingLeft = "34px";
+        body.paddingTop = "26px";
+        body.paddingRight = "34px";
+        frame.addControl(body);
 
         return mesh;
       }
