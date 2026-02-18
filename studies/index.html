@@ -805,175 +805,226 @@ renderAll(false);
   const stateText = document.getElementById("vrState");
   const button = document.getElementById("vrButton");
 
-  function setState(on){
-    if(on){
+  // Robust state UI (works even if Babylon fails to load)
+  let cam = null;
+  let gyroOn = false;
+  let ready = false;
+  let pendingToggle = false;
+
+  function setState(label){
+    stateText.textContent = label;
+    if(label === "ON"){
       led.classList.add("active");
-      stateText.textContent = "ON";
     }else{
       led.classList.remove("active");
-      stateText.textContent = "OFF";
     }
   }
-  setState(false);
+  setState("OFF");
+
+  // Bind button immediately so it ALWAYS responds
+  button.addEventListener("click", async ()=>{
+    // If not ready yet, show feedback and toggle once ready
+    if(!ready){
+      pendingToggle = true;
+      setState("…");
+      return;
+    }
+    await toggleGyro();
+  });
 
   function loadScript(src){
     return new Promise((res,rej)=>{
-      const s=document.createElement("script");
-      s.src=src;
-      s.async=true;
-      s.onload=res;
-      s.onerror=rej;
-      document.head.appendChild(s);
+      const tag=document.createElement("script");
+      tag.src=src;
+      tag.async=true;
+      tag.onload=()=>res(src);
+      tag.onerror=()=>rej(new Error("failed to load: " + src));
+      document.head.appendChild(tag);
     });
+  }
+
+  async function enableOrientationInput(){
+    if(!cam) return false;
+
+    // iOS permission
+    if(typeof DeviceOrientationEvent !== "undefined" &&
+       typeof DeviceOrientationEvent.requestPermission === "function"){
+      const r = await DeviceOrientationEvent.requestPermission();
+      if(r !== "granted") return false;
+    }
+
+    // Attach orientation input (Babylon will create the input instance internally)
+    try{
+      cam.inputs.addDeviceOrientation();
+      return true;
+    }catch(e){
+      // Fallback: some builds expose the input class
+      try{
+        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
+          cam.inputs.add(new BABYLON.DeviceOrientationCameraInput());
+          return true;
+        }
+      }catch(_){}
+    }
+    return false;
+  }
+
+  async function toggleGyro(){
+    if(!cam) { setState("ERR"); return; }
+
+    if(gyroOn){
+      // Turn OFF: remove the attached input if present
+      try{
+        const inp = cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation;
+        if(inp){
+          cam.inputs.remove(inp);
+        }
+      }catch(e){}
+      gyroOn = false;
+      setState("OFF");
+      return;
+    }
+
+    try{
+      const ok = await enableOrientationInput();
+      if(!ok){
+        setState("OFF");
+        return;
+      }
+      gyroOn = true;
+      setState("ON");
+    }catch(e){
+      console.error(e);
+      setState("ERR");
+    }
   }
 
   async function init(){
-    // Load Babylon (only on mobile)
-    await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
-    await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
+    try{
+      // Load Babylon + GUI
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
 
-    const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
-    const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.02,0.02,0.02,1);
+      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.02,0.02,0.02,1);
 
-    const cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
-    cam.setTarget(new BABYLON.Vector3(0,1.6,5));
-    cam.attachControl(canvas, true);
-    cam.speed = 0;
+      cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
+      cam.setTarget(new BABYLON.Vector3(0,1.6,5));
+      cam.attachControl(canvas, true);
+      cam.speed = 0;
 
-    new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene).intensity = 0.9;
+      new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene).intensity = 0.9;
 
-    // Simple dish background so it's not "pure black"
-    const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
-    dome.position = new BABYLON.Vector3(0,0,8);
-    dome.rotation.y = Math.PI;
-    const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
-    domeMat.backFaceCulling = false;
-    domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
-    domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
-    domeMat.specularColor = new BABYLON.Color3(0,0,0);
-    dome.material = domeMat;
+      // Simple dish background so it's not "pure black"
+      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
+      dome.position = new BABYLON.Vector3(0,0,8);
+      dome.rotation.y = Math.PI;
+      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+      domeMat.backFaceCulling = false;
+      domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
+      domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+      domeMat.specularColor = new BABYLON.Color3(0,0,0);
+      dome.material = domeMat;
 
-    // Panels in a concave arc (parabolic feel) — visible Babylon GUI
-    function makeGuiPanel(name, w, h, title){
-      const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
+      // Panels in a concave arc (parabolic feel) — visible Babylon GUI
+      function makeGuiPanel(name, w, h, title){
+        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
 
-      // Strongly visible material behind GUI
-      const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-      mat.diffuseColor = new BABYLON.Color3(0.14,0.14,0.14);
-      mat.emissiveColor = new BABYLON.Color3(0.08,0.08,0.08);
-      mat.specularColor = new BABYLON.Color3(0,0,0);
-      mat.alpha = 0.98;
-      mesh.material = mat;
+        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
+        mat.diffuseColor = new BABYLON.Color3(0.14,0.14,0.14);
+        mat.emissiveColor = new BABYLON.Color3(0.08,0.08,0.08);
+        mat.specularColor = new BABYLON.Color3(0,0,0);
+        mat.alpha = 0.98;
+        mesh.material = mat;
 
-      // GUI texture
-      const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
+        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
 
-      const frame = new BABYLON.GUI.Rectangle(name+"_frame");
-      frame.width = 0.92;
-      frame.height = 0.92;
-      frame.thickness = 2;
-      frame.cornerRadius = 24;
-      frame.color = "rgba(232,226,214,0.22)";
-      frame.background = "rgba(10,10,10,0.55)";
-      adt.addControl(frame);
+        const frame = new BABYLON.GUI.Rectangle(name+"_frame");
+        frame.width = 0.92;
+        frame.height = 0.92;
+        frame.thickness = 2;
+        frame.cornerRadius = 24;
+        frame.color = "rgba(232,226,214,0.22)";
+        frame.background = "rgba(10,10,10,0.55)";
+        adt.addControl(frame);
 
-      const header = new BABYLON.GUI.TextBlock(name+"_hdr", title);
-      header.height = "70px";
-      header.top = "-42%";
-      header.color = "#e8e2d6";
-      header.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      header.fontSize = 34;
-      header.letterSpacing = "6px";
-      header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      frame.addControl(header);
+        const header = new BABYLON.GUI.TextBlock(name+"_hdr", title);
+        header.height = "70px";
+        header.top = "-42%";
+        header.color = "#e8e2d6";
+        header.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        header.fontSize = 34;
+        header.letterSpacing = "6px";
+        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        frame.addControl(header);
 
-      const body = new BABYLON.GUI.TextBlock(name+"_body",
-        "Panel visible ✅
+        const body = new BABYLON.GUI.TextBlock(name+"_body",
+          "Panels visible ✅\n\nNext step: connect real data (categories/projects) and add ScrollViewer + buttons.");
+        body.top = "6%";
+        body.color = "rgba(232,226,214,0.82)";
+        body.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        body.fontSize = 22;
+        body.textWrapping = true;
+        body.lineSpacing = "8px";
+        body.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        body.paddingLeft = "34px";
+        body.paddingRight = "34px";
+        frame.addControl(body);
 
-Next step: replace this with your real columns (Categories / Project Wall / Viewer) using Babylon GUI ScrollViewer + Buttons.");
-      body.top = "6%";
-      body.color = "rgba(232,226,214,0.82)";
-      body.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-      body.fontSize = 22;
-      body.textWrapping = true;
-      body.lineSpacing = "8px";
-      body.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      body.paddingLeft = "34px";
-      body.paddingRight = "34px";
-      frame.addControl(body);
-
-      return mesh;
-    }
-
-    const left  = makeGuiPanel("panelLeft",  1.75, 2.35, "CATEGORIES");
-    const mid   = makeGuiPanel("panelMid",   2.25, 2.35, "PROJECT WALL");
-    const right = makeGuiPanel("panelRight", 1.75, 2.35, "VIEWER");
-
-    function place(){
-      // Closer + larger for guaranteed visibility on mobile
-      const R = 3.4;
-      const spread = 0.62; // ~35deg
-      function setArc(mesh, a, zBoost){
-        mesh.position.x = Math.sin(a) * R;
-        mesh.position.z = Math.cos(a) * R + zBoost;
-        mesh.position.y = 1.6;
+        return mesh;
       }
-      setArc(left,  -spread, 1.9);
-      setArc(mid,    0,      2.25);
-      setArc(right,  spread, 1.9);
-    }
-    place();
 
-    // Face camera (yaw)
-    scene.onBeforeRenderObservable.add(()=>{
-      [left,mid,right].forEach(p=>{
-        const dx = cam.position.x - p.position.x;
-        const dz = cam.position.z - p.position.z;
-        p.rotation.y = Math.atan2(dx, dz);
-      });
-    });
+      const left  = makeGuiPanel("panelLeft",  1.75, 2.35, "CATEGORIES");
+      const mid   = makeGuiPanel("panelMid",   2.25, 2.35, "PROJECT WALL");
+      const right = makeGuiPanel("panelRight", 1.75, 2.35, "VIEWER");
 
-    engine.runRenderLoop(()=> scene.render());
-    window.addEventListener("resize", ()=>{
-      engine.resize();
-      place();
-    }, {passive:true});
-
-    // Toggle gyro
-    let gyroOn = false;
-    async function toggleGyro(){
-      if(gyroOn){
-        try{
-          if(cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation){
-            cam.inputs.remove(cam.inputs.attached.deviceOrientation);
-          }
-        }catch(e){}
-        gyroOn = false;
-        setState(false);
-        return;
-      }
-      try{
-        if(typeof DeviceOrientationEvent !== "undefined" &&
-           typeof DeviceOrientationEvent.requestPermission === "function"){
-          const r = await DeviceOrientationEvent.requestPermission();
-          if(r !== "granted") return;
+      function place(){
+        const R = 3.4;
+        const spread = 0.62;
+        function setArc(mesh, a, zBoost){
+          mesh.position.x = Math.sin(a) * R;
+          mesh.position.z = Math.cos(a) * R + zBoost;
+          mesh.position.y = 1.6;
         }
-        cam.inputs.addDeviceOrientation();
-        gyroOn = true;
-        setState(true);
-      }catch(e){}
-    }
+        setArc(left,  -spread, 1.9);
+        setArc(mid,    0,      2.25);
+        setArc(right,  spread, 1.9);
+      }
+      place();
 
-    button.addEventListener("click", toggleGyro);
+      scene.onBeforeRenderObservable.add(()=>{
+        [left,mid,right].forEach(p=>{
+          const dx = cam.position.x - p.position.x;
+          const dz = cam.position.z - p.position.z;
+          p.rotation.y = Math.atan2(dx, dz);
+        });
+      });
+
+      engine.runRenderLoop(()=> scene.render());
+      window.addEventListener("resize", ()=>{
+        engine.resize();
+        place();
+      }, {passive:true});
+
+      ready = true;
+      // If user clicked early, toggle now
+      if(pendingToggle){
+        pendingToggle = false;
+        await toggleGyro();
+      }else{
+        // restore OFF label if it was "…"
+        setState("OFF");
+      }
+
+    }catch(e){
+      console.error(e);
+      ready = false;
+      setState("ERR");
+    }
   }
 
-  init().catch((e)=>{
-    console.error(e);
-    // if Babylon fails, at least show OFF state (and keep desktop hidden per CSS)
-    setState(false);
-    stateText.textContent = "ERR";
-  });
+  init();
 })();
 </script>
 
