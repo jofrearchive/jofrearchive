@@ -1,1558 +1,216 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Studies — Project Wall</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>VR Panels</title>
 
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
 
 <style>
-:root{
-  --bg:#0b0b0b;
-  --ink:#e8e2d6;
-  --muted:rgba(232,226,214,.72);
-  --line:rgba(232,226,214,.16);
-  --line2:rgba(232,226,214,.12);
-  --mono:"Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  --serif:"EB Garamond", serif;
-  --shadow:0 40px 90px rgba(0,0,0,.72);
+html, body {
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    background:#0b0b0b;
 }
-*{box-sizing:border-box}
-html,body{
-  height:100%;
-  margin:0;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:var(--serif);
-  overflow:hidden; /* fixed columns */
+canvas {
+    width:100%;
+    height:100%;
+    touch-action:none;
 }
-
-/* Vitrine background */
-#vitrine-bg{
-  position:fixed; inset:0; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
-    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.42)),
-    #0b0b0b;
-}
-#vitrine-bg::after{
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0px, rgba(255,255,255,.010) 1px, transparent 2px, transparent 5px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.007) 0px, rgba(255,255,255,.007) 1px, transparent 2px, transparent 9px);
-  opacity:.18; mix-blend-mode:overlay;
-}
-#glass{
-  position:fixed; inset:0; z-index:1; pointer-events:none;
-  background:
-    linear-gradient(115deg, rgba(255,255,255,.08), transparent 25%),
-    radial-gradient(900px 650px at 60% 25%, rgba(255,255,255,.06), transparent 55%);
-  opacity:.22; mix-blend-mode:screen;
-}
-body::after{
-  content:""; position:fixed; inset:0; z-index:2; pointer-events:none;
-  background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,0,.88) 100%);
-  opacity:.55;
-}
-
-/* Header */
-.siteHeader{
-  position:fixed; top:0; left:0; right:0;
-  height: calc(96px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
-  display:flex; align-items:center; justify-content:center;
-  z-index: 1000;
-  pointer-events:none;
-}
-.siteHeader a{pointer-events:auto; text-decoration:none}
-.siteHeader img{height:56px; width:auto; display:block; opacity:.92}
-.siteHeader img:hover{opacity:1}
-
-/* Fixed viewport layout */
-.page{
-  position:relative;
-  z-index:10;
-  height:100vh;
-  padding: calc(110px + env(safe-area-inset-top)) clamp(10px, 2.2vw, 22px) clamp(10px, 2.2vw, 22px);
-}
-.wrap{
-  width:min(1320px, 100%);
-  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
-  margin:0 auto;
-  display:grid;
-  grid-template-columns: 260px 1fr 420px;
-  gap:14px;
-  align-items:stretch;
-}
-
-/* Panels */
-.panel{
-  border:1px solid var(--line2);
-  background: linear-gradient(180deg, rgba(10,10,10,.86), rgba(0,0,0,.46));
-  box-shadow: var(--shadow);
-  position:relative;
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-.panel::before{
-  content:"";
-  position:absolute; inset:10px;
-  pointer-events:none;
-  background:
-    linear-gradient(var(--line),var(--line)) left top / 22px 1px no-repeat,
-    linear-gradient(var(--line),var(--line)) left top / 1px 22px no-repeat,
-    linear-gradient(var(--line),var(--line)) right top / 22px 1px no-repeat,
-    linear-gradient(var(--line),var(--line)) right top / 1px 22px no-repeat,
-    linear-gradient(var(--line),var(--line)) left bottom / 22px 1px no-repeat,
-    linear-gradient(var(--line),var(--line)) left bottom / 1px 22px no-repeat,
-    linear-gradient(var(--line),var(--line)) right bottom / 22px 1px no-repeat,
-    linear-gradient(var(--line),var(--line)) right bottom / 1px 22px no-repeat;
-  opacity:.85;
-  z-index:0;
-}
-.panelHeader{
-  padding:16px 16px 14px;
-  border-bottom:1px solid rgba(232,226,214,.12);
-  background: rgba(10,10,10,.92);
-  position:relative;
-  z-index:2;
-}
-.kicker{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.18em;
-  font-size:11px;
-  opacity:.68;
-  margin-bottom:6px;
-}
-.titleRow{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
-.h1{
-  margin:0;
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-weight:500;
-  font-size:16px;
-}
-.pill{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  font-size:10px;
-  padding:6px 8px;
-  border:1px solid rgba(232,226,214,.14);
-  background: rgba(255,255,255,.03);
-  opacity:.9;
-}
-.panelBody{
-  padding:14px 16px 16px;
-  position:relative;
-  z-index:2;
-  min-height:0;
-  flex:1;
-}
-.hr{height:1px;background:rgba(232,226,214,.12);margin:12px 0}
-
-/* Controls */
-.input{
-  width:100%;
-  border:1px solid rgba(232,226,214,.22);
-  background: rgba(255,255,255,.03);
-  color:var(--ink);
-  padding:10px 10px;
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.10em;
-  font-size:11px;
-  outline:none;
-}
-.row{display:flex; gap:10px; flex-wrap:wrap}
-.btn{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  font-size:11px;
-  color:var(--ink);
-  background: rgba(255,255,255,.03);
-  border:1px solid rgba(232,226,214,.22);
-  padding:10px 12px;
-  cursor:pointer;
-  opacity:.92;
-  transition:all .2s ease;
-}
-.btn:hover{opacity:1;background:rgba(255,255,255,.05)}
-.btn.active{
-  background: rgba(255,255,255,.08);
-  border-color: rgba(232,226,214,.40);
-}
-.smallHint{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-size:10px;
-  opacity:.62;
-}
-
-/* Internal scrolls */
-.scrollY{overflow:auto; scrollbar-width:none;}
-.scrollY::-webkit-scrollbar{width:0;height:0}
-
-/* Wall column */
-.wall{
-  border:1px solid rgba(232,226,214,.12);
-  background:
-    repeating-linear-gradient(0deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
-    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
-    radial-gradient(900px 650px at 50% 30%, rgba(232,226,214,.075), transparent 58%),
-    rgba(0,0,0,.18);
-  position:relative;
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-}
-.wallTop{
-  display:flex; justify-content:space-between; align-items:center;
-  gap:12px; flex-wrap:wrap;
-  padding:16px 16px 14px;
-  border-bottom:1px solid rgba(232,226,214,.12);
-  background: rgba(10,10,10,.72);
-  position:relative;
-  z-index:2;
-}
-.wallTitle{
-  margin:0;
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-weight:500;
-  font-size:14px;
-}
-.counter{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  font-size:10px;
-  opacity:.72;
-}
-.wallScroll{
-  flex:1;
-  min-height:0;
-  overflow:auto; /* only scrolling area for projects */
-  scrollbar-width:none;
-  position:relative;
-  z-index:2;
-}
-.wallScroll::-webkit-scrollbar{width:0;height:0}
-.wallGrid{
-  padding:14px;
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap:12px;
-}
-
-/* Cards */
-.card{
-  border:1px solid rgba(232,226,214,.14);
-  background: rgba(0,0,0,.22);
-  overflow:hidden;
-  cursor:pointer;
-  position:relative;
-  transform: translateZ(0);
-}
-.card::before{
-  content:"";
-  position:absolute; inset:-2px;
-  pointer-events:none;
-  background: radial-gradient(520px 240px at 30% 0%, rgba(255,255,255,.10), transparent 60%);
-  opacity:0;
-  transition: opacity .18s ease;
-}
-.card:hover{ border-color: rgba(232,226,214,.26); background: rgba(255,255,255,.03); }
-.card:hover::before{ opacity:.85; }
-.thumb{
-  aspect-ratio: 4 / 3;
-  width:100%;
-  background: rgba(255,255,255,.03);
-  position:relative;
-  overflow:hidden;
-  border-bottom:1px solid rgba(232,226,214,.10);
-}
-.thumb img{
-  width:100%; height:100%;
-  object-fit:cover;
-  display:block;
-  filter: saturate(.95) contrast(1.05);
-  opacity:.92;
-}
-.thumb .scan{
-  position:absolute; inset:0; pointer-events:none;
-  background: linear-gradient(180deg, transparent 0%, rgba(232,226,214,.22) 50%, transparent 100%);
-  opacity:.10;
-  transform: translateY(-60%);
-  animation: scan 5.2s linear infinite;
-  mix-blend-mode: screen;
-}
-@keyframes scan{0%{transform:translateY(-70%)}100%{transform:translateY(80%)}}
-.cardBody{padding:12px 12px 11px; position:relative; z-index:2}
-.metaLine{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.12em;
-  font-size:10px;
-  opacity:.78;
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  flex-wrap:wrap;
-}
-.cardTitle{
-  margin:8px 0 8px;
-  font-size:16px;
-  line-height:1.25;
-  opacity:.96;
-}
-.tags{display:flex; gap:8px; flex-wrap:wrap}
-.tag{
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  font-size:10px;
-  padding:6px 8px;
-  border:1px solid rgba(232,226,214,.13);
-  background: rgba(255,255,255,.03);
-  opacity:.9;
-}
-
-/* Viewer */
-.viewerMedia{
-  border-bottom:1px solid rgba(232,226,214,.12);
-  background: rgba(0,0,0,.22);
-  aspect-ratio: 4 / 3;
-  position:relative;
-  overflow:hidden;
-}
-.viewerMedia img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92;filter:saturate(.95) contrast(1.05);}
-.viewerMedia .grid{
-  position:absolute; inset:0; pointer-events:none;
-  background:
-    repeating-linear-gradient(0deg, rgba(232,226,214,.06) 0px, rgba(232,226,214,.06) 1px, transparent 2px, transparent 18px),
-    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 18px);
-  opacity:.20; mix-blend-mode:overlay;
-}
-.viewerContent{
-  flex:1;
-  min-height:0;
-  overflow:auto;
-  padding:14px 16px 16px;
-  scrollbar-width:none;
-  position:relative;
-  z-index:2;
-}
-.viewerContent::-webkit-scrollbar{width:0;height:0;}
-.kv{
-  display:flex; justify-content:space-between; gap:10px;
-  padding:6px 0;
-  border-top:1px dashed rgba(232,226,214,.12);
-}
-.kv:first-of-type{border-top:0;padding-top:0;}
-.k{font-family:var(--mono);text-transform:uppercase;letter-spacing:.10em;font-size:10px;opacity:.65;}
-.v{font-family:var(--mono);letter-spacing:.08em;font-size:10px;opacity:.92;text-align:right;}
-.excerpt{
-  margin:12px 0 0;
-  font-family:var(--mono);
-  font-size:12.5px;
-  line-height:1.7;
-  letter-spacing:.05em;
-  white-space:pre-wrap;
-  opacity:.92;
-  text-shadow: 0 0 10px rgba(232,226,214,.08), 0 0 2px rgba(232,226,214,.08);
-}
-.viewerFooter{
-  border-top:1px solid rgba(232,226,214,.12);
-  padding:12px 16px;
-  background: rgba(10,10,10,.92);
-  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
-  position:relative;
-  z-index:2;
-}
-.link{
-  color:var(--ink);
-  text-decoration:none;
-  border:1px solid rgba(232,226,214,.22);
-  background: rgba(255,255,255,.03);
-  padding:10px 12px;
-  font-family:var(--mono);
-  text-transform:uppercase;
-  letter-spacing:.14em;
-  font-size:11px;
-  opacity:.92;
-}
-.link:hover{opacity:1;background:rgba(255,255,255,.05);}
-
-/* Responsive */
-@media (max-width: 1100px){ .wrap{grid-template-columns: 260px 1fr} .viewerCol{display:none} }
-@media (max-width: 860px){ .wrap{grid-template-columns:1fr} .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
-@media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
-
-/* ===========================
-   MOBILE VR (Babylon.js) — desktop unchanged
-   activates only on: (pointer: coarse) AND (hover: none) AND max-width 900px
-=========================== */
-
-#vrCanvas{ display:none; width:100vw; height:100vh; touch-action:none; }
-#vrButton{
-  position:fixed;
-  bottom:22px;
-  left:50%;
-  transform:translateX(-50%);
-  display:none;
-  align-items:center;
-  gap:10px;
-  padding:10px 18px;
-  border-radius:40px;
-  border:1px solid rgba(255,255,255,.2);
-  background:rgba(15,15,15,.75);
-  backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
-  font-family: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size:12px;
-  letter-spacing:.18em;
-  cursor:pointer;
-  transition:.2s;
-  user-select:none;
-  z-index:7000;
-}
-#vrButton:active{ transform:translateX(-50%) scale(.96); }
-
-#vrLed{
-  width:9px; height:9px; border-radius:50%;
-  background:rgba(255,255,255,.35);
-  box-shadow:0 0 0 0 rgba(120,255,180,0);
-  transition:.25s;
-}
-#vrLed.active{
-  background:#78ffb4;
-  box-shadow:0 0 10px rgba(120,255,180,.8);
-}
-#vrState{ opacity:.65; text-transform:uppercase; }
-
-@media (pointer:coarse) and (hover:none) and (max-width: 900px){
-  /* Hide your desktop layout on real mobile only */
-  body{ overflow:hidden; height:100vh; }
-  #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
-  #vrButton{ display:flex; }
-  /* Hide everything else (desktop UI) */
-  body > *:not(#vrCanvas):not(#vrButton){ display:none !important; }
-}
-
 </style>
 </head>
 
 <body>
-<header class="siteHeader" role="banner" aria-label="Primary">
-  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
-    <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
-  </a>
-</header>
-
-<div id="vitrine-bg" aria-hidden="true"></div>
-<div id="glass" aria-hidden="true"></div>
-
-<div class="page">
-  <div class="wrap">
-
-    <!-- LEFT: categories + filters -->
-    <aside class="panel" aria-label="Categories">
-      <div class="panelHeader">
-        <div class="kicker">studies / navigation</div>
-        <div class="titleRow">
-          <h2 class="h1">CATEGORIES</h2>
-          <div class="pill" id="pillCount">— items</div>
-        </div>
-      </div>
-      <div class="panelBody scrollY">
-        <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
-        <div class="hr"></div>
-        <div class="row" id="catRow"></div>
-</div>
-    </aside>
-
-    <!-- CENTER: wall (scroll inside) -->
-    <section class="wall" aria-label="Project wall">
-      <div class="wallTop">
-        <h3 class="wallTitle">PROJECT WALL</h3>
-        
-        <div class="row">
-          <button class="btn" id="btnSort">Sort: newest</button>
-          <button class="btn" id="btnReset">Reset</button>
-        </div>
-
-        <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
-      </div>
-      <div class="wallScroll">
-        <div class="wallGrid" id="grid"></div>
-      </div>
-    </section>
-
-    <!-- RIGHT: viewer -->
-    <aside class="panel viewerCol" aria-label="Viewer">
-      <div class="panelHeader">
-        <div class="kicker">retrieval / viewer</div>
-        <div class="titleRow">
-          <h2 class="h1" id="vTitle">SELECT A PROJECT</h2>
-          <div class="pill" id="vCat">—</div>
-        </div>
-      </div>
-
-      <div class="viewerMedia">
-        <img id="vImg" alt="" src="" style="display:none">
-        <div class="grid" aria-hidden="true"></div>
-      </div>
-
-      <div class="viewerContent">
-        <div id="vMeta"></div>
-        <div class="hr"></div>
-        <div class="excerpt" id="vText">Use the wall to open an entry.</div>
-      </div>
-
-      <div class="viewerFooter">
-        <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
-        <button class="btn" id="vCopy" disabled>Copy</button>
-      </div>
-    </aside>
-
-  </div>
-</div>
+<canvas id="renderCanvas"></canvas>
 
 <script>
-const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
+const canvas = document.getElementById("renderCanvas");
+const engine = new BABYLON.Engine(canvas, true);
 
-const PROJECTS = [
-  {
-    id:"BIO-0001",
-    title:"Cellulose solar panel (screen-print tests)",
-    year:2024,
-    place:"India / Spain",
-    category:"BioSystems",
-    tags:["cellulose","serigraphy","solar"],
-    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EBIOSYSTEMS%20/%20MATERIAL%20TEST%3C/text%3E%0A%3C/svg%3E',
-    images:[],
-    excerpt:"Translucent cellulose substrate + conductive layers (N/P).\nFlexible, transparent panel logic.",
-    link:"#"
-  },
-  {
-    id:"LAN-0001",
-    title:"Leaf-pattern cartography studies",
-    year:2025,
-    place:"Mediterranean basin",
-    category:"Landscape",
-    tags:["plants","pattern","territory"],
-    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ELANDSCAPE%20/%20LEAF%20CARTOGRAPHY%3C/text%3E%0A%3C/svg%3E',
-    images:[],
-    excerpt:"Landscape read as sediment: layers of presence across territories.\nLeaves as diagram: veins, flows, and memory lines.",
-    link:"#"
-  },
-  {
-    id:"DPA-0001",
-    title:"Carnival of progress (dystopic pop)",
-    year:2024,
-    place:"—",
-    category:"Dystopic Pop Art",
-    tags:["carnival","critique","spectacle"],
-    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EDYSTOPIC%20POP%20/%20CARNIVAL%3C/text%3E%0A%3C/svg%3E',
-    images:[],
-    excerpt:"Modern society as a carnival: colorful attractions and lights, lacking depth.\nSeduction + collapse.",
-    link:"#"
-  },
-  {
-    id:"CYM-0001",
-    title:"Cymatics studies (frequency patterns)",
-    year:2024,
-    place:"—",
-    category:"Cymatics",
-    tags:["frequency","pattern","sound"],
-    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ECYMATICS%20/%20FREQUENCY%20PATTERNS%3C/text%3E%0A%3C/svg%3E',
-    images:[],
-    excerpt:"Cymatic diagrams as visual proof of vibration.\nSignal becomes geometry.",
-    link:"#"
-  },
-  {
-    id:"PUB-0001",
-    title:"Konvent — community as infrastructure",
-    year:2024,
-    place:"Catalonia",
-    category:"Public Art",
-    tags:["community","residency","territory"],
-    thumb:"https://inside.jofrearchive.com/konvent.gif",
-    images:["https://inside.jofrearchive.com/konvent.gif","http://inside.jofrearchive.com/assets/images/konvent-landscape.gif"],
-    excerpt:"Konvent as a living institution: a territory-based community that produces culture through autonomy.\nConstraints, self-organization, and the material conditions of freedom.",
-    link:"#"
-  },
-  {
-    id:"MUR-0001",
-    title:"Trajectory — walls as coordinates",
-    year:2025,
-    place:"Spain → India → Morocco → Norway",
-    category:"Murals",
-    tags:["wall","cartography","site"],
-    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EMURALS%20/%20TRAJECTORY%3C/text%3E%0A%3C/svg%3E',
-    images:[],
-    excerpt:"From 2012 to 2025, the trajectory can be read not as chronology, but as sediment.\nThe mural as imprint and encounter.",
-    link:"#"
-  }
+const scene = new BABYLON.Scene(engine);
+scene.clearColor = new BABYLON.Color4(0.05,0.05,0.05,1);
+
+const camera = new BABYLON.ArcRotateCamera("cam",
+    Math.PI/2,
+    Math.PI/2,
+    6,
+    BABYLON.Vector3.Zero(),
+    scene
+);
+camera.attachControl(canvas,true);
+camera.lowerRadiusLimit = 4;
+camera.upperRadiusLimit = 8;
+
+new BABYLON.HemisphericLight("light",
+    new BABYLON.Vector3(0,1,0),
+    scene
+);
+
+/* ---------------- MOCK DATA ---------------- */
+
+const projects = [
+{title:"BioSolar Leaf", date:"2025", category:"BioSystems", text:"Biomimetic solar structures."},
+{title:"Mycelium Sculpture", date:"2024", category:"BioSystems", text:"Organic growing architecture."},
+{title:"Dystopic Carnival", date:"2023", category:"Dystopic", text:"Critique of modern spectacle."},
+{title:"Cymatic Field", date:"2022", category:"Cymatics", text:"Sound forming matter."}
 ];
 
-let state = { category:"All", q:"", newestFirst:true, openId:null };
-
-const catRow = document.getElementById("catRow");
-const qEl = document.getElementById("q");
-const grid = document.getElementById("grid");
-const shownEl = document.getElementById("shown");
-const totalEl = document.getElementById("total");
-const pillCount = document.getElementById("pillCount");
-const btnSort = document.getElementById("btnSort");
-const btnReset = document.getElementById("btnReset");
-
-const vTitle = document.getElementById("vTitle");
-const vCat = document.getElementById("vCat");
-const vImg = document.getElementById("vImg");
-const vMeta = document.getElementById("vMeta");
-const vText = document.getElementById("vText");
-const vLink = document.getElementById("vLink");
-const vCopy = document.getElementById("vCopy");
-
-function norm(s){ return String(s||"").toLowerCase().trim(); }
-function escapeHtml(s){
-  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-}
-function filtered(){
-  let items = [...PROJECTS];
-  if(state.category !== "All") items = items.filter(p => p.category === state.category);
-  if(state.q){
-    const q = norm(state.q);
-    items = items.filter(p => norm([p.id,p.title,p.year,p.place,p.category,(p.tags||[]).join(" "),p.excerpt].join(" ")).includes(q));
-  }
-  items.sort((a,b)=> state.newestFirst ? (b.year - a.year) : (a.year - b.year));
-  return items;
-}
-
-function renderCategories(){
-  catRow.innerHTML = "";
-  CATEGORIES.forEach(c=>{
-    const b = document.createElement("button");
-    b.type="button";
-    b.className = "btn" + (c === state.category ? " active" : "");
-    b.textContent = c;
-    b.addEventListener("click", ()=>{ state.category = c; state.openId=null; renderAll(false); });
-    catRow.appendChild(b);
-  });
-}
-
-function kvRow(k,v){ return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`; }
-
-function setViewerEmpty(){
-  vTitle.textContent = "SELECT A PROJECT";
-  vCat.textContent = "—";
-  vText.textContent = "Use the wall to open an entry.";
-  vMeta.innerHTML = "";
-  vImg.style.display = "none";
-  vImg.src = "";
-  vLink.style.display = "none";
-  vCopy.disabled = true;
-}
-
-function fillViewer(p){
-  vTitle.textContent = p.title.toUpperCase();
-  vCat.textContent = (p.category || "—").toUpperCase();
-  vMeta.innerHTML =
-    kvRow("ID", p.id) +
-    kvRow("CATEGORY", p.category) +
-    kvRow("YEAR", String(p.year)) +
-    kvRow("PLACE", p.place || "—") +
-    kvRow("TAGS", (p.tags||[]).join(", ") || "—");
-  vText.textContent = p.excerpt || "—";
-  const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
-  if(imgSrc){
-    vImg.style.display = "block";
-    vImg.src = imgSrc;
-    vImg.alt = p.title;
-  } else {
-    vImg.style.display = "none";
-    vImg.src = "";
-  }
-  if(p.link && p.link !== "#"){ vLink.style.display = "inline-block"; vLink.href = p.link; }
-  else { vLink.style.display = "none"; }
-  vCopy.disabled = false;
-}
-
-function openProject(id){
-  const p = PROJECTS.find(x=>x.id===id);
-  if(!p) return;
-  state.openId = id;
-  fillViewer(p);
-}
-
-function renderWall(keepSelection){
-  const items = filtered();
-  totalEl.textContent = PROJECTS.length;
-  shownEl.textContent = items.length;
-  pillCount.textContent = PROJECTS.length + " items";
-
-  grid.innerHTML = "";
-  items.forEach(p=>{
-    const el = document.createElement("div");
-    el.className = "card";
-    el.tabIndex = 0;
-    el.setAttribute("role","button");
-    el.innerHTML = `
-      <div class="thumb">
-        <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
-        <div class="scan" aria-hidden="true"></div>
-      </div>
-      <div class="cardBody">
-        <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
-        <div class="cardTitle">${escapeHtml(p.title)}</div>
-        <div class="tags">${(p.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
-      </div>
-    `;
-    el.addEventListener("click", ()=> openProject(p.id));
-    el.addEventListener("keydown",(e)=>{
-      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
-    });
-    grid.appendChild(el);
-  });
-
-  if(items.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "smallHint";
-    empty.style.padding = "14px";
-    empty.textContent = "No matches.";
-    grid.appendChild(empty);
-    state.openId = null;
-    setViewerEmpty();
-    return;
-  }
-
-  if(keepSelection && state.openId && items.find(x=>x.id===state.openId)) return;
-  openProject(items[0].id);
-}
-
-qEl.addEventListener("input",(e)=>{
-  state.q = e.target.value;
-  state.openId = null;
-  renderAll(false);
-});
-btnSort.addEventListener("click", ()=>{
-  state.newestFirst = !state.newestFirst;
-  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
-  state.openId = null;
-  renderAll(false);
-});
-btnReset.addEventListener("click", ()=>{
-  state.category = "All";
-  state.q = "";
-  state.newestFirst = true;
-  state.openId = null;
-  qEl.value = "";
-  btnSort.textContent = "Sort: newest";
-  renderAll(false);
-  setViewerEmpty();
-});
-
-async function copyPayload(){
-  const p = PROJECTS.find(x=>x.id===state.openId);
-  if(!p) return false;
-  const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
-  try{ await navigator.clipboard.writeText(payload); return true; }
-  catch(_){ return false; }
-}
-vCopy.addEventListener("click", async ()=>{
-  const ok = await copyPayload();
-  vCopy.textContent = ok ? "Copied" : "Blocked";
-  setTimeout(()=> vCopy.textContent = "Copy", 900);
-});
-
-function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
-setViewerEmpty();
-renderAll(false);
-</script>
-
-<canvas id="vrCanvas" aria-label="VR canvas"></canvas>
-
-<div id="vrButton" aria-label="VR motion toggle">
-  <div id="vrLed" aria-hidden="true"></div>
-  <div>VR</div>
-  <div id="vrState">OFF</div>
-</div>
-
-<script>
-(function(){
-  // Real-mobile gate (same logic as CSS)
-  const isMobile =
-    window.matchMedia("(pointer: coarse)").matches &&
-    window.matchMedia("(hover: none)").matches &&
-    window.matchMedia("(max-width: 900px)").matches;
-
-  if(!isMobile) return;
-
-  const canvas = document.getElementById("vrCanvas");
-  const led = document.getElementById("vrLed");
-  const stateText = document.getElementById("vrState");
-  const button = document.getElementById("vrButton");
-
-  // Robust state UI (works even if Babylon fails to load)
-  let cam = null;
-  let gyroOn = false;
-  let ready = false;
-  let pendingToggle = false;
-
-  function setState(label){
-    stateText.textContent = label;
-    if(label === "ON"){
-      led.classList.add("active");
-    }else{
-      led.classList.remove("active");
-    }
-  }
-  setState("OFF");
-
-  // Bind button immediately so it ALWAYS responds
-  button.addEventListener("click", async ()=>{
-    // If not ready yet, show feedback and toggle once ready
-    if(!ready){
-      pendingToggle = true;
-      setState("…");
-      return;
-    }
-    await toggleGyro();
-  });
-
-  function loadScript(src){
-    return new Promise((res,rej)=>{
-      const tag=document.createElement("script");
-      tag.src=src;
-      tag.async=true;
-      tag.onload=()=>res(src);
-      tag.onerror=()=>rej(new Error("failed to load: " + src));
-      document.head.appendChild(tag);
-    });
-  }
-
-  async function enableOrientationInput(){
-    if(!cam) return false;
-
-    // iOS permission
-    if(typeof DeviceOrientationEvent !== "undefined" &&
-       typeof DeviceOrientationEvent.requestPermission === "function"){
-      const r = await DeviceOrientationEvent.requestPermission();
-      if(r !== "granted") return false;
-    }
-
-    // Attach orientation input (Babylon will create the input instance internally)
-    try{
-      cam.inputs.addDeviceOrientation();
-      return true;
-    }catch(e){
-      // Fallback: some builds expose the input class
-      try{
-        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
-          cam.inputs.add(new BABYLON.DeviceOrientationCameraInput());
-          return true;
-        }
-      }catch(_){}
-    }
-    return false;
-  }
-
-  async function toggleGyro(){
-    if(!cam) { setState("ERR"); return; }
-
-    if(gyroOn){
-      // Turn OFF: remove the attached input if present
-      try{
-        const inp = cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation;
-        if(inp){
-          cam.inputs.remove(inp);
-        }
-      }catch(e){}
-      gyroOn = false;
-      setState("OFF");
-      return;
-    }
-
-    try{
-      const ok = await enableOrientationInput();
-      if(!ok){
-        setState("OFF");
-        return;
-      }
-      gyroOn = true;
-      setState("ON");
-    }catch(e){
-      console.error(e);
-      setState("ERR");
-    }
-  }
-
-  async function init(){
-    try{
-      // Load Babylon + GUI
-      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
-      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
-
-      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
-      const scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
-
-      cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
-      cam.setTarget(new BABYLON.Vector3(0,1.6,5));
-      cam.attachControl(canvas, true);
-      cam.speed = 0;
-
-      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
-      hemi.intensity = 1.05;
-      const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
-      pl.intensity = 0.55;
-
-      // Simple dish background so it's not "pure black"
-      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
-      dome.position = new BABYLON.Vector3(0,0,8);
-      dome.rotation.y = Math.PI;
-      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
-      domeMat.backFaceCulling = false;
-      domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
-      domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
-      domeMat.specularColor = new BABYLON.Color3(0,0,0);
-      dome.material = domeMat;
-
-      // Panels in a concave arc (parabolic feel) — visible Babylon GUI
-      function makeGuiPanel(name, w, h, title){
-        // ============================================================
-        // VR GUI ONLY (DO NOT TOUCH ENGINE/LOADER/TOGGLE/DESKTOP)
-        // ============================================================
-
-        // --- 3D plane (keep original anti-mirror fix) ---
-        const mesh = BABYLON.MeshBuilder.CreatePlane(
-          name,
-          { width: w, height: h, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
-          scene
-        );
-        mesh.isPickable = true;
-
-        // Flip horizontally so GUI text is NOT mirrored on the curved arc
-        mesh.scaling.x = -1;
-
-        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-        mat.diffuseColor = new BABYLON.Color3(0.18,0.18,0.18);
-        mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
-        mat.specularColor = new BABYLON.Color3(0,0,0);
-        mat.alpha = 0.98;
-        mat.backFaceCulling = false;
-        mesh.material = mat;
-
-        // --- GUI texture ---
-        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 900, 1200, false);
-
-        // --- shared state + mock data (scoped to GUI block only) ---
-        const STORE_KEY = "__STUDIES_VR_GUI_STORE__";
-        const store = (window[STORE_KEY] ||= {
-          inited: false,
-          state: { activeCategory: "All", activeProjectId: null },
-          refs: { categoryBtns: [], wallCards: [], viewer: {} },
-          data: {
-            categories: ["All", "BioSystems", "Landscape", "Dystopic Pop Art", "Cymatics", "Public Art", "Murals"],
-            projects: [
-              {
-                id:"p01",
-                title:"Interspecies Archaeology",
-                date:"2026-02-18",
-                category:"BioSystems",
-                description:"A speculative sculptural system where mycelium becomes both archive and builder. The work explores non-human agency, slow growth, and the idea of material memory as an interspecies protocol."
-              },
-              {
-                id:"p02",
-                title:"Microscopic Pyramids",
-                date:"2026-01-03",
-                category:"Cymatics",
-                description:"Micro-structures and resonant geometries: studying how vibration and pattern-making can be translated into material processes. A bridge between measurement, myth, and fabrication."
-              },
-              {
-                id:"p03",
-                title:"Leaf-Mimetic Solar Skin",
-                date:"2025-12-10",
-                category:"Landscape",
-                description:"A flexible translucent solar surface inspired by plant venation patterns. Screen-printed layers become both aesthetic field and functional stratification for harvesting light."
-              },
-              {
-                id:"p04",
-                title:"Dystopic Pop Carnival",
-                date:"2025-10-02",
-                category:"Dystopic Pop Art",
-                description:"A critique of contemporary spectacle: colorful attractions, lights, and seduction — but with a hollow core. A carnival that reveals the friction between fun and control."
-              },
-              {
-                id:"p05",
-                title:"Community Node",
-                date:"2025-09-20",
-                category:"Public Art",
-                description:"A modular public-facing format to host gatherings, talks, and shared practice. The panel system acts as a living index of relationships rather than a static portfolio."
-              }
-            ]
-          }
-        });
-
-        if(!store.inited){
-          store.inited = true;
-          store.state.activeProjectId = store.data.projects[0]?.id || null;
-        }
-
-        // --- palette (match desktop layout) ---
-        const C = {
-          bg: "rgba(15,15,15,0.78)",
-          border: "rgba(255,255,255,0.16)",
-          ink: "rgba(232,226,214,1)",
-          muted: "rgba(232,226,214,0.72)",
-          muter: "rgba(232,226,214,0.60)",
-          headerBg: "rgba(10,10,10,0.92)",
-          activeBg: "rgba(255,255,255,0.08)",
-          activeBorder: "rgba(232,226,214,0.40)",
-          hoverBg: "rgba(255,255,255,0.05)",
-          cardBg: "rgba(255,255,255,0.03)",
-          wallGridA: "rgba(232,226,214,0.05)"
-        };
-
-        const F = {
-          serif: "EB Garamond, serif",
-          mono: "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-        };
-
-        function fmtDate(iso){
-          if(!iso) return "";
-          const p = String(iso).split("-");
-          if(p.length!==3) return String(iso);
-          return `${p[2]}.${p[1]}.${p[0]}`;
-        }
-        function getProjectById(id){
-          return store.data.projects.find(p=>p.id===id) || null;
-        }
-        function filteredProjects(){
-          const cat = store.state.activeCategory;
-          if(!cat || cat==="All") return store.data.projects.slice();
-          return store.data.projects.filter(p=>p.category===cat);
-        }
-
-        // --- UI helpers ---
-        function makeCornerFrame(parent){
-          // subtle inner-corners like desktop ::before (approx)
-          const inset = new BABYLON.GUI.Rectangle("inset_"+name);
-          inset.width = 0.965;
-          inset.height = 0.955;
-          inset.thickness = 0;
-          inset.background = "rgba(0,0,0,0)";
-          parent.addControl(inset);
-
-          const mk = (w,h, left, top)=>{
-            const r = new BABYLON.GUI.Rectangle("c_"+Math.random().toString(16).slice(2));
-            r.thickness = 0;
-            r.background = C.border;
-            r.alpha = 0.9;
-            r.width = w;
-            r.height = h;
-            r.horizontalAlignment = left;
-            r.verticalAlignment = top;
-            inset.addControl(r);
-            return r;
-          };
-
-          // top-left
-          mk("24px","1px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP);
-          mk("1px","24px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP);
-          // top-right
-          mk("24px","1px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP);
-          mk("1px","24px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP);
-          // bottom-left
-          mk("24px","1px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM);
-          mk("1px","24px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM);
-          // bottom-right
-          mk("24px","1px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM);
-          mk("1px","24px", BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT, BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM);
-        }
-
-        function makePanelHeader(parent, kickerText, titleText, pillText){
-          const headerRect = new BABYLON.GUI.Rectangle(name+"_hdrRect");
-          headerRect.height = "160px";
-          headerRect.thickness = 0;
-          headerRect.background = C.headerBg;
-          headerRect.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
-          parent.addControl(headerRect);
-
-          const hdrStack = new BABYLON.GUI.StackPanel(name+"_hdrStack");
-          hdrStack.isVertical = true;
-          hdrStack.width = 1;
-          hdrStack.height = 1;
-          hdrStack.paddingLeft = "34px";
-          hdrStack.paddingRight = "34px";
-          hdrStack.paddingTop = "24px";
-          hdrStack.paddingBottom = "18px";
-          hdrStack.spacing = 6;
-          headerRect.addControl(hdrStack);
-
-          const kicker = new BABYLON.GUI.TextBlock(name+"_kicker", kickerText || "");
-          kicker.height = "26px";
-          kicker.color = C.muted;
-          kicker.fontFamily = F.mono;
-          kicker.fontSize = 22;
-          kicker.letterSpacing = "6px";
-          kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          hdrStack.addControl(kicker);
-
-          const row = new BABYLON.GUI.StackPanel(name+"_titleRow");
-          row.isVertical = false;
-          row.height = "40px";
-          row.width = 1;
-          hdrStack.addControl(row);
-
-          const h1 = new BABYLON.GUI.TextBlock(name+"_h1", (titleText || "").toUpperCase());
-          h1.color = C.ink;
-          h1.fontFamily = F.mono;
-          h1.fontSize = 30;
-          h1.letterSpacing = "4px";
-          h1.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          h1.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-          h1.width = pillText ? 0.74 : 1;
-          row.addControl(h1);
-
-          if(pillText){
-            const pill = new BABYLON.GUI.Rectangle(name+"_pill");
-            pill.width = 0.26;
-            pill.height = "34px";
-            pill.thickness = 1;
-            pill.cornerRadius = 18;
-            pill.color = "rgba(232,226,214,0.14)";
-            pill.background = "rgba(255,255,255,0.03)";
-            pill.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-            row.addControl(pill);
-
-            const pillT = new BABYLON.GUI.TextBlock(name+"_pillT", (pillText||"").toUpperCase());
-            pillT.color = C.ink;
-            pillT.fontFamily = F.mono;
-            pillT.fontSize = 18;
-            pillT.letterSpacing = "3px";
-            pill.addControl(pillT);
-          }
-
-          const divider = new BABYLON.GUI.Rectangle(name+"_hdrDiv");
-          divider.height = "1px";
-          divider.thickness = 0;
-          divider.background = "rgba(232,226,214,0.12)";
-          divider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-          headerRect.addControl(divider);
-
-          return headerRect;
-        }
-
-        function makeBodyContainer(parent){
-          const bodyRect = new BABYLON.GUI.Rectangle(name+"_bodyRect");
-          bodyRect.thickness = 0;
-          bodyRect.background = "rgba(0,0,0,0)";
-          bodyRect.width = 1;
-          bodyRect.height = 1;
-          bodyRect.paddingLeft = "34px";
-          bodyRect.paddingRight = "34px";
-          bodyRect.paddingTop = "22px";
-          bodyRect.paddingBottom = "22px";
-          parent.addControl(bodyRect);
-          return bodyRect;
-        }
-
-        function capsule(label){
-          const btn = BABYLON.GUI.Button.CreateSimpleButton("cap_"+label, label);
-          btn.height = "62px";
-          btn.width = 1;
-          btn.thickness = 1;
-          btn.cornerRadius = 31;
-          btn.color = "rgba(232,226,214,0.22)";
-          btn.background = "rgba(255,255,255,0.03)";
-          btn.fontFamily = F.mono;
-          btn.fontSize = 22;
-          btn.textBlock.letterSpacing = "4px";
-          btn.textBlock.textTransform = "uppercase";
-          btn.textBlock.color = C.ink;
-          btn.isPointerBlocker = true;
-          return btn;
-        }
-
-        function setCapsuleActive(btn, active){
-          btn.background = active ? C.activeBg : "rgba(255,255,255,0.03)";
-          btn.color = active ? C.activeBorder : "rgba(232,226,214,0.22)";
-        }
-
-        function projectCard(p){
-          const card = new BABYLON.GUI.Rectangle("card_"+p.id);
-          card.height = "172px";
-          card.width = 1;
-          card.thickness = 1;
-          card.cornerRadius = 18;
-          card.color = "rgba(232,226,214,0.16)";
-          card.background = C.cardBg;
-          card.isPointerBlocker = true;
-          card.paddingLeft = "16px";
-          card.paddingRight = "16px";
-          card.paddingTop = "14px";
-          card.paddingBottom = "14px";
-
-          const stack = new BABYLON.GUI.StackPanel("cardS_"+p.id);
-          stack.isVertical = true;
-          stack.width = 1;
-          stack.height = 1;
-          stack.spacing = 6;
-          card.addControl(stack);
-
-          const top = new BABYLON.GUI.StackPanel("cardTop_"+p.id);
-          top.isVertical = false;
-          top.height = "44px";
-          top.width = 1;
-          stack.addControl(top);
-
-          const t = new BABYLON.GUI.TextBlock("cardT_"+p.id, p.title);
-          t.fontFamily = F.serif;
-          t.fontSize = 34;
-          t.color = C.ink;
-          t.textWrapping = true;
-          t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          t.width = 0.74;
-          top.addControl(t);
-
-          const d = new BABYLON.GUI.TextBlock("cardD_"+p.id, fmtDate(p.date));
-          d.fontFamily = F.mono;
-          d.fontSize = 18;
-          d.letterSpacing = "2px";
-          d.color = C.muter;
-          d.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-          d.width = 0.26;
-          top.addControl(d);
-
-          const meta = new BABYLON.GUI.TextBlock("cardM_"+p.id, (p.category||"").toUpperCase());
-          meta.fontFamily = F.mono;
-          meta.fontSize = 18;
-          meta.letterSpacing = "3px";
-          meta.color = C.muted;
-          meta.height = "26px";
-          meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          stack.addControl(meta);
-
-          const excerpt = (p.description||"").trim();
-          const ex = excerpt.length>160 ? excerpt.slice(0,160)+"…" : excerpt;
-          const desc = new BABYLON.GUI.TextBlock("cardX_"+p.id, ex);
-          desc.fontFamily = F.mono;
-          desc.fontSize = 18;
-          desc.lineSpacing = "6px";
-          desc.color = C.muter;
-          desc.textWrapping = true;
-          desc.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          desc.height = "78px";
-          stack.addControl(desc);
-
-          return card;
-        }
-
-        // --- frame ---
-        const frame = new BABYLON.GUI.Rectangle(name+"_frame");
-        frame.width = 0.92;
-        frame.height = 0.92;
-        frame.thickness = 1;
-        frame.cornerRadius = 28;
-        frame.color = C.border;
-        frame.background = C.bg;
-        adt.addControl(frame);
-
-        makeCornerFrame(frame);
-
-        const main = new BABYLON.GUI.StackPanel(name+"_main");
-        main.isVertical = true;
-        main.width = 1;
-        main.height = 1;
-        frame.addControl(main);
-
-        // Decide which panel this is
-        const t = (title||"").toLowerCase();
-        const isCategories = t.includes("categorie");
-        const isWall = t.includes("project") || t.includes("wall");
-        const isViewer = t.includes("viewer");
-
-        // --- Refresh functions (operate across all panels) ---
-        function refreshCategories(){
-          store.refs.categoryBtns.forEach(x => setCapsuleActive(x.btn, store.state.activeCategory===x.cat));
-        }
-        function refreshWall(){
-          store.refs.wallCards.forEach(x => {
-            const active = store.state.activeProjectId===x.id;
-            x.card.background = active ? C.activeBg : C.cardBg;
-            x.card.color = active ? C.activeBorder : "rgba(232,226,214,0.16)";
-          });
-        }
-        function refreshViewer(){
-          const p = getProjectById(store.state.activeProjectId) || filteredProjects()[0] || null;
-          const v = store.refs.viewer;
-          if(!v || !v.title) return;
-          if(!p){
-            v.title.text = "No project selected";
-            v.date.text = "";
-            v.desc.text = "";
-            return;
-          }
-          v.title.text = p.title;
-          v.date.text = `${fmtDate(p.date)}  —  ${(p.category||"").toUpperCase()}`;
-          v.desc.text = p.description || "";
-        }
-
-        function setCategory(cat){
-          store.state.activeCategory = cat || "All";
-          const fp = filteredProjects();
-          const cur = getProjectById(store.state.activeProjectId);
-          if(!cur || (store.state.activeCategory!=="All" && cur.category!==store.state.activeCategory)){
-            store.state.activeProjectId = fp[0]?.id || null;
-          }
-          refreshCategories(); refreshWall(); refreshViewer();
-          // if wall panel exists elsewhere, its list content updates only on that panel instance
-          // so we keep it reactive by dispatching a custom event
-          window.dispatchEvent(new CustomEvent("__VR_WALL_REBUILD__"));
-        }
-        function setProject(id){
-          store.state.activeProjectId = id;
-          refreshWall(); refreshViewer();
-        }
-
-        // --- Build panel contents ---
-        if(isCategories){
-          makePanelHeader(main, "Studies", "Categories", "filter");
-          const body = makeBodyContainer(main);
-
-          const list = new BABYLON.GUI.StackPanel(name+"_catList");
-          list.isVertical = true;
-          list.width = 1;
-          list.height = 1;
-          list.spacing = 10;
-          body.addControl(list);
-
-          store.refs.categoryBtns = store.refs.categoryBtns || [];
-          store.data.categories.forEach(cat=>{
-            const btn = capsule(cat.toUpperCase());
-            setCapsuleActive(btn, store.state.activeCategory===cat);
-            btn.onPointerEnterObservable.add(()=>{ if(store.state.activeCategory!==cat) btn.background = C.hoverBg; });
-            btn.onPointerOutObservable.add(()=>{ setCapsuleActive(btn, store.state.activeCategory===cat); });
-            btn.onPointerClickObservable.add(()=> setCategory(cat));
-            list.addControl(btn);
-            store.refs.categoryBtns.push({cat, btn});
-          });
-
-          const hint = new BABYLON.GUI.TextBlock(name+"_hint", "Tap a category to filter projects");
-          hint.height = "44px";
-          hint.color = C.muter;
-          hint.fontFamily = F.mono;
-          hint.fontSize = 18;
-          hint.letterSpacing = "2px";
-          hint.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          hint.paddingTop = "12px";
-          body.addControl(hint);
-        }
-
-        if(isWall){
-          makePanelHeader(main, "Studies", "Project Wall", "browse");
-          const body = makeBodyContainer(main);
-
-          // Wall "grid" feel as background (approx)
-          const grid = new BABYLON.GUI.Rectangle(name+"_grid");
-          grid.thickness = 1;
-          grid.cornerRadius = 18;
-          grid.color = "rgba(232,226,214,0.12)";
-          grid.background = "rgba(0,0,0,0.18)";
-          grid.width = 1;
-          grid.height = 1;
-          body.addControl(grid);
-
-          const scroll = new BABYLON.GUI.ScrollViewer(name+"_scroll");
-          scroll.width = 0.98;
-          scroll.height = 0.98;
-          scroll.thickness = 0;
-          scroll.barSize = 10;
-          scroll.color = C.border;
-          scroll.background = "rgba(0,0,0,0)";
-          scroll.verticalBar.color = C.border;
-          scroll.verticalBar.background = "rgba(0,0,0,0.15)";
-          scroll.horizontalBar.isVisible = false;
-          grid.addControl(scroll);
-
-          const stack = new BABYLON.GUI.StackPanel(name+"_stack");
-          stack.isVertical = true;
-          stack.width = 1;
-          stack.spacing = 10;
-          stack.paddingRight = "12px";
-          scroll.addControl(stack);
-
-          function rebuild(){
-            stack.clearControls();
-            store.refs.wallCards = [];
-
-            const arr = filteredProjects();
-            if(!arr.length){
-              const empty = new BABYLON.GUI.TextBlock(name+"_empty", "No projects in this category.");
-              empty.height = "44px";
-              empty.color = C.muter;
-              empty.fontFamily = F.mono;
-              empty.fontSize = 18;
-              empty.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-              stack.addControl(empty);
-              return;
-            }
-            arr.forEach(p=>{
-              const card = projectCard(p);
-              const active = store.state.activeProjectId===p.id;
-              card.background = active ? C.activeBg : C.cardBg;
-              card.color = active ? C.activeBorder : "rgba(232,226,214,0.16)";
-
-              card.onPointerEnterObservable.add(()=>{ if(store.state.activeProjectId!==p.id) card.background = C.hoverBg; });
-              card.onPointerOutObservable.add(()=>{ card.background = (store.state.activeProjectId===p.id) ? C.activeBg : C.cardBg; });
-              card.onPointerClickObservable.add(()=> setProject(p.id));
-
-              stack.addControl(card);
-              store.refs.wallCards.push({ id:p.id, card });
+let activeCategory = "All";
+let activeProject = projects[0];
+
+/* ---------------- PANEL FACTORY ---------------- */
+
+function makeGuiPanel(name, positionAngle) {
+
+    const plane = BABYLON.MeshBuilder.CreatePlane(name,{
+        width:2.3,
+        height:3
+    },scene);
+
+    plane.position = new BABYLON.Vector3(
+        Math.sin(positionAngle)*4,
+        0,
+        Math.cos(positionAngle)*4
+    );
+
+    plane.lookAt(BABYLON.Vector3.Zero());
+    plane.scaling.x = -1; // FIX mirror
+
+    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane,2048,2048);
+
+    const root = new BABYLON.GUI.Rectangle();
+    root.thickness = 1;
+    root.background = "rgba(15,15,15,0.78)";
+    root.color = "rgba(255,255,255,0.16)";
+    adt.addControl(root);
+
+    /* -------- LEFT PANEL -------- */
+
+    if(name==="left"){
+
+        const stack = new BABYLON.GUI.StackPanel();
+        stack.paddingTop="40px";
+        root.addControl(stack);
+
+        ["All","BioSystems","Dystopic","Cymatics"].forEach(cat=>{
+            const btn = BABYLON.GUI.Button.CreateSimpleButton(cat,cat);
+            btn.height="120px";
+            btn.cornerRadius=60;
+            btn.color="white";
+            btn.fontFamily="monospace";
+            btn.background = activeCategory===cat ? "#ffffff33" : "#00000000";
+            btn.onPointerClickObservable.add(()=>{
+                activeCategory = cat;
+                refreshPanels();
             });
-          }
-
-          // rebuild when category changes
-          const onRebuild = ()=> rebuild();
-          window.addEventListener("__VR_WALL_REBUILD__", onRebuild, { passive:true });
-
-          rebuild();
-        }
-
-        if(isViewer){
-          makePanelHeader(main, "Studies", "Viewer", "read");
-          const body = makeBodyContainer(main);
-
-          const vStack = new BABYLON.GUI.StackPanel(name+"_vStack");
-          vStack.isVertical = true;
-          vStack.width = 1;
-          vStack.height = 1;
-          vStack.spacing = 10;
-          body.addControl(vStack);
-
-          const vTitle = new BABYLON.GUI.TextBlock(name+"_vTitle", "");
-          vTitle.height = "74px";
-          vTitle.color = C.ink;
-          vTitle.fontFamily = F.serif;
-          vTitle.fontSize = 48;
-          vTitle.textWrapping = true;
-          vTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          vStack.addControl(vTitle);
-
-          const vDate = new BABYLON.GUI.TextBlock(name+"_vDate", "");
-          vDate.height = "28px";
-          vDate.color = C.muted;
-          vDate.fontFamily = F.mono;
-          vDate.fontSize = 18;
-          vDate.letterSpacing = "2px";
-          vDate.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          vStack.addControl(vDate);
-
-          const sep = new BABYLON.GUI.Rectangle(name+"_vSep");
-          sep.height = "1px";
-          sep.thickness = 0;
-          sep.background = "rgba(232,226,214,0.12)";
-          vStack.addControl(sep);
-
-          const scroll = new BABYLON.GUI.ScrollViewer(name+"_vScroll");
-          scroll.width = 1;
-          scroll.height = 1;
-          scroll.thickness = 0;
-          scroll.barSize = 10;
-          scroll.color = C.border;
-          scroll.background = "rgba(0,0,0,0)";
-          scroll.verticalBar.color = C.border;
-          scroll.verticalBar.background = "rgba(0,0,0,0.15)";
-          scroll.horizontalBar.isVisible = false;
-          vStack.addControl(scroll);
-
-          const vDesc = new BABYLON.GUI.TextBlock(name+"_vDesc", "");
-          vDesc.width = 1;
-          vDesc.color = C.ink;
-          vDesc.fontFamily = F.mono;
-          vDesc.fontSize = 20;
-          vDesc.textWrapping = true;
-          vDesc.lineSpacing = "8px";
-          vDesc.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          vDesc.paddingRight = "12px";
-          scroll.addControl(vDesc);
-
-          store.refs.viewer = { title: vTitle, date: vDate, desc: vDesc };
-          refreshViewer();
-        }
-
-        // Initial refresh on each panel
-        refreshCategories();
-        refreshWall();
-        refreshViewer();
-
-        return mesh;
-      }
-
-      const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
-      const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
-      const right = makeGuiPanel("panelRight", 1.85, 2.45, "Viewer");
-
-      function place(){
-        const R = 3.4;
-        const spread = 0.62;
-        function setArc(mesh, a, zBoost){
-          mesh.position.x = Math.sin(a) * R;
-          mesh.position.z = Math.cos(a) * R + zBoost;
-          mesh.position.y = 1.6;
-        }
-        setArc(left,  -spread, 1.9);
-        setArc(mid,    0,      2.25);
-        setArc(right,  spread, 1.9);
-      }
-      place();
-
-      scene.onBeforeRenderObservable.add(()=>{
-        [left,mid,right].forEach(p=>{
-          const dx = cam.position.x - p.position.x;
-          const dz = cam.position.z - p.position.z;
-          p.rotation.y = Math.atan2(dx, dz);
+            stack.addControl(btn);
         });
-      });
-
-      engine.runRenderLoop(()=> scene.render());
-      window.addEventListener("resize", ()=>{
-        engine.resize();
-        place();
-      }, {passive:true});
-
-      ready = true;
-      // If user clicked early, toggle now
-      if(pendingToggle){
-        pendingToggle = false;
-        await toggleGyro();
-      }else{
-        // restore OFF label if it was "…"
-        setState("OFF");
-      }
-
-    }catch(e){
-      console.error(e);
-      ready = false;
-      setState("ERR");
     }
-  }
 
-  init();
-})();
+    /* -------- CENTER PANEL -------- */
+
+    if(name==="center"){
+
+        const scroll = new BABYLON.GUI.ScrollViewer();
+        scroll.thickness=0;
+        root.addControl(scroll);
+
+        const stack = new BABYLON.GUI.StackPanel();
+        scroll.addControl(stack);
+
+        getFiltered().forEach(proj=>{
+            const card = new BABYLON.GUI.Rectangle();
+            card.height="260px";
+            card.thickness=1;
+            card.color="rgba(255,255,255,0.16)";
+            card.background = proj===activeProject ? "#ffffff22":"#00000000";
+            card.paddingTop="20px";
+            card.paddingBottom="20px";
+
+            const title = new BABYLON.GUI.TextBlock();
+            title.text=proj.title;
+            title.color="white";
+            title.fontSize=60;
+            title.fontFamily="serif";
+            card.addControl(title);
+
+            card.onPointerClickObservable.add(()=>{
+                activeProject = proj;
+                refreshPanels();
+            });
+
+            stack.addControl(card);
+        });
+    }
+
+    /* -------- RIGHT PANEL -------- */
+
+    if(name==="right"){
+
+        const stack = new BABYLON.GUI.StackPanel();
+        stack.paddingTop="80px";
+        stack.paddingLeft="80px";
+        stack.paddingRight="80px";
+        root.addControl(stack);
+
+        const title = new BABYLON.GUI.TextBlock();
+        title.text=activeProject.title;
+        title.fontSize=90;
+        title.fontFamily="serif";
+        title.color="white";
+        title.textWrapping=true;
+        stack.addControl(title);
+
+        const date = new BABYLON.GUI.TextBlock();
+        date.text=activeProject.date;
+        date.fontSize=50;
+        date.fontFamily="monospace";
+        date.color="#aaaaaa";
+        stack.addControl(date);
+
+        const text = new BABYLON.GUI.TextBlock();
+        text.text=activeProject.text;
+        text.fontSize=55;
+        text.fontFamily="monospace";
+        text.color="white";
+        text.textWrapping=true;
+        stack.addControl(text);
+    }
+
+    return plane;
+}
+
+/* ---------------- HELPERS ---------------- */
+
+function getFiltered(){
+    if(activeCategory==="All") return projects;
+    return projects.filter(p=>p.category===activeCategory);
+}
+
+let panels=[];
+
+function refreshPanels(){
+    panels.forEach(p=>p.dispose());
+    panels=[];
+    panels.push(makeGuiPanel("left",-0.8));
+    panels.push(makeGuiPanel("center",0));
+    panels.push(makeGuiPanel("right",0.8));
+}
+
+refreshPanels();
+
+/* ---------------- RENDER ---------------- */
+
+engine.runRenderLoop(()=>{
+    scene.render();
+});
+
+window.addEventListener("resize",()=>{
+    engine.resize();
+});
 </script>
 
 </body>
