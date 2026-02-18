@@ -403,6 +403,18 @@ body::after{
 =========================== */
 #babylonRoot{ display:none; }
 body.bab3d-ready #babylonRoot{ display:block; position:fixed; inset:0; z-index:6000; background:#0b0b0b; }
+
+body.bab3d-ready{
+  overflow:hidden !important;
+  height:100vh;
+  width:100vw;
+  background:#0b0b0b;
+}
+body.bab3d-ready .siteHeader,
+body.bab3d-ready .page,
+body.bab3d-ready #vitrine-bg,
+body.bab3d-ready #glass{ display:none !important; }
+
 body.bab3d-on{
   overflow:hidden !important;
   height:100vh;
