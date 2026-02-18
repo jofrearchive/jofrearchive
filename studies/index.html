@@ -1,0 +1,1361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Studies — Project Wall</title>
+
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --muted:rgba(232,226,214,.72);
+  --line:rgba(232,226,214,.16);
+  --line2:rgba(232,226,214,.12);
+  --mono:"Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --serif:"EB Garamond", serif;
+  --shadow:0 40px 90px rgba(0,0,0,.72);
+}
+*{box-sizing:border-box}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--serif);
+  overflow:hidden; /* fixed columns */
+}
+
+/* Vitrine background */
+#vitrine-bg{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
+    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.42)),
+    #0b0b0b;
+}
+#vitrine-bg::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0px, rgba(255,255,255,.010) 1px, transparent 2px, transparent 5px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.007) 0px, rgba(255,255,255,.007) 1px, transparent 2px, transparent 9px);
+  opacity:.18; mix-blend-mode:overlay;
+}
+#glass{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.08), transparent 25%),
+    radial-gradient(900px 650px at 60% 25%, rgba(255,255,255,.06), transparent 55%);
+  opacity:.22; mix-blend-mode:screen;
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,0,.88) 100%);
+  opacity:.55;
+}
+
+/* Header */
+.siteHeader{
+  position:fixed; top:0; left:0; right:0;
+  height: calc(96px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  display:flex; align-items:center; justify-content:center;
+  z-index: 1000;
+  pointer-events:none;
+}
+.siteHeader a{pointer-events:auto; text-decoration:none}
+.siteHeader img{height:56px; width:auto; display:block; opacity:.92}
+.siteHeader img:hover{opacity:1}
+
+/* Fixed viewport layout */
+.page{
+  position:relative;
+  z-index:10;
+  height:100vh;
+  padding: calc(110px + env(safe-area-inset-top)) clamp(10px, 2.2vw, 22px) clamp(10px, 2.2vw, 22px);
+}
+.wrap{
+  width:min(1320px, 100%);
+  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 260px 1fr 420px;
+  gap:14px;
+  align-items:stretch;
+}
+
+/* Panels */
+.panel{
+  border:1px solid var(--line2);
+  background: linear-gradient(180deg, rgba(10,10,10,.86), rgba(0,0,0,.46));
+  box-shadow: var(--shadow);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.panel::before{
+  content:"";
+  position:absolute; inset:10px;
+  pointer-events:none;
+  background:
+    linear-gradient(var(--line),var(--line)) left top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 22px no-repeat;
+  opacity:.85;
+  z-index:0;
+}
+.panelHeader{
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.92);
+  position:relative;
+  z-index:2;
+}
+.kicker{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  font-size:11px;
+  opacity:.68;
+  margin-bottom:6px;
+}
+.titleRow{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.h1{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:16px;
+}
+.pill{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+.panelBody{
+  padding:14px 16px 16px;
+  position:relative;
+  z-index:2;
+  min-height:0;
+  flex:1;
+}
+.hr{height:1px;background:rgba(232,226,214,.12);margin:12px 0}
+
+/* Controls */
+.input{
+  width:100%;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  color:var(--ink);
+  padding:10px 10px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.10em;
+  font-size:11px;
+  outline:none;
+}
+.row{display:flex; gap:10px; flex-wrap:wrap}
+.btn{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  color:var(--ink);
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(232,226,214,.22);
+  padding:10px 12px;
+  cursor:pointer;
+  opacity:.92;
+  transition:all .2s ease;
+}
+.btn:hover{opacity:1;background:rgba(255,255,255,.05)}
+.btn.active{
+  background: rgba(255,255,255,.08);
+  border-color: rgba(232,226,214,.40);
+}
+.smallHint{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.62;
+}
+
+/* Internal scrolls */
+.scrollY{overflow:auto; scrollbar-width:none;}
+.scrollY::-webkit-scrollbar{width:0;height:0}
+
+/* Wall column */
+.wall{
+  border:1px solid rgba(232,226,214,.12);
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    radial-gradient(900px 650px at 50% 30%, rgba(232,226,214,.075), transparent 58%),
+    rgba(0,0,0,.18);
+  position:relative;
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.wallTop{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; flex-wrap:wrap;
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.72);
+  position:relative;
+  z-index:2;
+}
+.wallTitle{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:14px;
+}
+.counter{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  opacity:.72;
+}
+.wallScroll{
+  flex:1;
+  min-height:0;
+  overflow:auto; /* only scrolling area for projects */
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.wallScroll::-webkit-scrollbar{width:0;height:0}
+.wallGrid{
+  padding:14px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+
+/* Cards */
+.card{
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(0,0,0,.22);
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  transform: translateZ(0);
+}
+.card::before{
+  content:"";
+  position:absolute; inset:-2px;
+  pointer-events:none;
+  background: radial-gradient(520px 240px at 30% 0%, rgba(255,255,255,.10), transparent 60%);
+  opacity:0;
+  transition: opacity .18s ease;
+}
+.card:hover{ border-color: rgba(232,226,214,.26); background: rgba(255,255,255,.03); }
+.card:hover::before{ opacity:.85; }
+.thumb{
+  aspect-ratio: 4 / 3;
+  width:100%;
+  background: rgba(255,255,255,.03);
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(232,226,214,.10);
+}
+.thumb img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  filter: saturate(.95) contrast(1.05);
+  opacity:.92;
+}
+.thumb .scan{
+  position:absolute; inset:0; pointer-events:none;
+  background: linear-gradient(180deg, transparent 0%, rgba(232,226,214,.22) 50%, transparent 100%);
+  opacity:.10;
+  transform: translateY(-60%);
+  animation: scan 5.2s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes scan{0%{transform:translateY(-70%)}100%{transform:translateY(80%)}}
+.cardBody{padding:12px 12px 11px; position:relative; z-index:2}
+.metaLine{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.78;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.cardTitle{
+  margin:8px 0 8px;
+  font-size:16px;
+  line-height:1.25;
+  opacity:.96;
+}
+.tags{display:flex; gap:8px; flex-wrap:wrap}
+.tag{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.13);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+
+/* Viewer */
+.viewerMedia{
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(0,0,0,.22);
+  aspect-ratio: 4 / 3;
+  position:relative;
+  overflow:hidden;
+}
+.viewerMedia img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92;filter:saturate(.95) contrast(1.05);}
+.viewerMedia .grid{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.06) 0px, rgba(232,226,214,.06) 1px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 18px);
+  opacity:.20; mix-blend-mode:overlay;
+}
+.viewerContent{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:14px 16px 16px;
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.viewerContent::-webkit-scrollbar{width:0;height:0;}
+.kv{
+  display:flex; justify-content:space-between; gap:10px;
+  padding:6px 0;
+  border-top:1px dashed rgba(232,226,214,.12);
+}
+.kv:first-of-type{border-top:0;padding-top:0;}
+.k{font-family:var(--mono);text-transform:uppercase;letter-spacing:.10em;font-size:10px;opacity:.65;}
+.v{font-family:var(--mono);letter-spacing:.08em;font-size:10px;opacity:.92;text-align:right;}
+.excerpt{
+  margin:12px 0 0;
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.7;
+  letter-spacing:.05em;
+  white-space:pre-wrap;
+  opacity:.92;
+  text-shadow: 0 0 10px rgba(232,226,214,.08), 0 0 2px rgba(232,226,214,.08);
+}
+.viewerFooter{
+  border-top:1px solid rgba(232,226,214,.12);
+  padding:12px 16px;
+  background: rgba(10,10,10,.92);
+  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  position:relative;
+  z-index:2;
+}
+.link{
+  color:var(--ink);
+  text-decoration:none;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  padding:10px 12px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  opacity:.92;
+}
+.link:hover{opacity:1;background:rgba(255,255,255,.05);}
+
+/* Responsive */
+@media (max-width: 1100px){ .wrap{grid-template-columns: 260px 1fr} .viewerCol{display:none} }
+@media (max-width: 860px){ .wrap{grid-template-columns:1fr} .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+@media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
+
+
+#vrCapture{
+  position:fixed;
+  left:-220vw;
+  top:0;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  pointer-events:none;
+  opacity:0;
+}
+#vrCapture .wrap{
+  width:min(1320px, 100%);
+  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
+}
+
+/* ===========================
+   MOBILE VR (A-FRAME overlay)
+   - Desktop layout unchanged
+   - On mobile: we hide desktop UI and show VR overlay
+=========================== */
+body.vrmode{
+  overflow:hidden !important;
+}
+body.vrmode .siteHeader,
+body.vrmode .page,
+body.vrmode #vitrine-bg,
+body.vrmode #glass{
+  position:fixed !important;
+  left:-220vw !important;
+  top:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+body.vrmode::after{ display:none !important; }
+#vrApp{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:5000;
+  display:none;
+}
+body.vrmode #vrApp{ display:block; }
+
+</style>
+</head>
+
+<body>
+<header class="siteHeader" role="banner" aria-label="Primary">
+  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
+    <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
+  </a>
+</header>
+
+<div id="vitrine-bg" aria-hidden="true"></div>
+<div id="glass" aria-hidden="true"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <!-- LEFT: categories + filters -->
+    <aside class="panel" aria-label="Categories">
+      <div class="panelHeader">
+        <div class="kicker">studies / navigation</div>
+        <div class="titleRow">
+          <h2 class="h1">CATEGORIES</h2>
+          <div class="pill" id="pillCount">— items</div>
+        </div>
+      </div>
+      <div class="panelBody scrollY">
+        <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
+        <div class="hr"></div>
+        <div class="row" id="catRow"></div>
+</div>
+    </aside>
+
+    <!-- CENTER: wall (scroll inside) -->
+    <section class="wall" aria-label="Project wall">
+      <div class="wallTop">
+        <h3 class="wallTitle">PROJECT WALL</h3>
+        
+        <div class="row">
+          <button class="btn" id="btnSort">Sort: newest</button>
+          <button class="btn" id="btnReset">Reset</button>
+        </div>
+
+        <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
+      </div>
+      <div class="wallScroll">
+        <div class="wallGrid" id="grid"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: viewer -->
+    <aside class="panel viewerCol" aria-label="Viewer">
+      <div class="panelHeader">
+        <div class="kicker">retrieval / viewer</div>
+        <div class="titleRow">
+          <h2 class="h1" id="vTitle">SELECT A PROJECT</h2>
+          <div class="pill" id="vCat">—</div>
+        </div>
+      </div>
+
+      <div class="viewerMedia">
+        <img id="vImg" alt="" src="" style="display:none">
+        <div class="grid" aria-hidden="true"></div>
+      </div>
+
+      <div class="viewerContent">
+        <div id="vMeta"></div>
+        <div class="hr"></div>
+        <div class="excerpt" id="vText">Use the wall to open an entry.</div>
+      </div>
+
+      <div class="viewerFooter">
+        <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
+        <button class="btn" id="vCopy" disabled>Copy</button>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
+
+const PROJECTS = [
+  {
+    id:"BIO-0001",
+    title:"Cellulose solar panel (screen-print tests)",
+    year:2024,
+    place:"India / Spain",
+    category:"BioSystems",
+    tags:["cellulose","serigraphy","solar"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EBIOSYSTEMS%20/%20MATERIAL%20TEST%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Translucent cellulose substrate + conductive layers (N/P).\nFlexible, transparent panel logic.",
+    link:"#"
+  },
+  {
+    id:"LAN-0001",
+    title:"Leaf-pattern cartography studies",
+    year:2025,
+    place:"Mediterranean basin",
+    category:"Landscape",
+    tags:["plants","pattern","territory"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ELANDSCAPE%20/%20LEAF%20CARTOGRAPHY%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Landscape read as sediment: layers of presence across territories.\nLeaves as diagram: veins, flows, and memory lines.",
+    link:"#"
+  },
+  {
+    id:"DPA-0001",
+    title:"Carnival of progress (dystopic pop)",
+    year:2024,
+    place:"—",
+    category:"Dystopic Pop Art",
+    tags:["carnival","critique","spectacle"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EDYSTOPIC%20POP%20/%20CARNIVAL%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Modern society as a carnival: colorful attractions and lights, lacking depth.\nSeduction + collapse.",
+    link:"#"
+  },
+  {
+    id:"CYM-0001",
+    title:"Cymatics studies (frequency patterns)",
+    year:2024,
+    place:"—",
+    category:"Cymatics",
+    tags:["frequency","pattern","sound"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ECYMATICS%20/%20FREQUENCY%20PATTERNS%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Cymatic diagrams as visual proof of vibration.\nSignal becomes geometry.",
+    link:"#"
+  },
+  {
+    id:"PUB-0001",
+    title:"Konvent — community as infrastructure",
+    year:2024,
+    place:"Catalonia",
+    category:"Public Art",
+    tags:["community","residency","territory"],
+    thumb:"https://inside.jofrearchive.com/konvent.gif",
+    images:["https://inside.jofrearchive.com/konvent.gif","http://inside.jofrearchive.com/assets/images/konvent-landscape.gif"],
+    excerpt:"Konvent as a living institution: a territory-based community that produces culture through autonomy.\nConstraints, self-organization, and the material conditions of freedom.",
+    link:"#"
+  },
+  {
+    id:"MUR-0001",
+    title:"Trajectory — walls as coordinates",
+    year:2025,
+    place:"Spain → India → Morocco → Norway",
+    category:"Murals",
+    tags:["wall","cartography","site"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EMURALS%20/%20TRAJECTORY%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"From 2012 to 2025, the trajectory can be read not as chronology, but as sediment.\nThe mural as imprint and encounter.",
+    link:"#"
+  }
+];
+
+let state = { category:"All", q:"", newestFirst:true, openId:null };
+
+const catRow = document.getElementById("catRow");
+const qEl = document.getElementById("q");
+const grid = document.getElementById("grid");
+const shownEl = document.getElementById("shown");
+const totalEl = document.getElementById("total");
+const pillCount = document.getElementById("pillCount");
+const btnSort = document.getElementById("btnSort");
+const btnReset = document.getElementById("btnReset");
+
+const vTitle = document.getElementById("vTitle");
+const vCat = document.getElementById("vCat");
+const vImg = document.getElementById("vImg");
+const vMeta = document.getElementById("vMeta");
+const vText = document.getElementById("vText");
+const vLink = document.getElementById("vLink");
+const vCopy = document.getElementById("vCopy");
+
+function norm(s){ return String(s||"").toLowerCase().trim(); }
+function escapeHtml(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function filtered(){
+  let items = [...PROJECTS];
+  if(state.category !== "All") items = items.filter(p => p.category === state.category);
+  if(state.q){
+    const q = norm(state.q);
+    items = items.filter(p => norm([p.id,p.title,p.year,p.place,p.category,(p.tags||[]).join(" "),p.excerpt].join(" ")).includes(q));
+  }
+  items.sort((a,b)=> state.newestFirst ? (b.year - a.year) : (a.year - b.year));
+  return items;
+}
+
+function renderCategories(){
+  catRow.innerHTML = "";
+  CATEGORIES.forEach(c=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = "btn" + (c === state.category ? " active" : "");
+    b.textContent = c;
+    b.addEventListener("click", ()=>{ state.category = c; state.openId=null; renderAll(false); });
+    catRow.appendChild(b);
+  });
+}
+
+function kvRow(k,v){ return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`; }
+
+function setViewerEmpty(){
+  vTitle.textContent = "SELECT A PROJECT";
+  vCat.textContent = "—";
+  vText.textContent = "Use the wall to open an entry.";
+  vMeta.innerHTML = "";
+  vImg.style.display = "none";
+  vImg.src = "";
+  vLink.style.display = "none";
+  vCopy.disabled = true;
+}
+
+function fillViewer(p){
+  vTitle.textContent = p.title.toUpperCase();
+  vCat.textContent = (p.category || "—").toUpperCase();
+  vMeta.innerHTML =
+    kvRow("ID", p.id) +
+    kvRow("CATEGORY", p.category) +
+    kvRow("YEAR", String(p.year)) +
+    kvRow("PLACE", p.place || "—") +
+    kvRow("TAGS", (p.tags||[]).join(", ") || "—");
+  vText.textContent = p.excerpt || "—";
+  const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  if(imgSrc){
+    vImg.style.display = "block";
+    vImg.src = imgSrc;
+    vImg.alt = p.title;
+  } else {
+    vImg.style.display = "none";
+    vImg.src = "";
+  }
+  if(p.link && p.link !== "#"){ vLink.style.display = "inline-block"; vLink.href = p.link; }
+  else { vLink.style.display = "none"; }
+  vCopy.disabled = false;
+}
+
+function openProject(id){
+  const p = PROJECTS.find(x=>x.id===id);
+  if(!p) return;
+  state.openId = id;
+  fillViewer(p);
+}
+
+function renderWall(keepSelection){
+  const items = filtered();
+  totalEl.textContent = PROJECTS.length;
+  shownEl.textContent = items.length;
+  pillCount.textContent = PROJECTS.length + " items";
+
+  grid.innerHTML = "";
+  items.forEach(p=>{
+    const el = document.createElement("div");
+    el.className = "card";
+    el.tabIndex = 0;
+    el.setAttribute("role","button");
+    el.innerHTML = `
+      <div class="thumb">
+        <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
+        <div class="scan" aria-hidden="true"></div>
+      </div>
+      <div class="cardBody">
+        <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
+        <div class="cardTitle">${escapeHtml(p.title)}</div>
+        <div class="tags">${(p.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+      </div>
+    `;
+    el.addEventListener("click", ()=> openProject(p.id));
+    el.addEventListener("keydown",(e)=>{
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
+    });
+    grid.appendChild(el);
+  });
+
+  if(items.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "smallHint";
+    empty.style.padding = "14px";
+    empty.textContent = "No matches.";
+    grid.appendChild(empty);
+    state.openId = null;
+    setViewerEmpty();
+    return;
+  }
+
+  if(keepSelection && state.openId && items.find(x=>x.id===state.openId)) return;
+  openProject(items[0].id);
+}
+
+qEl.addEventListener("input",(e)=>{
+  state.q = e.target.value;
+  state.openId = null;
+  renderAll(false);
+});
+btnSort.addEventListener("click", ()=>{
+  state.newestFirst = !state.newestFirst;
+  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
+  state.openId = null;
+  renderAll(false);
+});
+btnReset.addEventListener("click", ()=>{
+  state.category = "All";
+  state.q = "";
+  state.newestFirst = true;
+  state.openId = null;
+  qEl.value = "";
+  btnSort.textContent = "Sort: newest";
+  renderAll(false);
+  setViewerEmpty();
+});
+
+async function copyPayload(){
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  if(!p) return false;
+  const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
+  try{ await navigator.clipboard.writeText(payload); return true; }
+  catch(_){ return false; }
+}
+vCopy.addEventListener("click", async ()=>{
+  const ok = await copyPayload();
+  vCopy.textContent = ok ? "Copied" : "Blocked";
+  setTimeout(()=> vCopy.textContent = "Copy", 900);
+});
+
+function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
+setViewerEmpty();
+renderAll(false);
+</script>
+
+<!-- ===========================
+     MOBILE VR (A-FRAME)
+     - Activates only on mobile/coarse pointer
+     - Desktop remains untouched
+=========================== -->
+<div id="vrApp" aria-hidden="true">
+  <style>
+    /* VR overlay UI */
+    #vrHud{
+      position:fixed;
+      top:12px;
+      left:12px;
+      right:12px;
+      z-index:6000;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:14px;
+      background:rgba(10,10,10,.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color:#e8e2d6;
+      font-family: var(--mono);
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-size:11px;
+      user-select:none;
+    }
+    #vrHud .left{display:flex; gap:10px; align-items:center;}
+    #vrHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
+    #vrHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
+    #vrHud button{
+      all:unset;
+      cursor:pointer;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.03);
+      opacity:.92;
+    }
+    #vrHud button:active{transform: translateY(1px);}
+
+    #vrHud input#vrSearch{
+      width:min(42vw, 220px);
+      max-width:220px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.03);
+      color:#e8e2d6;
+      border-radius:12px;
+      padding:8px 10px;
+      font-family: var(--mono);
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:11px;
+      outline:none;
+      opacity:.92;
+    }
+    #vrHud input#vrSearch::placeholder{ color: rgba(232,226,214,.55); }
+
+    #vrHint{
+      position:fixed;
+      bottom:14px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:6000;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.55);
+      color:rgba(232,226,214,.82);
+      font-family: var(--mono);
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:10px;
+      max-width:92vw;
+      text-align:center;
+      user-select:none;
+    }
+  </style>
+
+  <div id="vrHud" data-on="0">
+    <div class="left">
+      <span class="dot" aria-hidden="true"></span>
+      <span>VR</span>
+      <span style="opacity:.65">Gyro</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input id="vrSearch" type="search" placeholder="Search…" aria-label="Search" />
+      <button type="button" id="vrEnableMotion">Enable motion</button>
+      <button type="button" id="vrExit">Exit</button>
+    </div>
+  </div>
+  <div id="vrHint">Move your phone • Drag to look around</div>
+
+  
+  <!-- DOM capture staging (offscreen) -->
+  <div id="vrCapture" aria-hidden="true"></div>
+
+  <!-- html2canvas for DOM -> canvas -> texture -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<!-- A-Frame scene -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <a-scene
+    id="vrScene"
+    embedded
+    renderer="antialias: true; colorManagement: true"
+    vr-mode-ui="enabled: false"
+    style="position:absolute; inset:0;"
+  >
+    <a-assets>
+      <canvas id=\"texLeft\" width=\"1024\" height=\"1400\"></canvas>
+      <canvas id=\"texMid\" width=\"1400\" height=\"1400\"></canvas>
+      <canvas id=\"texRight\" width=\"1024\" height=\"1400\"></canvas>
+    </a-assets>
+
+    <!-- Camera -->
+    <a-entity id="camRig" position="0 1.6 0">
+      <a-camera
+        id="vrCam"
+        look-controls="enabled:true; reverseMouseDrag:true; touchEnabled:true; magicWindowTrackingEnabled:true"
+        wasd-controls-enabled="false"
+      ></a-camera>
+    </a-entity>
+
+    <!-- Ambient light -->
+    <a-entity light="type: ambient; intensity: 0.9"></a-entity>
+
+    <!-- Parabolic feel: inner half-sphere (dome) -->
+    <a-sphere
+      radius="18"
+      segments-width="48"
+      segments-height="24"
+      phi-start="0"
+      phi-length="180"
+      material="side: back; color: #0b0b0b; roughness: 1.0"
+      rotation="0 180 0"
+      position="0 0 0"
+    ></a-sphere>
+
+    <!-- Dark sky backdrop -->
+    <a-sky color="#060606"></a-sky>
+
+    <!-- Three "screens" placed on an arc like your 3 columns -->
+    <a-entity id="screens" position="0 1.6 -4">
+      <!-- Left -->
+      <a-entity id="screenLeft" rotation="0 -40 0" position="-2.6 0 0" face-camera-y>
+        <a-plane width="2.4" height="3.2" material="shader: flat; src: #texLeft; transparent: true; opacity: 1.0;" dom-forward="id: left" ></a-plane>
+        <a-plane width="2.4" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
+        <a-text value="CATEGORIES" align="center" color="#e8e2d6" width="3.2" position="0 1.35 0.03"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        <a-text value="Move phone to look\nTap Exit to return"
+                align="center" color="#e8e2d6" width="2.2" position="0 0.2 0.03" opacity="0.75"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+      </a-entity>
+
+      <!-- Center -->
+      <a-entity id="screenMid" rotation="0 0 0" position="0 0 0" face-camera-y>
+        <a-plane width="3.0" height="3.2" material="shader: flat; src: #texMid; transparent: true; opacity: 1.0;" dom-forward="id: mid" ></a-plane>
+        <a-plane width="3.0" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
+        <a-text value="PROJECT WALL" align="center" color="#e8e2d6" width="3.6" position="0 1.35 0.03"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        <a-text value="(VR shell ready)\nNext: render your real\nprojects as textures."
+                align="center" color="#e8e2d6" width="2.8" position="0 0.25 0.03" opacity="0.75"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+      </a-entity>
+
+      <!-- Right -->
+      <a-entity id="screenRight" rotation="0 40 0" position="2.6 0 0" face-camera-y>
+        <a-plane width="2.4" height="3.2" material="shader: flat; src: #texRight; transparent: true; opacity: 1.0;" dom-forward="id: right" ></a-plane>
+        <a-plane width="2.4" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
+        <a-text value="VIEWER" align="center" color="#e8e2d6" width="3.2" position="0 1.35 0.03"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        <a-text value="Gyro is real here\n(not CSS 3D)"
+                align="center" color="#e8e2d6" width="2.2" position="0 0.2 0.03" opacity="0.78"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+      </a-entity>
+    </a-entity>
+  </a-scene>
+
+  <script>
+
+  // A-Frame component: forward raycast interactions to DOM panels (offscreen clone)
+  if (window.AFRAME && !AFRAME.components["dom-forward"]) {
+    AFRAME.registerComponent("dom-forward", {
+      schema: { id: {type:"string"} },
+      init: function(){
+        this.down = false;
+        this.lastUV = null;
+        this._onDown = (e)=>this.onDown(e);
+        this._onUp = (e)=>this.onUp(e);
+        this._onMove = (e)=>this.onMove(e);
+        this.el.addEventListener("mousedown", this._onDown);
+        this.el.addEventListener("mouseup", this._onUp);
+        this.el.addEventListener("mouseleave", this._onUp);
+        this.el.addEventListener("mousemove", this._onMove);
+        this.el.addEventListener("click", (e)=>this.onClick(e));
+      },
+      getUV: function(e){
+        const inter = e.detail && e.detail.intersection;
+        if(!inter || !inter.uv) return null;
+        return inter.uv; // {x,y} in 0..1
+      },
+      onDown: function(e){
+        const uv = this.getUV(e);
+        if(!uv) return;
+        this.down = true;
+        this.lastUV = {x:uv.x, y:uv.y};
+        if(window.__vrDomForward) window.__vrDomForward.pointerDown(this.data.id, uv, e);
+      },
+      onUp: function(e){
+        if(!this.down) return;
+        this.down = false;
+        const uv = this.getUV(e) || this.lastUV;
+        if(window.__vrDomForward) window.__vrDomForward.pointerUp(this.data.id, uv, e);
+      },
+      onMove: function(e){
+        if(!this.down) return;
+        const uv = this.getUV(e);
+        if(!uv) return;
+        const prev = this.lastUV || uv;
+        this.lastUV = {x:uv.x, y:uv.y};
+        if(window.__vrDomForward) window.__vrDomForward.pointerMove(this.data.id, prev, uv, e);
+      },
+      onClick: function(e){
+        const uv = this.getUV(e);
+        if(!uv) return;
+        if(window.__vrDomForward) window.__vrDomForward.click(this.data.id, uv, e);
+      }
+    });
+  }
+
+
+  // Keep an entity facing the camera (yaw-only so it stays upright)
+  if (window.AFRAME && !AFRAME.components["face-camera-y"]) {
+    AFRAME.registerComponent("face-camera-y", {
+      schema: { target: {type:"string", default:"#vrCam"} },
+      tick: function(){
+        const cam = document.querySelector(this.data.target);
+        if(!cam) return;
+        const obj = this.el.object3D;
+        const camObj = cam.object3D;
+        const THREE_ = window.THREE;
+        if(!THREE_) return;
+        if(!this._v1) { this._v1 = new THREE_.Vector3(); this._v2 = new THREE_.Vector3(); }
+        const p = obj.getWorldPosition(this._v1);
+        const c = camObj.getWorldPosition(this._v2);
+        // yaw only
+        const dx = c.x - p.x;
+        const dz = c.z - p.z;
+        const yaw = Math.atan2(dx, dz); // rotate around Y
+        obj.rotation.set(0, yaw, 0);
+      }
+    });
+  }
+
+
+  (function(){
+    // Mobile detection: coarse pointer OR small width
+    const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 820;
+    const isMobile = isCoarse || isSmall;
+
+    if(!isMobile) return;
+
+    document.body.classList.add("vrmode");
+
+    // --- Parabolic dish layout: place screens on a concave arc facing the user ---
+    function placeScreens(){
+      try{
+      const left = document.getElementById("screenLeft");
+      const mid  = document.getElementById("screenMid");
+      const right= document.getElementById("screenRight");
+      const group= document.getElementById("screens");
+      if(!left || !mid || !right || !group) return;
+
+      // Distance from camera; larger = flatter arc; smaller = more "dish"
+      // Tune based on phone width for readability
+      const w = Math.min(window.innerWidth, window.innerHeight);
+      const R = (w < 420) ? 4.2 : (w < 520 ? 4.6 : 5.0);   // radius in meters
+      const spread = (w < 420) ? 34 : 30; // degrees left/right from center
+
+      const toRad = (d)=>d*Math.PI/180;
+
+      function setOnArc(el, angDeg){
+        const a = toRad(angDeg);
+        const x = Math.sin(a) * R;
+        const z = -Math.cos(a) * R; // negative Z is in front of camera
+        el.setAttribute("position", `${x.toFixed(3)} 0 ${z.toFixed(3)}`);
+        // rotation will be handled by face-camera-y, but set a sensible default
+        el.setAttribute("rotation", `0 ${angDeg} 0`);
+      }
+
+      // Put the whole arc a bit closer and centered
+      group.setAttribute("position", "0 1.6 0");
+
+      setOnArc(left, -spread);
+      setOnArc(mid, 0);
+      setOnArc(right, spread);
+      }catch(e){}
+    }
+
+    // Place once the scene is ready
+    const sceneEl = document.getElementById("vrScene");
+    if(sceneEl){
+      sceneEl.addEventListener("loaded", ()=>{ setTimeout(placeScreens, 60); });
+      // Fallback in case 'loaded' already fired
+      setTimeout(placeScreens, 120);
+    }
+    window.addEventListener("resize", ()=>setTimeout(placeScreens, 150), {passive:true});
+
+
+    // --- Render your REAL desktop panels into VR textures (one-time snapshot) ---
+    const capture = document.getElementById("vrCapture");
+
+    function drawToCanvas(srcEl, canvasEl, scale=2){
+      if(!srcEl || !canvasEl || !window.html2canvas) return Promise.resolve(false);
+      const rect = srcEl.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width));
+      const h = Math.max(320, Math.floor(rect.height));
+
+      // Resize target canvas to keep sharp text
+      canvasEl.width = Math.floor(w * scale);
+      canvasEl.height = Math.floor(h * scale);
+
+      return html2canvas(srcEl, {
+        backgroundColor: null,
+        scale: scale,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight
+      }).then(cv=>{
+        const ctx = canvasEl.getContext("2d");
+        ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+        ctx.drawImage(cv, 0, 0, canvasEl.width, canvasEl.height);
+        return true;
+      }).catch(()=>false);
+    }
+
+    
+    // --- Render your REAL desktop panels into VR textures (live + interactive) ---
+    const capture = document.getElementById("vrCapture");
+
+    // Debounced refresh (keeps VR responsive)
+    let __snapT = null;
+    function scheduleSnapshot(delay=120){
+      clearTimeout(__snapT);
+      __snapT = setTimeout(snapshotPanels, delay);
+    }
+
+    // Panel mapping for interaction
+    const panelMap = {
+      left:  { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texLeft") },
+      mid:   { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texMid")  },
+      right: { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texRight")}
+    };
+
+    function findInElementsFromPoint(x,y, root){
+      const els = document.elementsFromPoint(x,y);
+      for(const el of els){
+        if(root && root.contains(el)) return el;
+      }
+      return null;
+    }
+
+    function uvToPoint(panelId, uv){
+      const m = panelMap[panelId];
+      if(!m || !m.rect) return null;
+      // A-Frame uv origin is bottom-left; DOM origin is top-left
+      const x = m.rect.left + (uv.x * m.rect.width);
+      const y = m.rect.top  + ((1 - uv.y) * m.rect.height);
+      return {x, y};
+    }
+
+    function dispatchMouse(target, type, x, y){
+      if(!target) return;
+      const evt = new MouseEvent(type, {
+        bubbles:true, cancelable:true, composed:true,
+        clientX:x, clientY:y
+      });
+      target.dispatchEvent(evt);
+    }
+
+    function scrollBy(panelId, dyPx){
+      const m = panelMap[panelId];
+      if(!m || !m.scrollEl) return;
+      m.scrollEl.scrollTop += dyPx;
+      scheduleSnapshot(60);
+    }
+
+    // Expose interaction handlers for the A-Frame component
+    window.__vrDomForward = {
+      click(panelId, uv){
+        const m = panelMap[panelId];
+        if(!m || !m.dom || !m.rect) return;
+        const pt = uvToPoint(panelId, uv);
+        if(!pt) return;
+
+        // Find element inside the cloned panel even though VR is on top
+        const t = findInElementsFromPoint(pt.x, pt.y, m.dom);
+        if(!t) return;
+
+        dispatchMouse(t, "mousedown", pt.x, pt.y);
+        dispatchMouse(t, "mouseup", pt.x, pt.y);
+        dispatchMouse(t, "click", pt.x, pt.y);
+
+        // Refresh textures so viewer updates after click (e.g. selecting a project)
+        scheduleSnapshot(90);
+      },
+      pointerDown(panelId, uv){
+        this._drag = { panelId, uv0:uv, uvPrev:uv };
+      },
+      pointerMove(panelId, uvPrev, uvNow){
+        // Scroll gesture: vertical drag on panel scrolls its internal scroller
+        const drag = this._drag;
+        if(!drag || drag.panelId !== panelId) return;
+        const m = panelMap[panelId];
+        if(!m || !m.rect) return;
+
+        const dy = (uvNow.y - uvPrev.y);     // positive when moving up in UV
+        const px = -dy * m.rect.height;      // drag up => scroll down (natural)
+        if(Math.abs(px) > 0.5) scrollBy(panelId, px);
+      },
+      pointerUp(){
+        this._drag = null;
+      }
+    };
+
+    function drawToCanvas(srcEl, canvasEl, scale=2){
+      if(!srcEl || !canvasEl || !window.html2canvas) return Promise.resolve(false);
+      const rect = srcEl.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width));
+      const h = Math.max(320, Math.floor(rect.height));
+
+      // Resize target canvas to keep sharp text
+      canvasEl.width = Math.floor(w * scale);
+      canvasEl.height = Math.floor(h * scale);
+
+      return html2canvas(srcEl, {
+        backgroundColor: null,
+        scale: scale,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        windowWidth: document.documentElement.clientWidth,
+        windowHeight: document.documentElement.clientHeight
+      }).then(cv=>{
+        const ctx = canvasEl.getContext("2d");
+        ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
+        ctx.drawImage(cv, 0, 0, canvasEl.width, canvasEl.height);
+        return true;
+      }).catch(()=>false);
+    }
+
+    async function snapshotPanels(){
+      // Grab your existing panels from the original layout (real state)
+      const wrap = document.querySelector(".wrap");
+      if(!wrap || !capture) return;
+
+      // Clone the wrap so we keep the same aesthetics (CSS applies)
+      capture.innerHTML = "";
+      const clone = wrap.cloneNode(true);
+
+      // IMPORTANT: keep it in the viewport so elementsFromPoint can see it.
+      // It's behind VR overlay (lower z-index), but still in the DOM stack.
+      clone.style.position = "fixed";
+      clone.style.left = "0";
+      clone.style.top = "0";
+      clone.style.width = "100vw";
+      clone.style.height = "100vh";
+      clone.style.transform = "none";
+      clone.style.margin = "0";
+      clone.style.pointerEvents = "auto"; // we don't rely on real pointer events, but helps hit-testing
+      capture.style.left = "0";
+      capture.style.top = "0";
+      capture.style.opacity = "0";
+      capture.style.pointerEvents = "none"; // prevent any accidental interaction
+
+      capture.appendChild(clone);
+
+      const left = clone.querySelector("aside.panel:not(.viewerCol)");
+      const mid = clone.querySelector("section.wall");
+      const right = clone.querySelector("aside.viewerCol");
+
+      // Identify internal scroll elements to support drag-scroll
+      panelMap.left.dom = left;
+      panelMap.mid.dom = mid;
+      panelMap.right.dom = right;
+
+      panelMap.left.scrollEl  = left && left.querySelector(".panelBody.scrollY");
+      panelMap.mid.scrollEl   = mid && mid.querySelector(".wallScroll");
+      panelMap.right.scrollEl = right && right.querySelector(".viewerContent");
+
+      // Cache rects for UV->screen mapping
+      panelMap.left.rect  = left ? left.getBoundingClientRect() : null;
+      panelMap.mid.rect   = mid ? mid.getBoundingClientRect() : null;
+      panelMap.right.rect = right ? right.getBoundingClientRect() : null;
+
+      // Draw textures
+      await drawToCanvas(left, panelMap.left.tex(), 2);
+      await drawToCanvas(mid, panelMap.mid.tex(), 2);
+      await drawToCanvas(right, panelMap.right.tex(), 2);
+
+      // Force textures update
+      const scene = document.getElementById("vrScene");
+      if(scene && scene.renderer){
+        const planes = scene.querySelectorAll("a-plane");
+        planes.forEach(p=>{
+          const mesh = p.getObject3D("mesh");
+          const mat = mesh && mesh.material;
+          if(mat && mat.map){ mat.map.needsUpdate = true; mat.needsUpdate = true; }
+        });
+      }
+    }
+
+    // HUD search -> forward to original search input (#q) and refresh textures
+    const vrSearch = document.getElementById("vrSearch");
+    const desktopSearch = document.getElementById("q");
+    if(vrSearch && desktopSearch){
+      vrSearch.addEventListener("input", ()=>{
+        desktopSearch.value = vrSearch.value;
+        desktopSearch.dispatchEvent(new Event("input", {bubbles:true}));
+        scheduleSnapshot(80);
+      });
+    }
+
+    // Initial snapshot after fonts/styles are ready
+    setTimeout(snapshotPanels, 280);
+    window.addEventListener("resize", ()=>scheduleSnapshot(350), {passive:true});
+
+
+    // Wait a moment so fonts/styles are ready, then snapshot
+    setTimeout(snapshotPanels, 250);
+    window.addEventListener("resize", ()=>setTimeout(snapshotPanels, 400), {passive:true});
+
+
+    const hud = document.getElementById("vrHud");
+    const hint = document.getElementById("vrHint");
+    const btnEnable = document.getElementById("vrEnableMotion");
+    const btnExit = document.getElementById("vrExit");
+
+    async function requestMotion(){
+      try{
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+          const res = await DeviceOrientationEvent.requestPermission();
+          if(res !== "granted") throw new Error("permission not granted");
+        }
+        hud && hud.setAttribute("data-on","1");
+        if(btnEnable) btnEnable.textContent = "On";
+        if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
+      }catch(e){
+        hud && hud.setAttribute("data-on","0");
+        if(btnEnable) btnEnable.textContent = "Enable motion";
+        if(hint) hint.textContent = "On iPhone: tap Enable motion • Then move phone";
+      }
+    }
+
+    btnEnable && btnEnable.addEventListener("click", requestMotion);
+
+    btnExit && btnExit.addEventListener("click", ()=>{
+      document.body.classList.remove("vrmode");
+      // When leaving, the desktop is visible again immediately
+      if(hint){ hint.style.opacity = "1"; hint.textContent = "Move your phone • Drag to look around"; }
+      if(btnEnable) btnEnable.textContent = "Enable motion";
+      hud && hud.setAttribute("data-on","0");
+    });
+
+    // Auto-try once (Android usually works without prompt)
+    requestMotion();
+  })();
+  </script>
+</div>
+
+</body>
+</html>
