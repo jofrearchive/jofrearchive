@@ -861,7 +861,8 @@ renderAll(false);
   <div id="babHint">Move your phone • Tap buttons • Scroll lists</div>
   <div id="babDebug" style="position:fixed; left:12px; bottom:54px; z-index:7001; font-family: var(--mono); font-size:11px; letter-spacing:.08em; color:rgba(232,226,214,.75); background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:8px 10px; max-width:92vw; display:none;">DEBUG</div>
   
-  <div id="babStart" style="
+  <div id="babStart" style="pointer-events:auto;
+    
     position:absolute; inset:0; z-index:6500;
     display:flex; align-items:center; justify-content:center;
     background:
@@ -869,7 +870,8 @@ renderAll(false);
       linear-gradient(180deg, rgba(255,255,255,.04), transparent 55%, rgba(0,0,0,.75)),
       #0b0b0b;
   ">
-    <button type="button" id="babStartBtn" style="
+    <button type="button" id="babStartBtn" onclick="window.__babEnableVR && window.__babEnableVR()" style="pointer-events:auto;
+      
       all:unset; cursor:pointer;
       padding:14px 18px;
       border-radius:16px;
@@ -1335,10 +1337,13 @@ renderAll(false);
     }
   }
 
+  // Export for inline onclick fallback (some mobile webviews can be weird)
+  window.__babEnableVR = function(){ init3D(); };
+
   if(startBtn){
-    startBtn.addEventListener("click", ()=>{
-      init3D();
-    });
+    const go = (e)=>{ try{ e && e.preventDefault && e.preventDefault(); }catch(_){} init3D(); };
+    startBtn.addEventListener("click", go, {passive:false});
+    startBtn.addEventListener("touchstart", go, {passive:false});
   }
 
 })();
