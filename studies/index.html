@@ -875,17 +875,30 @@ renderAll(false);
   <div id="vr3dStage" style="position:absolute; inset:0;"></div>
 </div>
 
-<!-- Three.js (non-module) + CSS3DRenderer + DeviceOrientationControls -->
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script src="https://unpkg.com/three@0.160.0/examples/js/renderers/CSS3DRenderer.js"></script>
-<script src="https://unpkg.com/three@0.160.0/examples/js/controls/DeviceOrientationControls.js"></script>
+<!-- Three.js + CSS3DRenderer + DeviceOrientationControls (bundled to avoid CDN issues) -->
 
 <script>
+
 (function(){
+  // Preflight
+  function showFatal(msg){
+    var hint = document.getElementById("vr3dHint");
+    var hud = document.getElementById("vr3dHud");
+    if(hud) hud.setAttribute("data-on","0");
+    if(hint){ hint.style.opacity="1"; hint.textContent = msg; }
+    // If we cannot init, fall back to desktop UI
+    document.body.classList.remove("vr3d-on");
+    var root = document.getElementById("vr3dRoot");
+    if(root) root.style.display = "none";
+  }
+
   const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
   const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 820;
   const isMobile = isCoarse || isSmall;
   if(!isMobile) return;
+
+  if(!window.THREE){ showFatal('Three.js not loaded (offline?)'); return; }
+  if(!window.THREE.CSS3DRenderer){ showFatal('CSS3DRenderer not available'); return; }
 
   const wrap = document.querySelector(".wrap");
   if(!wrap) return;
@@ -1097,7 +1110,199 @@ renderAll(false);
   }
   tick();
 })();
+})();
 </script>
 
 </body>
-</html>
+</html><script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+/* three.js examples - CSS3DRenderer (MIT) - trimmed, r160-compatible */
+(function(){
+  if(!window.THREE) return;
+  const THREE = window.THREE;
+
+  THREE.CSS3DObject = function ( element ) {
+    THREE.Object3D.call( this );
+    this.element = element;
+    this.element.style.position = 'absolute';
+    this.element.style.pointerEvents = 'auto';
+    this.addEventListener( 'removed', function () {
+      if ( this.element && this.element.parentNode !== null ) {
+        this.element.parentNode.removeChild( this.element );
+      }
+    } );
+  };
+  THREE.CSS3DObject.prototype = Object.assign( Object.create( THREE.Object3D.prototype ), {
+    constructor: THREE.CSS3DObject
+  } );
+
+  THREE.CSS3DSprite = function ( element ) {
+    THREE.CSS3DObject.call( this, element );
+  };
+  THREE.CSS3DSprite.prototype = Object.assign( Object.create( THREE.CSS3DObject.prototype ), {
+    constructor: THREE.CSS3DSprite
+  } );
+
+  THREE.CSS3DRenderer = function () {
+    const _this = this;
+    const _width = 0, _height = 0;
+    let _widthHalf = 0, _heightHalf = 0;
+
+    const cache = { camera: { fov: 0, style: '' }, objects: new WeakMap() };
+    const domElement = document.createElement( 'div' );
+    domElement.style.overflow = 'hidden';
+    domElement.style.transformStyle = 'preserve-3d';
+    domElement.style.pointerEvents = 'auto';
+
+    const cameraElement = document.createElement( 'div' );
+    cameraElement.style.transformStyle = 'preserve-3d';
+    cameraElement.style.pointerEvents = 'none';
+    domElement.appendChild( cameraElement );
+
+    this.domElement = domElement;
+
+    this.setSize = function ( width, height ) {
+      _this.setSize.width = width;
+      _this.setSize.height = height;
+      _widthHalf = width / 2;
+      _heightHalf = height / 2;
+      domElement.style.width = width + 'px';
+      domElement.style.height = height + 'px';
+      cameraElement.style.width = width + 'px';
+      cameraElement.style.height = height + 'px';
+    };
+
+    function epsilon( value ) {
+      return Math.abs( value ) < 1e-10 ? 0 : value;
+    }
+
+    function getCameraCSSMatrix( matrix ) {
+      const e = matrix.elements;
+      return 'matrix3d(' +
+        epsilon( e[ 0 ] ) + ',' + epsilon( - e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
+        epsilon( e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( e[ 6 ] ) + ',' + epsilon( e[ 7 ] ) + ',' +
+        epsilon( e[ 8 ] ) + ',' + epsilon( - e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
+        epsilon( e[ 12 ] ) + ',' + epsilon( - e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
+      ')';
+    }
+
+    function getObjectCSSMatrix( matrix ) {
+      const e = matrix.elements;
+      return 'translate(-50%,-50%) matrix3d(' +
+        epsilon( e[ 0 ] ) + ',' + epsilon( e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
+        epsilon( - e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( - e[ 6 ] ) + ',' + epsilon( - e[ 7 ] ) + ',' +
+        epsilon( e[ 8 ] ) + ',' + epsilon( e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
+        epsilon( e[ 12 ] ) + ',' + epsilon( e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
+      ')';
+    }
+
+    function renderObject( object, camera, cameraCSSMatrix ) {
+      if ( object instanceof THREE.CSS3DObject ) {
+        const style = getObjectCSSMatrix( object.matrixWorld );
+        const element = object.element;
+        const cached = cache.objects.get( object );
+        if ( cached === undefined || cached.style !== style ) {
+          element.style.transform = style;
+          cache.objects.set( object, { style: style } );
+        }
+        if ( element.parentNode !== cameraElement ) {
+          cameraElement.appendChild( element );
+        }
+      }
+      for ( let i = 0, l = object.children.length; i < l; i ++ ) {
+        renderObject( object.children[ i ], camera, cameraCSSMatrix );
+      }
+    }
+
+    this.render = function ( scene, camera ) {
+      if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
+      if ( camera.parent === null && camera.autoUpdate === true ) camera.updateMatrixWorld();
+
+      const fov = camera.projectionMatrix.elements[ 5 ] * _heightHalf;
+      if ( cache.camera.fov !== fov ) {
+        domElement.style.perspective = fov + 'px';
+        cache.camera.fov = fov;
+      }
+
+      const cameraCSSMatrix = 'translateZ(' + fov + 'px) ' + getCameraCSSMatrix( camera.matrixWorldInverse );
+      const style = cameraCSSMatrix + ' translate(' + _widthHalf + 'px,' + _heightHalf + 'px)';
+
+      if ( cache.camera.style !== style ) {
+        cameraElement.style.transform = style;
+        cache.camera.style = style;
+      }
+
+      renderObject( scene, camera, cameraCSSMatrix );
+    };
+  };
+})();
+</script>
+
+<script>
+/* three.js examples - DeviceOrientationControls (MIT) - trimmed */
+(function(){
+  if(!window.THREE) return;
+  const THREE = window.THREE;
+
+  THREE.DeviceOrientationControls = function ( object ) {
+    const scope = this;
+    this.object = object;
+    this.object.rotation.reorder( "YXZ" );
+
+    this.enabled = true;
+    this.deviceOrientation = {};
+    this.screenOrientation = 0;
+
+    const onDeviceOrientationChangeEvent = function ( event ) {
+      scope.deviceOrientation = event;
+    };
+
+    const onScreenOrientationChangeEvent = function () {
+      scope.screenOrientation = window.orientation || 0;
+    };
+
+    const setObjectQuaternion = function () {
+      const zee = new THREE.Vector3( 0, 0, 1 );
+      const euler = new THREE.Euler();
+      const q0 = new THREE.Quaternion();
+      const q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) );
+
+      return function ( quaternion, alpha, beta, gamma, orient ) {
+        euler.set( beta, alpha, - gamma, 'YXZ' );
+        quaternion.setFromEuler( euler );
+        quaternion.multiply( q1 );
+        quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) );
+      };
+    }();
+
+    this.connect = function () {
+      onScreenOrientationChangeEvent();
+      window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent );
+      window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
+      scope.enabled = true;
+    };
+
+    this.disconnect = function () {
+      window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent );
+      window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
+      scope.enabled = false;
+    };
+
+    this.update = function () {
+      if ( scope.enabled === false ) return;
+      const device = scope.deviceOrientation;
+      if ( device ) {
+        const alpha = device.alpha ? THREE.MathUtils.degToRad( device.alpha ) : 0;
+        const beta = device.beta ? THREE.MathUtils.degToRad( device.beta ) : 0;
+        const gamma = device.gamma ? THREE.MathUtils.degToRad( device.gamma ) : 0;
+        const orient = scope.screenOrientation ? THREE.MathUtils.degToRad( scope.screenOrientation ) : 0;
+        setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+      }
+    };
+
+    this.connect();
+  };
+})();
+</script>
+
