@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>Studies – Desktop + Mobile VR</title>
+<title>Studies – Mobile VR LED</title>
 
 <style>
 :root{
@@ -18,105 +18,125 @@ html,body{
   height:100%;
   background:var(--bg);
   color:var(--ink);
-  font-family:system-ui,-apple-system,sans-serif;
 }
 
-/* ========== DESKTOP LAYOUT (YOUR ORIGINAL STRUCTURE GOES HERE) ========== */
-
+/* Desktop placeholder */
 #desktopLayout{
   padding:40px;
 }
-
-#desktopLayout h1{
-  font-weight:300;
-  letter-spacing:.08em;
-}
-
-/* Hide desktop layout on touch devices */
 @media (pointer:coarse){
-  #desktopLayout{
-    display:none !important;
-  }
+  #desktopLayout{ display:none !important; }
 }
 
-/* ========== MOBILE VR CANVAS ========== */
-
+/* Canvas */
 #vrCanvas{
   display:none;
   width:100vw;
   height:100vh;
   touch-action:none;
 }
-
 @media (pointer:coarse){
-  #vrCanvas{
-    display:block;
-  }
+  #vrCanvas{ display:block; }
 }
 
-/* HUD LED */
-#vrHud{
+/* === LED BUTTON STYLE === */
+
+#vrButton{
   position:fixed;
-  bottom:18px;
+  bottom:22px;
   left:50%;
   transform:translateX(-50%);
-  font-family:var(--mono);
-  letter-spacing:.14em;
-  font-size:12px;
   display:none;
   align-items:center;
   gap:10px;
-  opacity:.85;
+  padding:10px 18px;
+  border-radius:40px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(15,15,15,.75);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.18em;
   cursor:pointer;
+  transition:.2s;
+  user-select:none;
 }
 
 @media (pointer:coarse){
-  #vrHud{
-    display:flex;
-  }
+  #vrButton{ display:flex; }
+}
+
+#vrButton:hover{
+  background:rgba(25,25,25,.9);
+}
+
+#vrButton:active{
+  transform:translateX(-50%) scale(.96);
 }
 
 #vrLed{
-  width:8px;
-  height:8px;
+  width:9px;
+  height:9px;
   border-radius:50%;
-  background:rgba(255,255,255,.3);
-  transition:.2s;
+  background:rgba(255,255,255,.35);
+  box-shadow:0 0 0 0 rgba(120,255,180,0);
+  transition:.25s;
 }
 
 #vrLed.active{
   background:#78ffb4;
+  box-shadow:0 0 10px rgba(120,255,180,.8);
 }
+
+#vrState{
+  font-family: var(--mono);
+  font-size:12px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+
 </style>
 </head>
 
 <body>
 
-<!-- ================= DESKTOP ORIGINAL PAGE ================= -->
 <div id="desktopLayout">
-
-  <!-- PUT YOUR ORIGINAL HTML LAYOUT HERE -->
-  <h1>Studies</h1>
-  <p>This is the normal desktop layout.</p>
-
+  <h1>Desktop Layout</h1>
+  <p>Visible only on desktop.</p>
 </div>
 
-<!-- ================= MOBILE VR ================= -->
 <canvas id="vrCanvas"></canvas>
 
-<div id="vrHud">
-  <div>VR</div>
-  <div id="vrLed"></div>
+<div id="vrButton" aria-label="VR motion toggle">
+  <div id="vrLed" aria-hidden="true"></div>
+  <div id="vrLabel">VR</div>
+  <div id="vrState" style="opacity:.65;">OFF</div>
 </div>
 
 <script>
 (function(){
 
-  // Only activate VR on touch devices
   if(!window.matchMedia("(pointer:coarse)").matches) return;
 
   const canvas = document.getElementById("vrCanvas");
   const led = document.getElementById("vrLed");
+  const button = document.getElementById("vrButton");
+
+  const stateText = document.getElementById("vrState");
+  let gyroOn = false;
+  function setState(on){
+    gyroOn = on;
+    if(on){
+      led.classList.add("active");
+      if(stateText) stateText.textContent = "ON";
+    }else{
+      led.classList.remove("active");
+      if(stateText) stateText.textContent = "OFF";
+    }
+  }
+
+  setState(false);
 
   function loadScript(src){
     return new Promise((res,rej)=>{
@@ -134,7 +154,7 @@ html,body{
 
     const engine = new BABYLON.Engine(canvas,true);
     const scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0,0,0,1);
+    scene.clearColor = new BABYLON.Color4(.02,.02,.02,1);
 
     const cam = new BABYLON.UniversalCamera("cam",
       new BABYLON.Vector3(0,1.6,0),scene);
@@ -146,46 +166,33 @@ html,body{
     new BABYLON.HemisphericLight("h",
       new BABYLON.Vector3(0,1,0),scene);
 
-    function panel(w,h){
-      const m=BABYLON.MeshBuilder.CreatePlane("p",{width:w,height:h},scene);
-      const mat=new BABYLON.StandardMaterial("m",scene);
-      mat.diffuseColor=new BABYLON.Color3(.06,.06,.06);
-      mat.emissiveColor=new BABYLON.Color3(.02,.02,.02);
-      mat.alpha=.95;
-      m.material=mat;
-      return m;
-    }
+    const panel = BABYLON.MeshBuilder.CreatePlane("p",
+      {width:2,height:2.4},scene);
 
-    const left=panel(1.6,2.2);
-    const mid=panel(2.1,2.2);
-    const right=panel(1.6,2.2);
+    panel.position.z = 4;
+    panel.position.y = 1.6;
 
-    const R=4.5;
-    const spread=.55;
-
-    function place(mesh,a){
-      mesh.position.x=Math.sin(a)*R;
-      mesh.position.z=Math.cos(a)*R;
-      mesh.position.y=1.6;
-    }
-
-    place(left,-spread);
-    place(mid,0);
-    place(right,spread);
-    mid.position.z+=.4;
-
-    scene.onBeforeRenderObservable.add(()=>{
-      [left,mid,right].forEach(p=>{
-        const dx=cam.position.x-p.position.x;
-        const dz=cam.position.z-p.position.z;
-        p.rotation.y=Math.atan2(dx,dz);
-      });
-    });
+    const mat = new BABYLON.StandardMaterial("m",scene);
+    mat.diffuseColor = new BABYLON.Color3(.1,.1,.1);
+    mat.emissiveColor = new BABYLON.Color3(.05,.05,.05);
+    panel.material = mat;
 
     engine.runRenderLoop(()=>scene.render());
     window.addEventListener("resize",()=>engine.resize());
 
-    async function enableGyro(){
+    async function toggleGyro(){
+      // Turn OFF
+      if(gyroOn){
+        try{
+          if(cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation){
+            cam.inputs.remove(cam.inputs.attached.deviceOrientation);
+          }
+        }catch(e){}
+        setState(false);
+        return;
+      }
+
+      // Turn ON (ask permission on iOS)
       try{
         if(typeof DeviceOrientationEvent!=="undefined"
         && typeof DeviceOrientationEvent.requestPermission==="function"){
@@ -193,12 +200,11 @@ html,body{
           if(r!=="granted") return;
         }
         cam.inputs.addDeviceOrientation();
-        led.classList.add("active");
+        setState(true);
       }catch(e){}
     }
 
-    document.getElementById("vrHud")
-      .addEventListener("click",enableGyro);
+    button.addEventListener("click",toggleGyro);
 
   }
 
