@@ -399,43 +399,34 @@ body::after{
 @media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
 
 /* ===========================
-   MOBILE 3D DOM (Three.js CSS3DRenderer)
-   - Only activates on phones
-   - DOM remains fully interactive
+   MOBILE 3D NATIVE UI (Babylon.js GUI)
 =========================== */
-#vr3dRoot{ display:none; }
-body.vr3d-on{
+#babylonRoot{ display:none; }
+body.bab3d-on{
   overflow:hidden !important;
   height:100vh;
   width:100vw;
+  background:#0b0b0b;
 }
-body.vr3d-on #vr3dRoot{
+body.bab3d-on #babylonRoot{
   display:block;
   position:fixed;
   inset:0;
-  z-index:5000;
-  background:
-    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
-    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.55)),
-    #0b0b0b;
-}
-body.vr3d-on #vr3dBgVignette{
-  position:absolute; inset:0; pointer-events:none;
-  background:radial-gradient(circle at 50% 45%, transparent 38%, rgba(0,0,0,.92) 100%);
-  opacity:.75;
-}
-body.vr3d-on .siteHeader,
-body.vr3d-on .page,
-body.vr3d-on #vitrine-bg,
-body.vr3d-on #glass{ display:none !important; }
-body.vr3d-on::after{ display:none !important; }
-
-/* HUD */
-#vr3dHud{
-  position:fixed; top:12px; left:12px; right:12px;
   z-index:6000;
-  display:flex; gap:10px; align-items:center; justify-content:space-between;
+  background:#0b0b0b;
+}
+body.bab3d-on .siteHeader,
+body.bab3d-on .page,
+body.bab3d-on #vitrine-bg,
+body.bab3d-on #glass{ display:none !important; }
+body.bab3d-on::after{ display:none !important; }
+
+#babHud{
+  position:fixed;
+  top:12px; left:12px; right:12px;
+  z-index:7000;
+  display:flex; gap:10px;
+  align-items:center; justify-content:space-between;
   padding:10px 12px;
   border:1px solid rgba(255,255,255,.18);
   border-radius:14px;
@@ -449,12 +440,12 @@ body.vr3d-on::after{ display:none !important; }
   font-size:11px;
   user-select:none;
 }
-#vr3dHud .left{display:flex; gap:10px; align-items:center;}
-#vr3dHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
-#vr3dHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
-#vr3dHud input{
-  width:min(42vw, 220px);
-  max-width:220px;
+#babHud .left{display:flex; gap:10px; align-items:center;}
+#babHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
+#babHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
+#babHud input{
+  width:min(42vw, 240px);
+  max-width:240px;
   border:1px solid rgba(255,255,255,.18);
   background:rgba(255,255,255,.03);
   color:var(--ink);
@@ -467,8 +458,8 @@ body.vr3d-on::after{ display:none !important; }
   outline:none;
   opacity:.92;
 }
-#vr3dHud input::placeholder{ color: rgba(232,226,214,.55); }
-#vr3dHud button{
+#babHud input::placeholder{ color: rgba(232,226,214,.55); }
+#babHud button{
   all:unset;
   cursor:pointer;
   padding:8px 10px;
@@ -477,14 +468,14 @@ body.vr3d-on::after{ display:none !important; }
   background:rgba(255,255,255,.03);
   opacity:.92;
 }
-#vr3dHud button:active{transform: translateY(1px);}
+#babHud button:active{transform: translateY(1px);}
 
-#vr3dHint{
+#babHint{
   position:fixed;
   bottom:14px;
   left:50%;
   transform:translateX(-50%);
-  z-index:6000;
+  z-index:7000;
   padding:8px 10px;
   border-radius:999px;
   border:1px solid rgba(255,255,255,.14);
@@ -498,6 +489,13 @@ body.vr3d-on::after{ display:none !important; }
   text-align:center;
   user-select:none;
 }
+#babylonCanvas{
+  width:100%;
+  height:100%;
+  touch-action:none;
+  display:block;
+}
+
 </style>
 </head>
 
@@ -832,313 +830,357 @@ renderAll(false);
 </script>
 
 <!-- ===========================
-     MOBILE 3D DOM ROOT (Three.js CSS3DRenderer)
+     MOBILE 3D NATIVE UI ROOT (Babylon.js)
 =========================== -->
-<div id="vr3dRoot" aria-hidden="true">
-  <div id="vr3dBgVignette" aria-hidden="true"></div>
-  <div id="vr3dHud" data-on="0">
+<div id="babylonRoot" aria-hidden="true">
+  <div id="babHud" data-on="0">
     <div class="left">
       <span class="dot" aria-hidden="true"></span>
       <span>VR</span>
-      <span style="opacity:.65">DOM</span>
+      <span style="opacity:.65">UI3D</span>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-      <input id="vr3dSearch" type="search" placeholder="Search…" aria-label="Search" />
-      <button type="button" id="vr3dEnable">Enable motion</button>
-      <button type="button" id="vr3dExit">Exit</button>
+      <input id="babSearch" type="search" placeholder="Search…" aria-label="Search" />
+      <button type="button" id="babEnable">Enable motion</button>
+      <button type="button" id="babExit">Exit</button>
     </div>
   </div>
-  <div id="vr3dHint">Move your phone • Scroll inside panels • Drag empty space to look</div>
-  <div id="vr3dStage" style="position:absolute; inset:0;"></div>
+  <div id="babHint">Move your phone • Tap buttons • Scroll lists</div>
+  <canvas id="babylonCanvas"></canvas>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-
-<script>
-/* CSS3DRenderer (trimmed, r160-compatible) */
-(function(){
-  if(!window.THREE) return;
-  const THREE = window.THREE;
-
-  THREE.CSS3DObject = function ( element ) {
-    THREE.Object3D.call( this );
-    this.element = element;
-    this.element.style.position = 'absolute';
-    this.element.style.pointerEvents = 'auto';
-    this.addEventListener( 'removed', function () {
-      if ( this.element && this.element.parentNode !== null ) {
-        this.element.parentNode.removeChild( this.element );
-      }
-    } );
-  };
-  THREE.CSS3DObject.prototype = Object.assign( Object.create( THREE.Object3D.prototype ), { constructor: THREE.CSS3DObject } );
-
-  THREE.CSS3DRenderer = function () {
-    const cache = { camera: { fov: 0, style: '' }, objects: new WeakMap() };
-    const domElement = document.createElement( 'div' );
-    domElement.style.overflow = 'hidden';
-    domElement.style.transformStyle = 'preserve-3d';
-    domElement.style.pointerEvents = 'auto';
-
-    const cameraElement = document.createElement( 'div' );
-    cameraElement.style.transformStyle = 'preserve-3d';
-    cameraElement.style.pointerEvents = 'none';
-    domElement.appendChild( cameraElement );
-
-    this.domElement = domElement;
-
-    let widthHalf = 0, heightHalf = 0;
-
-    this.setSize = function ( width, height ) {
-      widthHalf = width / 2;
-      heightHalf = height / 2;
-      domElement.style.width = width + 'px';
-      domElement.style.height = height + 'px';
-      cameraElement.style.width = width + 'px';
-      cameraElement.style.height = height + 'px';
-    };
-
-    function epsilon( value ) { return Math.abs( value ) < 1e-10 ? 0 : value; }
-
-    function getCameraCSSMatrix( matrix ) {
-      const e = matrix.elements;
-      return 'matrix3d(' +
-        epsilon( e[ 0 ] ) + ',' + epsilon( - e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
-        epsilon( e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( e[ 6 ] ) + ',' + epsilon( e[ 7 ] ) + ',' +
-        epsilon( e[ 8 ] ) + ',' + epsilon( - e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
-        epsilon( e[ 12 ] ) + ',' + epsilon( - e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
-      ')';
-    }
-
-    function getObjectCSSMatrix( matrix ) {
-      const e = matrix.elements;
-      return 'translate(-50%,-50%) matrix3d(' +
-        epsilon( e[ 0 ] ) + ',' + epsilon( e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
-        epsilon( - e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( - e[ 6 ] ) + ',' + epsilon( - e[ 7 ] ) + ',' +
-        epsilon( e[ 8 ] ) + ',' + epsilon( e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
-        epsilon( e[ 12 ] ) + ',' + epsilon( e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
-      ')';
-    }
-
-    function renderObject( object ) {
-      if ( object instanceof THREE.CSS3DObject ) {
-        const style = getObjectCSSMatrix( object.matrixWorld );
-        const element = object.element;
-        const cached = cache.objects.get( object );
-        if ( cached === undefined || cached.style !== style ) {
-          element.style.transform = style;
-          cache.objects.set( object, { style: style } );
-        }
-        if ( element.parentNode !== cameraElement ) cameraElement.appendChild( element );
-      }
-      for ( let i = 0; i < object.children.length; i ++ ) renderObject( object.children[ i ] );
-    }
-
-    this.render = function ( scene, camera ) {
-      if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
-      if ( camera.parent === null && camera.autoUpdate === true ) camera.updateMatrixWorld();
-
-      const fov = camera.projectionMatrix.elements[ 5 ] * heightHalf;
-      if ( cache.camera.fov !== fov ) {
-        domElement.style.perspective = fov + 'px';
-        cache.camera.fov = fov;
-      }
-
-      const cameraCSSMatrix = 'translateZ(' + fov + 'px) ' + getCameraCSSMatrix( camera.matrixWorldInverse );
-      const style = cameraCSSMatrix + ' translate(' + widthHalf + 'px,' + heightHalf + 'px)';
-
-      if ( cache.camera.style !== style ) {
-        cameraElement.style.transform = style;
-        cache.camera.style = style;
-      }
-
-      renderObject( scene );
-    };
-  };
-})();
-</script>
-
-<script>
-/* DeviceOrientationControls (trimmed) */
-(function(){
-  if(!window.THREE) return;
-  const THREE = window.THREE;
-
-  THREE.DeviceOrientationControls = function ( object ) {
-    const scope = this;
-    this.object = object;
-    this.object.rotation.reorder( "YXZ" );
-    this.enabled = true;
-    this.deviceOrientation = {};
-    this.screenOrientation = 0;
-
-    function onDeviceOrientationChangeEvent( event ) { scope.deviceOrientation = event; }
-    function onScreenOrientationChangeEvent() { scope.screenOrientation = window.orientation || 0; }
-
-    const setObjectQuaternion = (function(){
-      const zee = new THREE.Vector3( 0, 0, 1 );
-      const euler = new THREE.Euler();
-      const q0 = new THREE.Quaternion();
-      const q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) );
-      return function ( quaternion, alpha, beta, gamma, orient ) {
-        euler.set( beta, alpha, - gamma, 'YXZ' );
-        quaternion.setFromEuler( euler );
-        quaternion.multiply( q1 );
-        quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) );
-      };
-    })();
-
-    this.connect = function () {
-      onScreenOrientationChangeEvent();
-      window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent );
-      window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
-      scope.enabled = true;
-    };
-
-    this.disconnect = function () {
-      window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent );
-      window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
-      scope.enabled = false;
-    };
-
-    this.update = function () {
-      if ( scope.enabled === false ) return;
-      const device = scope.deviceOrientation;
-      if ( device ) {
-        const alpha = device.alpha ? THREE.MathUtils.degToRad( device.alpha ) : 0;
-        const beta  = device.beta  ? THREE.MathUtils.degToRad( device.beta )  : 0;
-        const gamma = device.gamma ? THREE.MathUtils.degToRad( device.gamma ) : 0;
-        const orient = scope.screenOrientation ? THREE.MathUtils.degToRad( scope.screenOrientation ) : 0;
-        setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
-      }
-    };
-
-    this.connect();
-  };
-})();
-</script>
+<!-- Babylon.js -->
+<script src="https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js"></script>
 
 <script>
 (function(){
-  const root = document.getElementById("vr3dRoot");
-  const stage = document.getElementById("vr3dStage");
-  const hud = document.getElementById("vr3dHud");
-  const hint = document.getElementById("vr3dHint");
-  const btnEnable = document.getElementById("vr3dEnable");
-  const btnExit = document.getElementById("vr3dExit");
-  const vrSearch = document.getElementById("vr3dSearch");
-  const desktopSearch = document.getElementById("q");
+  // Mobile-only activation
+  const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 920;
+  const ua = navigator.userAgent || "";
+  const uaMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const isMobile = isCoarse || isSmall || uaMobile;
+  if(!isMobile) return;
 
-  function isMobileNow(){
-    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    const small = Math.min(window.innerWidth, window.innerHeight) <= 920;
-    const ua = navigator.userAgent || "";
-    const uaMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
-    return coarse || small || uaMobile;
-  }
-  if(!isMobileNow()) return;
+  const root = document.getElementById("babylonRoot");
+  const canvas = document.getElementById("babylonCanvas");
+  const hud = document.getElementById("babHud");
+  const hint = document.getElementById("babHint");
+  const btnEnable = document.getElementById("babEnable");
+  const btnExit = document.getElementById("babExit");
+  const search = document.getElementById("babSearch");
 
-  function fail(msg){
-    if(hint){ hint.style.opacity="1"; hint.textContent = msg; }
-    if(hud) hud.setAttribute("data-on","0");
-    // Do NOT hide desktop if init fails
-    document.body.classList.remove("vr3d-on");
-    if(root) root.style.display = "none";
-  }
-
-  if(!window.THREE || !window.THREE.CSS3DRenderer || !window.THREE.CSS3DObject){
-    fail("Three/CSS3D not ready (check connection)");
-    return;
-  }
-
-  const wrap = document.querySelector(".wrap");
-  if(!wrap){ fail("Missing .wrap"); return; }
-
-  const left  = wrap.querySelector("aside.panel:not(.viewerCol)");
-  const mid   = wrap.querySelector("section.wall");
-  const right = wrap.querySelector("aside.viewerCol");
-  if(!left || !mid || !right){ fail("Panels not found"); return; }
-
-  // Activate mode
-  document.body.classList.add("vr3d-on");
+  // Activate
+  document.body.classList.add("bab3d-on");
   root.setAttribute("aria-hidden","false");
 
-  // Save DOM locations for restore
-  const restore = [
-    {el:left,  parent:left.parentNode,  next:left.nextSibling},
-    {el:mid,   parent:mid.parentNode,   next:mid.nextSibling},
-    {el:right, parent:right.parentNode, next:right.nextSibling}
+  // Sample data (replace with your real project data later)
+  const CATEGORIES = ["BioSystems","Landscape","Dystopic Pop Art","Cymatics","Public Art","Murals"];
+  const PROJECTS = [
+    {title:"Interspecies Archaeology", cat:"BioSystems", date:"2026-01-12", desc:"Mycelium-based sculptural research."},
+    {title:"Microscopic Pyramids", cat:"BioSystems", date:"2025-11-04", desc:"Nano-structured light experiments."},
+    {title:"Leaf Solar Printing", cat:"BioSystems", date:"2025-09-28", desc:"Screen-printed translucent panels inspired by leaves."},
+    {title:"Carnival of Progress", cat:"Dystopic Pop Art", date:"2025-10-02", desc:"Society as colorful spectacle with no depth."},
+    {title:"Cymatic Field Notes", cat:"Cymatics", date:"2025-10-18", desc:"Patterns, resonance, and symbolic waveforms."},
+    {title:"Community Node", cat:"Public Art", date:"2025-12-08", desc:"Community documentation & media."}
   ];
 
-  // Build scene
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
-  camera.position.set(0, 0, 0.01);
+  let state = {
+    cat: "All",
+    q: "",
+    selected: null
+  };
 
-  const renderer = new THREE.CSS3DRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.domElement.style.position = "absolute";
-  renderer.domElement.style.inset = "0";
-  renderer.domElement.style.pointerEvents = "auto";
-  stage.appendChild(renderer.domElement);
+  // Babylon engine/scene
+  const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+  const scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0,0,0,1);
 
-  // Ensure panel elements are visible while in VR mode
-  function prepEl(el){
-    el.style.margin = "0";
-    el.style.position = "absolute";
-    el.style.left = "0";
-    el.style.top = "0";
-    el.style.pointerEvents = "auto";
+  // Lights
+  const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+  hemi.intensity = 0.85;
+
+  // Camera: use DeviceOrientationCamera when available (magic-window VR feel)
+  const cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.6, 0), scene);
+  cam.attachControl(canvas, true);
+  cam.minZ = 0.05;
+  cam.speed = 0;
+  cam.angularSensibility = 2000;
+
+  // Clamp pitch a bit for comfort
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+  // Simple dome (dish feel)
+  const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.5}, scene);
+  dome.position = new BABYLON.Vector3(0, 0, 0);
+  dome.rotation = new BABYLON.Vector3(0, Math.PI, 0);
+  const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+  domeMat.backFaceCulling = false;
+  domeMat.diffuseColor = new BABYLON.Color3(0.03,0.03,0.03);
+  domeMat.specularColor = new BABYLON.Color3(0,0,0);
+  dome.material = domeMat;
+
+  // Panel meshes positioned on a concave arc (parabolic/antenna feel)
+  function makePanel(name, w, h){
+    const m = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
+    m.billboardMode = BABYLON.Mesh.BILLBOARDMODE_NONE; // we'll face camera manually (yaw)
+    const mat = new BABYLON.StandardMaterial(name+"Mat", scene);
+    mat.diffuseColor = new BABYLON.Color3(0.06,0.06,0.06);
+    mat.specularColor = new BABYLON.Color3(0,0,0);
+    mat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+    mat.alpha = 0.92;
+    m.material = mat;
+    return m;
   }
-  prepEl(left); prepEl(mid); prepEl(right);
 
-  const objL = new THREE.CSS3DObject(left);
-  const objM = new THREE.CSS3DObject(mid);
-  const objR = new THREE.CSS3DObject(right);
-  scene.add(objL); scene.add(objM); scene.add(objR);
+  const panelL = makePanel("panelL", 1.55, 2.1);
+  const panelM = makePanel("panelM", 1.95, 2.1);
+  const panelR = makePanel("panelR", 1.55, 2.1);
 
-  // Parabolic "dish" arc
-  function place(){
+  function placePanels(){
     const w = Math.min(window.innerWidth, window.innerHeight);
-    const R = (w < 420) ? 900 : (w < 520 ? 1050 : 1200);
-    const spread = (w < 420) ? 32 : 28;
-    const s = (w < 420) ? 0.75 : (w < 520 ? 0.82 : 0.9);
+    const R = (w < 420) ? 3.8 : (w < 520 ? 4.2 : 4.6);
+    const spread = (w < 420) ? 0.62 : 0.56; // radians (~35° / 32°)
 
-    objL.scale.setScalar(s);
-    objM.scale.setScalar(s);
-    objR.scale.setScalar(s);
-
-    const toRad = d => d*Math.PI/180;
-    function setOnArc(obj, angDeg){
-      const a = toRad(angDeg);
+    function setArc(mesh, a){
       const x = Math.sin(a) * R;
       const z = -Math.cos(a) * R;
-      obj.position.set(x, 0, z);
-      obj.lookAt(camera.position);
+      mesh.position.set(x, 1.6, z);
     }
-    setOnArc(objL, -spread);
-    setOnArc(objM, 0);
-    setOnArc(objR, spread);
-    objM.position.z += 120;
+    setArc(panelL, -spread);
+    setArc(panelM, 0);
+    setArc(panelR, spread);
+    panelM.position.z += 0.35;
   }
-  place();
+  placePanels();
 
-  // Motion + drag offset
-  let controls = null;
-  let motionEnabled = false;
+  // Make panels face camera (yaw-only) every frame
+  scene.onBeforeRenderObservable.add(()=>{
+    const cpos = cam.position;
+    [panelL, panelM, panelR].forEach(p=>{
+      const dx = cpos.x - p.position.x;
+      const dz = cpos.z - p.position.z;
+      const yaw = Math.atan2(dx, dz);
+      p.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(0, yaw, 0);
+    });
+    // Comfort clamp pitch
+    cam.rotation.x = clamp(cam.rotation.x, -0.35, 0.35);
+  });
 
-  const drag = {active:false, x0:0, y0:0, yaw0:0, pitch0:0, yaw:0, pitch:0};
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  const MAX_YAW = Math.PI/5.2;
-  const MAX_PITCH = Math.PI/10;
-
-  function applyOffsets(){
-    const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), drag.yaw);
-    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), drag.pitch);
-    const q = new THREE.Quaternion().multiplyQuaternions(qYaw, qPitch);
-    camera.quaternion.multiply(q);
+  // GUI on meshes
+  function panelTexture(mesh){
+    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
+    return adt;
   }
 
+  function makeGlassContainer(adt, title){
+    const root = new BABYLON.GUI.Rectangle();
+    root.width = 0.94;
+    root.height = 0.94;
+    root.thickness = 1;
+    root.color = "rgba(255,255,255,0.16)";
+    root.cornerRadius = 18;
+    root.background = "rgba(15,15,15,0.72)";
+    adt.addControl(root);
+
+    const header = new BABYLON.GUI.TextBlock();
+    header.text = title;
+    header.height = "46px";
+    header.top = "-44%";
+    header.color = "#e8e2d6";
+    header.fontFamily = "monospace";
+    header.fontSize = 26;
+    header.letterSpacing = "4px";
+    header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    root.addControl(header);
+
+    return root;
+  }
+
+  // LEFT: Categories
+  const adtL = panelTexture(panelL);
+  const rootL = makeGlassContainer(adtL, "CATEGORIES");
+
+  const catStack = new BABYLON.GUI.StackPanel();
+  catStack.width = 0.88;
+  catStack.top = "40px";
+  catStack.isVertical = true;
+  catStack.spacing = 10;
+  rootL.addControl(catStack);
+
+  function catButton(label){
+    const b = BABYLON.GUI.Button.CreateSimpleButton("cat_"+label, label.toUpperCase());
+    b.height = "44px";
+    b.thickness = 1;
+    b.color = "rgba(255,255,255,0.16)";
+    b.cornerRadius = 14;
+    b.background = "rgba(255,255,255,0.03)";
+    b.fontFamily = "monospace";
+    b.fontSize = 20;
+    b.textBlock.color = "#e8e2d6";
+    b.onPointerUpObservable.add(()=>{
+      state.cat = label;
+      state.selected = null;
+      refreshProjects();
+      refreshViewer();
+      highlightCats();
+    });
+    return b;
+  }
+
+  const catButtons = [];
+  catButtons.push(catButton("All"));
+  CATEGORIES.forEach(c=>catButtons.push(catButton(c)));
+  catButtons.forEach(b=>catStack.addControl(b));
+
+  function highlightCats(){
+    catButtons.forEach(b=>{
+      const active = (b.name === "cat_"+state.cat);
+      b.background = active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)";
+      b.thickness = active ? 1.5 : 1;
+    });
+  }
+  highlightCats();
+
+  // MIDDLE: Project Wall (scroll)
+  const adtM = panelTexture(panelM);
+  const rootM = makeGlassContainer(adtM, "PROJECT WALL");
+
+  const scroll = new BABYLON.GUI.ScrollViewer();
+  scroll.width = 0.90;
+  scroll.height = 0.80;
+  scroll.top = "60px";
+  scroll.thickness = 0;
+  scroll.barSize = 10;
+  scroll.color = "rgba(255,255,255,0.16)";
+  scroll.background = "rgba(0,0,0,0)";
+  rootM.addControl(scroll);
+
+  const projStack = new BABYLON.GUI.StackPanel();
+  projStack.width = 1.0;
+  projStack.isVertical = true;
+  projStack.spacing = 12;
+  scroll.addControl(projStack);
+
+  function projectCard(p){
+    const r = new BABYLON.GUI.Rectangle();
+    r.width = 1.0;
+    r.height = "120px";
+    r.thickness = 1;
+    r.color = "rgba(255,255,255,0.14)";
+    r.cornerRadius = 16;
+    r.background = "rgba(255,255,255,0.02)";
+
+    const title = new BABYLON.GUI.TextBlock();
+    title.text = p.title;
+    title.color = "#e8e2d6";
+    title.fontFamily = "serif";
+    title.fontSize = 34;
+    title.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    title.left = "20px";
+    title.top = "-18px";
+    r.addControl(title);
+
+    const meta = new BABYLON.GUI.TextBlock();
+    meta.text = (p.cat + "  •  " + p.date).toUpperCase();
+    meta.color = "rgba(232,226,214,0.72)";
+    meta.fontFamily = "monospace";
+    meta.fontSize = 18;
+    meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    meta.left = "20px";
+    meta.top = "22px";
+    r.addControl(meta);
+
+    r.onPointerUpObservable.add(()=>{
+      state.selected = p;
+      refreshViewer();
+    });
+
+    return r;
+  }
+
+  function filteredProjects(){
+    const q = (state.q||"").trim().toLowerCase();
+    return PROJECTS.filter(p=>{
+      const catOk = (state.cat === "All") || (p.cat === state.cat);
+      const qOk = !q || (p.title.toLowerCase().includes(q) || (p.desc||"").toLowerCase().includes(q));
+      return catOk && qOk;
+    }).sort((a,b)=> (a.date < b.date ? 1 : -1));
+  }
+
+  function refreshProjects(){
+    projStack.clearControls();
+    const list = filteredProjects();
+    if(list.length === 0){
+      const t = new BABYLON.GUI.TextBlock();
+      t.text = "NO RESULTS";
+      t.color = "rgba(232,226,214,0.72)";
+      t.fontFamily = "monospace";
+      t.fontSize = 22;
+      t.height = "60px";
+      projStack.addControl(t);
+      return;
+    }
+    list.forEach(p=>projStack.addControl(projectCard(p)));
+  }
+  refreshProjects();
+
+  // RIGHT: Viewer
+  const adtR = panelTexture(panelR);
+  const rootR = makeGlassContainer(adtR, "VIEWER");
+
+  const viewTitle = new BABYLON.GUI.TextBlock();
+  viewTitle.text = "Select a project";
+  viewTitle.color = "#e8e2d6";
+  viewTitle.fontFamily = "serif";
+  viewTitle.fontSize = 34;
+  viewTitle.top = "40px";
+  viewTitle.textWrapping = true;
+  viewTitle.height = "120px";
+  rootR.addControl(viewTitle);
+
+  const viewMeta = new BABYLON.GUI.TextBlock();
+  viewMeta.text = "";
+  viewMeta.color = "rgba(232,226,214,0.72)";
+  viewMeta.fontFamily = "monospace";
+  viewMeta.fontSize = 18;
+  viewMeta.top = "130px";
+  viewMeta.height = "40px";
+  rootR.addControl(viewMeta);
+
+  const viewDesc = new BABYLON.GUI.TextBlock();
+  viewDesc.text = "Tap a card in Project Wall.";
+  viewDesc.color = "rgba(232,226,214,0.82)";
+  viewDesc.fontFamily = "serif";
+  viewDesc.fontSize = 26;
+  viewDesc.textWrapping = true;
+  viewDesc.top = "190px";
+  viewDesc.height = "520px";
+  rootR.addControl(viewDesc);
+
+  function refreshViewer(){
+    if(!state.selected){
+      viewTitle.text = "Select a project";
+      viewMeta.text = (state.cat === "All" ? "" : state.cat.toUpperCase());
+      viewDesc.text = "Tap a card in Project Wall.";
+      return;
+    }
+    viewTitle.text = state.selected.title;
+    viewMeta.text = (state.selected.cat + "  •  " + state.selected.date).toUpperCase();
+    viewDesc.text = state.selected.desc || "";
+  }
+  refreshViewer();
+
+  // HUD search
+  search.addEventListener("input", ()=>{
+    state.q = search.value || "";
+    state.selected = null;
+    refreshProjects();
+    refreshViewer();
+  });
+
+  // Motion permission (iOS)
   async function enableMotion(){
     try{
       if(typeof DeviceOrientationEvent !== "undefined" &&
@@ -1146,98 +1188,55 @@ renderAll(false);
         const res = await DeviceOrientationEvent.requestPermission();
         if(res !== "granted") throw new Error("permission");
       }
-      controls = new THREE.DeviceOrientationControls(camera);
-      motionEnabled = true;
-      if(hud) hud.setAttribute("data-on","1");
-      if(btnEnable) btnEnable.textContent = "On";
+      // Babylon: add device orientation input for camera
+      if(!cam.inputs.attached.deviceOrientation){
+        cam.inputs.addDeviceOrientation();
+      }
+      hud.setAttribute("data-on","1");
+      btnEnable.textContent = "On";
       if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
     }catch(e){
-      motionEnabled = false;
-      if(hud) hud.setAttribute("data-on","0");
-      if(btnEnable) btnEnable.textContent = "Enable motion";
-      if(hint) hint.textContent = "Tap Enable motion (iPhone) • Or drag to look";
+      hud.setAttribute("data-on","0");
+      btnEnable.textContent = "Enable motion";
+      if(hint) hint.textContent = "iPhone: tap Enable motion • Otherwise drag to look";
     }
   }
+  btnEnable.addEventListener("click", enableMotion);
 
-  if(btnEnable) btnEnable.addEventListener("click", enableMotion);
-  // Do NOT auto-call on iOS; wait for user gesture. On Android it's ok:
-  const ua = navigator.userAgent || "";
-  if(/Android/i.test(ua)) enableMotion();
+  // Fallback drag to look (works always)
+  let dragging=false, x0=0,y0=0, yaw0=0,pitch0=0;
+  const MAX_YAW = 0.75, MAX_PITCH = 0.35;
+  canvas.addEventListener("pointerdown", (e)=>{
+    // don't steal UI pointer events when hitting a GUI control; Babylon GUI handles those.
+    dragging = true;
+    x0 = e.clientX; y0 = e.clientY;
+    yaw0 = cam.rotation.y; pitch0 = cam.rotation.x;
+  });
+  window.addEventListener("pointermove", (e)=>{
+    if(!dragging) return;
+    const dx = e.clientX - x0;
+    const dy = e.clientY - y0;
+    const k = 0.003;
+    cam.rotation.y = clamp(yaw0 + dx*k, -MAX_YAW, MAX_YAW);
+    cam.rotation.x = clamp(pitch0 + dy*k, -MAX_PITCH, MAX_PITCH);
+  });
+  window.addEventListener("pointerup", ()=> dragging=false);
 
-  // Drag empty space (don't steal scroll)
-  function ignoreDrag(t){
-    return !!(t && t.closest && t.closest(".scrollY, .wallScroll, .viewerContent, input, textarea, button, a, select"));
-  }
-  window.addEventListener("touchstart", (e)=>{
-    if(ignoreDrag(e.target)) return;
-    drag.active = true;
-    const p = e.touches[0];
-    drag.x0 = p.clientX; drag.y0 = p.clientY;
-    drag.yaw0 = drag.yaw; drag.pitch0 = drag.pitch;
-  }, {passive:true});
-  window.addEventListener("touchmove", (e)=>{
-    if(!drag.active) return;
-    const p = e.touches[0];
-    const dx = (p.clientX - drag.x0);
-    const dy = (p.clientY - drag.y0);
-    const k = 0.0032;
-    drag.yaw = clamp(drag.yaw0 + dx*k, -MAX_YAW, MAX_YAW);
-    drag.pitch = clamp(drag.pitch0 + dy*k, -MAX_PITCH, MAX_PITCH);
-  }, {passive:true});
-  window.addEventListener("touchend", ()=>{ drag.active=false; }, {passive:true});
-  window.addEventListener("touchcancel", ()=>{ drag.active=false; }, {passive:true});
-
-  // Search HUD -> real search
-  if(vrSearch && desktopSearch){
-    vrSearch.addEventListener("input", ()=>{
-      desktopSearch.value = vrSearch.value;
-      desktopSearch.dispatchEvent(new Event("input", {bubbles:true}));
-    });
-  }
-
-  // Exit -> restore
-  if(btnExit) btnExit.addEventListener("click", ()=>{
-    document.body.classList.remove("vr3d-on");
+  // Exit -> return to desktop layout
+  btnExit.addEventListener("click", ()=>{
+    document.body.classList.remove("bab3d-on");
     root.setAttribute("aria-hidden","true");
-    try{ stage.removeChild(renderer.domElement); }catch(_){}
-    restore.forEach(r=>{
-      try{
-        if(r.next) r.parent.insertBefore(r.el, r.next);
-        else r.parent.appendChild(r.el);
-        r.el.style.position = "";
-        r.el.style.left = "";
-        r.el.style.top = "";
-        r.el.style.margin = "";
-        r.el.style.pointerEvents = "";
-      }catch(_){}
-    });
+    engine.stopRenderLoop();
+    try{ engine.dispose(); }catch(_){}
   });
 
-  function onResize(){
-    if(!document.body.classList.contains("vr3d-on")) return;
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    place();
-  }
-  window.addEventListener("resize", ()=>setTimeout(onResize, 120), {passive:true});
-  window.addEventListener("orientationchange", ()=>setTimeout(onResize, 250), {passive:true});
+  window.addEventListener("resize", ()=>{
+    engine.resize();
+    placePanels();
+  }, {passive:true});
+  window.addEventListener("orientationchange", ()=>setTimeout(()=>{engine.resize(); placePanels();}, 250), {passive:true});
 
-  // Render loop
-  function tick(){
-    if(controls && motionEnabled){
-      controls.update();
-      applyOffsets();
-    } else {
-      camera.rotation.set(drag.pitch, drag.yaw, 0);
-    }
-    objL.lookAt(camera.position);
-    objM.lookAt(camera.position);
-    objR.lookAt(camera.position);
-    renderer.render(scene, camera);
-    requestAnimationFrame(tick);
-  }
-  tick();
+  engine.runRenderLoop(()=> scene.render());
 })();
 </script>
 
