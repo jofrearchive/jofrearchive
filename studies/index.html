@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Studies — Project Wall</title>
+<title>Studies — Project Wall (VR Mobile)</title>
 
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 
@@ -25,7 +25,7 @@ html,body{
   background:var(--bg);
   color:var(--ink);
   font-family:var(--serif);
-  overflow:hidden; /* fixed columns */
+  overflow:hidden;
 }
 
 /* Vitrine background */
@@ -37,24 +37,12 @@ html,body{
     linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.42)),
     #0b0b0b;
 }
-#vitrine-bg::after{
-  content:""; position:absolute; inset:0; pointer-events:none;
-  background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0px, rgba(255,255,255,.010) 1px, transparent 2px, transparent 5px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.007) 0px, rgba(255,255,255,.007) 1px, transparent 2px, transparent 9px);
-  opacity:.18; mix-blend-mode:overlay;
-}
 #glass{
   position:fixed; inset:0; z-index:1; pointer-events:none;
   background:
     linear-gradient(115deg, rgba(255,255,255,.08), transparent 25%),
     radial-gradient(900px 650px at 60% 25%, rgba(255,255,255,.06), transparent 55%);
   opacity:.22; mix-blend-mode:screen;
-}
-body::after{
-  content:""; position:fixed; inset:0; z-index:2; pointer-events:none;
-  background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,0,.88) 100%);
-  opacity:.55;
 }
 
 /* Header */
@@ -68,9 +56,8 @@ body::after{
 }
 .siteHeader a{pointer-events:auto; text-decoration:none}
 .siteHeader img{height:56px; width:auto; display:block; opacity:.92}
-.siteHeader img:hover{opacity:1}
 
-/* Fixed viewport layout */
+/* Desktop Layout */
 .page{
   position:relative;
   z-index:10;
@@ -196,7 +183,6 @@ body::after{
   opacity:.62;
 }
 
-/* Internal scrolls */
 .scrollY{overflow:auto; scrollbar-width:none;}
 .scrollY::-webkit-scrollbar{width:0;height:0}
 
@@ -241,7 +227,7 @@ body::after{
 .wallScroll{
   flex:1;
   min-height:0;
-  overflow:auto; /* only scrolling area for projects */
+  overflow:auto;
   scrollbar-width:none;
   position:relative;
   z-index:2;
@@ -369,7 +355,6 @@ body::after{
   letter-spacing:.05em;
   white-space:pre-wrap;
   opacity:.92;
-  text-shadow: 0 0 10px rgba(232,226,214,.08), 0 0 2px rgba(232,226,214,.08);
 }
 .viewerFooter{
   border-top:1px solid rgba(232,226,214,.12);
@@ -398,70 +383,191 @@ body::after{
 @media (max-width: 860px){ .wrap{grid-template-columns:1fr} .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
 @media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
 
-
-#vrCapture{
-  position:fixed;
-  left:-220vw;
-  top:0;
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  pointer-events:none;
-  opacity:0;
-}
-#vrCapture .wrap{
-  width:min(1320px, 100%);
-  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
-}
-
 /* ===========================
-   MOBILE VR (A-FRAME overlay)
-   - Desktop layout unchanged
-   - On mobile: we hide desktop UI and show VR overlay
-=========================== */
+   VR MODE STYLES
+   =========================== */
 body.vrmode{
   overflow:hidden !important;
+  background:#000;
 }
+
+/* Hide desktop UI in VR */
 body.vrmode .siteHeader,
 body.vrmode .page,
 body.vrmode #vitrine-bg,
 body.vrmode #glass{
-  position:fixed !important;
-  left:-220vw !important;
-  top:0 !important;
-  width:100vw !important;
-  height:100vh !important;
-  opacity:0 !important;
-  pointer-events:none !important;
+  display:none !important;
 }
-body.vrmode::after{ display:none !important; }
-#vrApp{
+
+/* VR Container */
+#vrContainer{
+  position:fixed;
+  inset:0;
+  z-index:5000;
+  display:none;
+  background:#000;
+  overflow:hidden;
+}
+body.vrmode #vrContainer{
+  display:block;
+}
+
+/* A-Frame Scene */
+#vrScene{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* CSS 3D Layer - Sits on top of WebGL but syncs with camera */
+#css3dLayer{
+  position:absolute;
+  inset:0;
+  pointer-events:none; /* Let clicks pass through to panels */
+  z-index:10;
+}
+
+/* VR Panels - These are the REAL DOM panels, positioned in 3D space */
+.vr-panel{
+  position:absolute;
+  width:320px;
+  height:480px;
+  background: linear-gradient(180deg, rgba(10,10,10,.95), rgba(5,5,5,.98));
+  border:1px solid rgba(232,226,214,.2);
+  box-shadow: 0 20px 60px rgba(0,0,0,.8);
+  pointer-events:auto; /* Re-enable clicks for panels */
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
+  overflow:hidden;
+  /* Prevent text selection during drag */
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+.vr-panel .panel-content{
+  width:100%;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:16px;
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Panel specific sizes */
+.vr-panel[data-panel="left"]{ width:280px; height:500px; }
+.vr-panel[data-panel="center"]{ width:360px; height:520px; }
+.vr-panel[data-panel="right"]{ width:300px; height:480px; }
+
+/* VR HUD */
+#vrHud{
+  position:fixed;
+  top:12px;
+  left:12px;
+  right:12px;
+  z-index:6000;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;
+  background:rgba(10,10,10,.85);
+  backdrop-filter: blur(10px);
+  color:#e8e2d6;
+  font-family: var(--mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  font-size:11px;
+  pointer-events:auto;
+}
+#vrHud .left{display:flex; gap:10px; align-items:center;}
+#vrHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
+#vrHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
+#vrHud button{
+  all:unset;
+  cursor:pointer;
+  padding:8px 10px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.05);
+}
+#vrHud button:active{transform: translateY(1px); background:rgba(255,255,255,.1);}
+
+#vrHint{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:6000;
+  padding:10px 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.7);
+  color:rgba(232,226,214,.9);
+  font-family: var(--mono);
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  font-size:10px;
+  text-align:center;
+  pointer-events:none;
+  transition:opacity .3s;
+}
+
+/* Reticle for gaze/click */
+#reticle{
+  position:fixed;
+  top:50%;
+  left:50%;
+  width:20px;
+  height:20px;
+  border:2px solid rgba(232,226,214,.6);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  z-index:5500;
+  pointer-events:none;
+  transition:all .15s;
+}
+#reticle.active{
+  border-color:rgba(120,255,180,.9);
+  background:rgba(120,255,180,.2);
+  transform:translate(-50%,-50%) scale(1.2);
+}
+
+/* Loading state */
+#vrLoading{
   position:fixed;
   inset:0;
   background:#000;
-  z-index:5000;
-  display:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:7000;
+  color:var(--ink);
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.2em;
+  font-size:12px;
 }
-body.vrmode #vrApp{ display:block; }
-
 </style>
 </head>
 
 <body>
-<header class="siteHeader" role="banner" aria-label="Primary">
-  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
+<header class="siteHeader" role="banner">
+  <a href="https://jofrearchive.com/" target="_self" rel="noopener">
     <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
   </a>
 </header>
 
-<div id="vitrine-bg" aria-hidden="true"></div>
-<div id="glass" aria-hidden="true"></div>
+<div id="vitrine-bg"></div>
+<div id="glass"></div>
 
 <div class="page">
   <div class="wrap">
-
-    <!-- LEFT: categories + filters -->
-    <aside class="panel" aria-label="Categories">
+    <!-- LEFT: categories -->
+    <aside class="panel" id="panelLeft" aria-label="Categories">
       <div class="panelHeader">
         <div class="kicker">studies / navigation</div>
         <div class="titleRow">
@@ -473,19 +579,17 @@ body.vrmode #vrApp{ display:block; }
         <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
         <div class="hr"></div>
         <div class="row" id="catRow"></div>
-</div>
+      </div>
     </aside>
 
-    <!-- CENTER: wall (scroll inside) -->
-    <section class="wall" aria-label="Project wall">
+    <!-- CENTER: wall -->
+    <section class="wall" id="panelCenter" aria-label="Project wall">
       <div class="wallTop">
         <h3 class="wallTitle">PROJECT WALL</h3>
-        
         <div class="row">
           <button class="btn" id="btnSort">Sort: newest</button>
           <button class="btn" id="btnReset">Reset</button>
         </div>
-
         <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
       </div>
       <div class="wallScroll">
@@ -494,7 +598,7 @@ body.vrmode #vrApp{ display:block; }
     </section>
 
     <!-- RIGHT: viewer -->
-    <aside class="panel viewerCol" aria-label="Viewer">
+    <aside class="panel viewerCol" id="panelRight" aria-label="Viewer">
       <div class="panelHeader">
         <div class="kicker">retrieval / viewer</div>
         <div class="titleRow">
@@ -502,28 +606,71 @@ body.vrmode #vrApp{ display:block; }
           <div class="pill" id="vCat">—</div>
         </div>
       </div>
-
       <div class="viewerMedia">
         <img id="vImg" alt="" src="" style="display:none">
-        <div class="grid" aria-hidden="true"></div>
+        <div class="grid"></div>
       </div>
-
       <div class="viewerContent">
         <div id="vMeta"></div>
         <div class="hr"></div>
         <div class="excerpt" id="vText">Use the wall to open an entry.</div>
       </div>
-
       <div class="viewerFooter">
         <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
         <button class="btn" id="vCopy" disabled>Copy</button>
       </div>
     </aside>
-
   </div>
 </div>
 
+<!-- VR CONTAINER -->
+<div id="vrContainer">
+  <div id="vrLoading">Initializing VR Environment…</div>
+  
+  <!-- A-Frame Scene (invisible, used only for gyro camera) -->
+  <a-scene id="vrScene" embedded vr-mode-ui="enabled: false" renderer="antialias:true; alpha:true; colorManagement:true">
+    <a-entity id="cameraRig" position="0 0 0">
+      <a-camera id="vrCamera" look-controls="enabled:true; reverseMouseDrag:false; touchEnabled:true; magicWindowTrackingEnabled:true" wasd-controls="enabled:false" fov="80"></a-camera>
+    </a-entity>
+    <!-- Invisible sphere for reference -->
+    <a-sphere radius="50" material="visible:false" segments-width="32" segments-height="16"></a-sphere>
+  </a-scene>
+
+  <!-- CSS 3D Layer -->
+  <div id="css3dLayer">
+    <div class="vr-panel" data-panel="left" id="vrPanelLeft">
+      <div class="panel-content" id="vrContentLeft"></div>
+    </div>
+    <div class="vr-panel" data-panel="center" id="vrPanelCenter">
+      <div class="panel-content" id="vrContentCenter"></div>
+    </div>
+    <div class="vr-panel" data-panel="right" id="vrPanelRight">
+      <div class="panel-content" id="vrContentRight"></div>
+    </div>
+  </div>
+
+  <!-- VR HUD -->
+  <div id="vrHud" data-on="0">
+    <div class="left">
+      <span class="dot"></span>
+      <span>VR</span>
+      <span style="opacity:.65">Gyro Active</span>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="vrRecenter">Recenter</button>
+      <button id="vrExit">Exit VR</button>
+    </div>
+  </div>
+
+  <div id="vrHint">Move phone to look around • Tap panels to interact</div>
+  <div id="reticle"></div>
+</div>
+
+<script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
 <script>
+// ===========================
+// DATA & STATE
+// ===========================
 const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
 
 const PROJECTS = [
@@ -603,6 +750,9 @@ const PROJECTS = [
 
 let state = { category:"All", q:"", newestFirst:true, openId:null };
 
+// ===========================
+// DESKTOP APP LOGIC
+// ===========================
 const catRow = document.getElementById("catRow");
 const qEl = document.getElementById("q");
 const grid = document.getElementById("grid");
@@ -625,6 +775,7 @@ function escapeHtml(s){
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
+
 function filtered(){
   let items = [...PROJECTS];
   if(state.category !== "All") items = items.filter(p => p.category === state.category);
@@ -690,6 +841,8 @@ function openProject(id){
   if(!p) return;
   state.openId = id;
   fillViewer(p);
+  // If in VR mode, update VR viewer too
+  if(isVRMode) updateVRViewer();
 }
 
 function renderWall(keepSelection){
@@ -707,7 +860,7 @@ function renderWall(keepSelection){
     el.innerHTML = `
       <div class="thumb">
         <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
-        <div class="scan" aria-hidden="true"></div>
+        <div class="scan"></div>
       </div>
       <div class="cardBody">
         <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
@@ -775,587 +928,360 @@ vCopy.addEventListener("click", async ()=>{
 function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
 setViewerEmpty();
 renderAll(false);
-</script>
 
-<!-- ===========================
-     MOBILE VR (A-FRAME)
-     - Activates only on mobile/coarse pointer
-     - Desktop remains untouched
-=========================== -->
-<div id="vrApp" aria-hidden="true">
-  <style>
-    /* VR overlay UI */
-    #vrHud{
-      position:fixed;
-      top:12px;
-      left:12px;
-      right:12px;
-      z-index:6000;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      padding:10px 12px;
-      border:1px solid rgba(255,255,255,.18);
-      border-radius:14px;
-      background:rgba(10,10,10,.72);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color:#e8e2d6;
-      font-family: var(--mono);
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      font-size:11px;
-      user-select:none;
-    }
-    #vrHud .left{display:flex; gap:10px; align-items:center;}
-    #vrHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
-    #vrHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
-    #vrHud button{
-      all:unset;
-      cursor:pointer;
-      padding:8px 10px;
-      border-radius:12px;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(255,255,255,.03);
-      opacity:.92;
-    }
-    #vrHud button:active{transform: translateY(1px);}
+// ===========================
+// VR SYSTEM
+// ===========================
+let isVRMode = false;
+let vrCamera, vrScene;
+let panels = {};
+let cameraQuaternion = {x:0,y:0,z:0,w:1};
+let targetQuaternion = {x:0,y:0,z:0,w:1};
 
-    #vrHud input#vrSearch{
-      width:min(42vw, 220px);
-      max-width:220px;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(255,255,255,.03);
-      color:#e8e2d6;
-      border-radius:12px;
-      padding:8px 10px;
-      font-family: var(--mono);
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-size:11px;
-      outline:none;
-      opacity:.92;
-    }
-    #vrHud input#vrSearch::placeholder{ color: rgba(232,226,214,.55); }
+// Panel configuration in 3D space (relative to camera)
+const PANEL_CONFIG = {
+  left:   { distance: 3.5, yaw: -35, pitch: 0, width: 2.8, height: 5.0 },
+  center: { distance: 3.0, yaw: 0,   pitch: 0, width: 3.6, height: 5.2 },
+  right:  { distance: 3.5, yaw: 35,  pitch: 0, width: 3.0, height: 5.0 }
+};
 
-    #vrHint{
-      position:fixed;
-      bottom:14px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:6000;
-      padding:8px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.55);
-      color:rgba(232,226,214,.82);
-      font-family: var(--mono);
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-size:10px;
-      max-width:92vw;
-      text-align:center;
-      user-select:none;
-    }
-  </style>
-
-  <div id="vrHud" data-on="0">
-    <div class="left">
-      <span class="dot" aria-hidden="true"></span>
-      <span>VR</span>
-      <span style="opacity:.65">Gyro</span>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input id="vrSearch" type="search" placeholder="Search…" aria-label="Search" />
-      <button type="button" id="vrEnableMotion">Enable motion</button>
-      <button type="button" id="vrExit">Exit</button>
-    </div>
-  </div>
-  <div id="vrHint">Move your phone • Drag to look around</div>
-
+function initVR(){
+  const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 900;
   
-  <!-- DOM capture staging (offscreen) -->
-  <div id="vrCapture" aria-hidden="true"></div>
+  if(!isCoarse && !isSmall) return; // Only mobile
+  
+  // Wait for A-Frame
+  if(!window.AFRAME){
+    setTimeout(initVR, 100);
+    return;
+  }
+  
+  vrScene = document.getElementById('vrScene');
+  vrCamera = document.getElementById('vrCamera');
+  
+  // Clone content to VR panels
+  setupVRPanels();
+  
+  // Start render loop
+  requestAnimationFrame(updateVR);
+  
+  // Hide loading
+  setTimeout(()=>{
+    document.getElementById('vrLoading').style.display = 'none';
+  }, 500);
+  
+  // Auto-enter VR on mobile
+  enterVR();
+}
 
-  <!-- html2canvas for DOM -> canvas -> texture -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
-<!-- A-Frame scene -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
-  <a-scene
-    id="vrScene"
-    embedded
-    renderer="antialias: true; colorManagement: true"
-    vr-mode-ui="enabled: false"
-    style="position:absolute; inset:0;"
-  >
-    <a-assets>
-      <canvas id=\"texLeft\" width=\"1024\" height=\"1400\"></canvas>
-      <canvas id=\"texMid\" width=\"1400\" height=\"1400\"></canvas>
-      <canvas id=\"texRight\" width=\"1024\" height=\"1400\"></canvas>
-    </a-assets>
-
-    <!-- Camera -->
-    <a-entity id="camRig" position="0 1.6 0">
-      <a-camera
-        id="vrCam"
-        look-controls="enabled:true; reverseMouseDrag:true; touchEnabled:true; magicWindowTrackingEnabled:true"
-        wasd-controls-enabled="false"
-      ></a-camera>
-    </a-entity>
-
-    <!-- Ambient light -->
-    <a-entity light="type: ambient; intensity: 0.9"></a-entity>
-
-    <!-- Parabolic feel: inner half-sphere (dome) -->
-    <a-sphere
-      radius="18"
-      segments-width="48"
-      segments-height="24"
-      phi-start="0"
-      phi-length="180"
-      material="side: back; color: #0b0b0b; roughness: 1.0"
-      rotation="0 180 0"
-      position="0 0 0"
-    ></a-sphere>
-
-    <!-- Dark sky backdrop -->
-    <a-sky color="#060606"></a-sky>
-
-    <!-- Three "screens" placed on an arc like your 3 columns -->
-    <a-entity id="screens" position="0 1.6 -4">
-      <!-- Left -->
-      <a-entity id="screenLeft" rotation="0 -40 0" position="-2.6 0 0" face-camera-y>
-        <a-plane width="2.4" height="3.2" material="shader: flat; src: #texLeft; transparent: true; opacity: 1.0;" dom-forward="id: left" ></a-plane>
-        <a-plane width="2.4" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
-        <a-text value="CATEGORIES" align="center" color="#e8e2d6" width="3.2" position="0 1.35 0.03"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-        <a-text value="Move phone to look\nTap Exit to return"
-                align="center" color="#e8e2d6" width="2.2" position="0 0.2 0.03" opacity="0.75"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-      </a-entity>
-
-      <!-- Center -->
-      <a-entity id="screenMid" rotation="0 0 0" position="0 0 0" face-camera-y>
-        <a-plane width="3.0" height="3.2" material="shader: flat; src: #texMid; transparent: true; opacity: 1.0;" dom-forward="id: mid" ></a-plane>
-        <a-plane width="3.0" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
-        <a-text value="PROJECT WALL" align="center" color="#e8e2d6" width="3.6" position="0 1.35 0.03"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-        <a-text value="(VR shell ready)\nNext: render your real\nprojects as textures."
-                align="center" color="#e8e2d6" width="2.8" position="0 0.25 0.03" opacity="0.75"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-      </a-entity>
-
-      <!-- Right -->
-      <a-entity id="screenRight" rotation="0 40 0" position="2.6 0 0" face-camera-y>
-        <a-plane width="2.4" height="3.2" material="shader: flat; src: #texRight; transparent: true; opacity: 1.0;" dom-forward="id: right" ></a-plane>
-        <a-plane width="2.4" height="3.2" material="color:#ffffff; opacity:0.06; side:double" position="0 0 0.01"></a-plane>
-        <a-text value="VIEWER" align="center" color="#e8e2d6" width="3.2" position="0 1.35 0.03"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-        <a-text value="Gyro is real here\n(not CSS 3D)"
-                align="center" color="#e8e2d6" width="2.2" position="0 0.2 0.03" opacity="0.78"
-                font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
-      </a-entity>
-    </a-entity>
-  </a-scene>
-
-  <script>
-
-  // A-Frame component: forward raycast interactions to DOM panels (offscreen clone)
-  if (window.AFRAME && !AFRAME.components["dom-forward"]) {
-    AFRAME.registerComponent("dom-forward", {
-      schema: { id: {type:"string"} },
-      init: function(){
-        this.down = false;
-        this.lastUV = null;
-        this._onDown = (e)=>this.onDown(e);
-        this._onUp = (e)=>this.onUp(e);
-        this._onMove = (e)=>this.onMove(e);
-        this.el.addEventListener("mousedown", this._onDown);
-        this.el.addEventListener("mouseup", this._onUp);
-        this.el.addEventListener("mouseleave", this._onUp);
-        this.el.addEventListener("mousemove", this._onMove);
-        this.el.addEventListener("click", (e)=>this.onClick(e));
-      },
-      getUV: function(e){
-        const inter = e.detail && e.detail.intersection;
-        if(!inter || !inter.uv) return null;
-        return inter.uv; // {x,y} in 0..1
-      },
-      onDown: function(e){
-        const uv = this.getUV(e);
-        if(!uv) return;
-        this.down = true;
-        this.lastUV = {x:uv.x, y:uv.y};
-        if(window.__vrDomForward) window.__vrDomForward.pointerDown(this.data.id, uv, e);
-      },
-      onUp: function(e){
-        if(!this.down) return;
-        this.down = false;
-        const uv = this.getUV(e) || this.lastUV;
-        if(window.__vrDomForward) window.__vrDomForward.pointerUp(this.data.id, uv, e);
-      },
-      onMove: function(e){
-        if(!this.down) return;
-        const uv = this.getUV(e);
-        if(!uv) return;
-        const prev = this.lastUV || uv;
-        this.lastUV = {x:uv.x, y:uv.y};
-        if(window.__vrDomForward) window.__vrDomForward.pointerMove(this.data.id, prev, uv, e);
-      },
-      onClick: function(e){
-        const uv = this.getUV(e);
-        if(!uv) return;
-        if(window.__vrDomForward) window.__vrDomForward.click(this.data.id, uv, e);
-      }
+function setupVRPanels(){
+  // Clone desktop panels into VR containers
+  const leftContent = document.getElementById('vrContentLeft');
+  const centerContent = document.getElementById('vrContentCenter');
+  const rightContent = document.getElementById('vrContentRight');
+  
+  // Left: Categories
+  leftContent.innerHTML = document.getElementById('panelLeft').innerHTML;
+  // Re-attach events
+  const leftSearch = leftContent.querySelector('#q');
+  const leftCats = leftContent.querySelectorAll('#catRow .btn');
+  
+  if(leftSearch){
+    leftSearch.value = state.q;
+    leftSearch.addEventListener('input', (e)=>{
+      state.q = e.target.value;
+      state.openId = null;
+      renderAll(false);
+      syncVRToDesktop();
     });
   }
-
-
-  // Keep an entity facing the camera (yaw-only so it stays upright)
-  if (window.AFRAME && !AFRAME.components["face-camera-y"]) {
-    AFRAME.registerComponent("face-camera-y", {
-      schema: { target: {type:"string", default:"#vrCam"} },
-      tick: function(){
-        const cam = document.querySelector(this.data.target);
-        if(!cam) return;
-        const obj = this.el.object3D;
-        const camObj = cam.object3D;
-        const THREE_ = window.THREE;
-        if(!THREE_) return;
-        if(!this._v1) { this._v1 = new THREE_.Vector3(); this._v2 = new THREE_.Vector3(); }
-        const p = obj.getWorldPosition(this._v1);
-        const c = camObj.getWorldPosition(this._v2);
-        // yaw only
-        const dx = c.x - p.x;
-        const dz = c.z - p.z;
-        const yaw = Math.atan2(dx, dz); // rotate around Y
-        obj.rotation.set(0, yaw, 0);
-      }
+  
+  leftCats.forEach((btn, idx)=>{
+    btn.addEventListener('click', ()=>{
+      state.category = CATEGORIES[idx];
+      state.openId = null;
+      renderAll(false);
+      syncVRToDesktop();
+      updateVRCategories();
     });
+  });
+  
+  // Center: Project Wall
+  updateVRWall();
+  
+  // Right: Viewer
+  updateVRViewer();
+  
+  // Store references
+  panels = {
+    left: document.getElementById('vrPanelLeft'),
+    center: document.getElementById('vrPanelCenter'),
+    right: document.getElementById('vrPanelRight')
+  };
+}
+
+function updateVRCategories(){
+  const leftContent = document.getElementById('vrContentLeft');
+  const catRow = leftContent.querySelector('#catRow');
+  if(!catRow) return;
+  
+  catRow.innerHTML = '';
+  CATEGORIES.forEach(c=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn' + (c === state.category ? ' active' : '');
+    b.textContent = c;
+    b.addEventListener('click', ()=>{
+      state.category = c;
+      state.openId = null;
+      renderAll(false);
+      syncVRToDesktop();
+      updateVRCategories();
+    });
+    catRow.appendChild(b);
+  });
+}
+
+function updateVRWall(){
+  const centerContent = document.getElementById('vrContentCenter');
+  const items = filtered();
+  
+  let html = `
+    <div class="wallTop" style="padding:12px; border-bottom:1px solid rgba(232,226,214,.12); margin-bottom:12px;">
+      <h3 style="margin:0; font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-size:12px;">PROJECT WALL</h3>
+      <div style="font-family:var(--mono); font-size:10px; opacity:.7; margin-top:6px;">
+        ${items.length} / ${PROJECTS.length}
+      </div>
+    </div>
+    <div style="padding:0 12px 12px;">
+  `;
+  
+  items.forEach(p=>{
+    const isActive = p.id === state.openId;
+    html += `
+      <div class="card" data-id="${p.id}" style="margin-bottom:12px; ${isActive ? 'border-color:rgba(120,255,180,.5);' : ''}">
+        <div class="thumb" style="height:120px;">
+          <img src="${escapeHtml(p.thumb)}" style="width:100%;height:100%;object-fit:cover;opacity:.9;">
+        </div>
+        <div class="cardBody" style="padding:10px;">
+          <div class="metaLine" style="font-size:9px;">
+            <span>${escapeHtml(p.category)}</span>
+            <span>${escapeHtml(p.year)}</span>
+          </div>
+          <div class="cardTitle" style="font-size:13px; margin:6px 0;">${escapeHtml(p.title)}</div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  centerContent.innerHTML = html;
+  
+  // Attach click handlers
+  centerContent.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const id = card.getAttribute('data-id');
+      openProject(id);
+      updateVRWall(); // Refresh to show selection
+    });
+  });
+}
+
+function updateVRViewer(){
+  const rightContent = document.getElementById('vrContentRight');
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  
+  if(!p){
+    rightContent.innerHTML = `
+      <div style="padding:20px; text-align:center; opacity:.6; font-family:var(--mono); text-transform:uppercase; font-size:11px; letter-spacing:.1em;">
+        Select a project<br>from the wall
+      </div>
+    `;
+    return;
   }
+  
+  const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  
+  rightContent.innerHTML = `
+    <div style="padding:16px;">
+      <div style="font-family:var(--mono); text-transform:uppercase; font-size:10px; opacity:.6; letter-spacing:.12em; margin-bottom:8px;">
+        retrieval / viewer
+      </div>
+      <h2 style="margin:0 0 8px 0; font-family:var(--mono); text-transform:uppercase; font-size:14px; letter-spacing:.08em; line-height:1.3;">
+        ${escapeHtml(p.title)}
+      </h2>
+      <div style="display:inline-block; font-family:var(--mono); text-transform:uppercase; font-size:9px; padding:4px 8px; border:1px solid rgba(232,226,214,.2); margin-bottom:12px;">
+        ${escapeHtml(p.category)}
+      </div>
+      
+      ${imgSrc ? `<div style="aspect-ratio:4/3; background:rgba(0,0,0,.3); margin-bottom:12px; border:1px solid rgba(232,226,214,.1);">
+        <img src="${escapeHtml(imgSrc)}" style="width:100%;height:100%;object-fit:cover;opacity:.9;">
+      </div>` : ''}
+      
+      <div style="font-family:var(--mono); font-size:10px; line-height:1.6; opacity:.9; margin-bottom:12px; white-space:pre-wrap;">
+        ${escapeHtml(p.excerpt)}
+      </div>
+      
+      <div style="border-top:1px dashed rgba(232,226,214,.15); padding-top:12px; font-family:var(--mono); font-size:9px; opacity:.7;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>ID</span><span>${escapeHtml(p.id)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>YEAR</span><span>${escapeHtml(p.year)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>PLACE</span><span>${escapeHtml(p.place || '—')}</span>
+        </div>
+      </div>
+      
+      <button class="btn" style="width:100%; margin-top:16px; text-align:center;" onclick="copyFromVR()">
+        Copy Info
+      </button>
+    </div>
+  `;
+}
 
+window.copyFromVR = async function(){
+  const ok = await copyPayload();
+  const btn = document.querySelector('#vrContentRight .btn');
+  if(btn){
+    btn.textContent = ok ? "Copied!" : "Error";
+    setTimeout(()=> btn.textContent = "Copy Info", 900);
+  }
+};
 
-  (function(){
-    // Mobile detection: coarse pointer OR small width
-    const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 820;
-    const isMobile = isCoarse || isSmall;
+function syncVRToDesktop(){
+  // Update desktop inputs to match VR state
+  qEl.value = state.q;
+  renderCategories();
+  renderWall(true);
+}
 
-    if(!isMobile) return;
+function updateVR(){
+  if(!isVRMode || !vrCamera) return;
+  
+  // Get camera rotation from A-Frame
+  const camObj = vrCamera.object3D;
+  camObj.updateMatrixWorld();
+  
+  // Extract yaw and pitch
+  const rotation = new THREE.Euler().setFromQuaternion(camObj.quaternion, 'YXZ');
+  const yaw = rotation.y;
+  const pitch = rotation.x;
+  
+  // Position panels in arc around camera
+  updatePanelPosition('left', yaw, pitch);
+  updatePanelPosition('center', yaw, pitch);
+  updatePanelPosition('right', yaw, pitch);
+  
+  requestAnimationFrame(updateVR);
+}
 
-    document.body.classList.add("vrmode");
+function updatePanelPosition(id, camYaw, camPitch){
+  const panel = panels[id];
+  const config = PANEL_CONFIG[id];
+  if(!panel || !config) return;
+  
+  // Calculate panel position relative to camera direction
+  const totalYaw = camYaw + (config.yaw * Math.PI / 180);
+  const totalPitch = camPitch + (config.pitch * Math.PI / 180);
+  
+  // Spherical to cartesian
+  const x = Math.sin(totalYaw) * Math.cos(totalPitch) * config.distance;
+  const y = Math.sin(totalPitch) * config.distance + 1.6; // + eye height
+  const z = -Math.cos(totalYaw) * Math.cos(totalPitch) * config.distance;
+  
+  // Convert 3D position to screen coordinates for CSS transform
+  // Simple perspective projection
+  const fov = 80 * (Math.PI / 180);
+  const aspect = window.innerWidth / window.innerHeight;
+  
+  // Project to screen space
+  const scale = (window.innerHeight / 2) / Math.tan(fov / 2);
+  const screenX = (x / -z) * scale + window.innerWidth / 2;
+  const screenY = (y / -z) * scale + window.innerHeight / 2;
+  
+  // Calculate apparent size based on distance
+  const distance = Math.sqrt(x*x + y*y + z*z);
+  const apparentWidth = (config.width / distance) * scale;
+  const apparentHeight = (config.height / distance) * scale;
+  
+  // Apply CSS transform
+  // We use translate3d for GPU acceleration and rotate to face camera
+  const rotateY = -config.yaw; // Counter-rotate to face camera
+  
+  panel.style.transform = `
+    translate3d(${screenX - apparentWidth/2}px, ${screenY - apparentHeight/2}px, 0)
+    rotateY(${rotateY}deg)
+    scale(${apparentWidth / panel.offsetWidth})
+  `;
+  
+  // Hide if behind camera
+  if(z > 0){
+    panel.style.opacity = '0';
+    panel.style.pointerEvents = 'none';
+  } else {
+    panel.style.opacity = '1';
+    panel.style.pointerEvents = 'auto';
+  }
+}
 
-    // --- Parabolic dish layout: place screens on a concave arc facing the user ---
-    function placeScreens(){
-      try{
-      const left = document.getElementById("screenLeft");
-      const mid  = document.getElementById("screenMid");
-      const right= document.getElementById("screenRight");
-      const group= document.getElementById("screens");
-      if(!left || !mid || !right || !group) return;
+function enterVR(){
+  document.body.classList.add('vrmode');
+  isVRMode = true;
+  document.getElementById('vrHud').setAttribute('data-on', '1');
+  
+  // Request device orientation permission on iOS
+  if(typeof DeviceOrientationEvent !== 'undefined' && 
+     typeof DeviceOrientationEvent.requestPermission === 'function'){
+    DeviceOrientationEvent.requestPermission().catch(()=>{});
+  }
+  
+  // Update VR content
+  updateVRCategories();
+  updateVRWall();
+  updateVRViewer();
+}
 
-      // Distance from camera; larger = flatter arc; smaller = more "dish"
-      // Tune based on phone width for readability
-      const w = Math.min(window.innerWidth, window.innerHeight);
-      const R = (w < 420) ? 4.2 : (w < 520 ? 4.6 : 5.0);   // radius in meters
-      const spread = (w < 420) ? 34 : 30; // degrees left/right from center
+function exitVR(){
+  document.body.classList.remove('vrmode');
+  isVRMode = false;
+  document.getElementById('vrHud').setAttribute('data-on', '0');
+}
 
-      const toRad = (d)=>d*Math.PI/180;
+// Event Listeners
+document.getElementById('vrExit').addEventListener('click', exitVR);
+document.getElementById('vrRecenter').addEventListener('click', ()=>{
+  if(vrCamera && vrCamera.components['look-controls']){
+    vrCamera.components['look-controls'].pitchObject.rotation.x = 0;
+    vrCamera.components['look-controls'].yawObject.rotation.y = 0;
+  }
+});
 
-      function setOnArc(el, angDeg){
-        const a = toRad(angDeg);
-        const x = Math.sin(a) * R;
-        const z = -Math.cos(a) * R; // negative Z is in front of camera
-        el.setAttribute("position", `${x.toFixed(3)} 0 ${z.toFixed(3)}`);
-        // rotation will be handled by face-camera-y, but set a sensible default
-        el.setAttribute("rotation", `0 ${angDeg} 0`);
-      }
+// Touch/Drag handling for scrolling panels
+let touchStartY = 0;
+let touchStartScroll = 0;
+let currentScrollElement = null;
 
-      // Put the whole arc a bit closer and centered
-      group.setAttribute("position", "0 1.6 0");
-
-      setOnArc(left, -spread);
-      setOnArc(mid, 0);
-      setOnArc(right, spread);
-      }catch(e){}
+document.querySelectorAll('.vr-panel').forEach(panel=>{
+  panel.addEventListener('touchstart', (e)=>{
+    currentScrollElement = e.target.closest('.panel-content');
+    if(currentScrollElement){
+      touchStartY = e.touches[0].clientY;
+      touchStartScroll = currentScrollElement.scrollTop;
     }
+  }, {passive:true});
+  
+  panel.addEventListener('touchmove', (e)=>{
+    if(!currentScrollElement) return;
+    const deltaY = touchStartY - e.touches[0].clientY;
+    currentScrollElement.scrollTop = touchStartScroll + deltaY;
+  }, {passive:true});
+});
 
-    // Place once the scene is ready
-    const sceneEl = document.getElementById("vrScene");
-    if(sceneEl){
-      sceneEl.addEventListener("loaded", ()=>{ setTimeout(placeScreens, 60); });
-      // Fallback in case 'loaded' already fired
-      setTimeout(placeScreens, 120);
-    }
-    window.addEventListener("resize", ()=>setTimeout(placeScreens, 150), {passive:true});
-
-
-    // --- Render your REAL desktop panels into VR textures (one-time snapshot) ---
-    const capture = document.getElementById("vrCapture");
-
-    function drawToCanvas(srcEl, canvasEl, scale=2){
-      if(!srcEl || !canvasEl || !window.html2canvas) return Promise.resolve(false);
-      const rect = srcEl.getBoundingClientRect();
-      const w = Math.max(320, Math.floor(rect.width));
-      const h = Math.max(320, Math.floor(rect.height));
-
-      // Resize target canvas to keep sharp text
-      canvasEl.width = Math.floor(w * scale);
-      canvasEl.height = Math.floor(h * scale);
-
-      return html2canvas(srcEl, {
-        backgroundColor: null,
-        scale: scale,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        windowWidth: document.documentElement.clientWidth,
-        windowHeight: document.documentElement.clientHeight
-      }).then(cv=>{
-        const ctx = canvasEl.getContext("2d");
-        ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
-        ctx.drawImage(cv, 0, 0, canvasEl.width, canvasEl.height);
-        return true;
-      }).catch(()=>false);
-    }
-
-    
-    // --- Render your REAL desktop panels into VR textures (live + interactive) ---
-    const capture = document.getElementById("vrCapture");
-
-    // Debounced refresh (keeps VR responsive)
-    let __snapT = null;
-    function scheduleSnapshot(delay=120){
-      clearTimeout(__snapT);
-      __snapT = setTimeout(snapshotPanels, delay);
-    }
-
-    // Panel mapping for interaction
-    const panelMap = {
-      left:  { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texLeft") },
-      mid:   { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texMid")  },
-      right: { dom:null, rect:null, scrollEl:null, tex:()=>document.getElementById("texRight")}
-    };
-
-    function findInElementsFromPoint(x,y, root){
-      const els = document.elementsFromPoint(x,y);
-      for(const el of els){
-        if(root && root.contains(el)) return el;
-      }
-      return null;
-    }
-
-    function uvToPoint(panelId, uv){
-      const m = panelMap[panelId];
-      if(!m || !m.rect) return null;
-      // A-Frame uv origin is bottom-left; DOM origin is top-left
-      const x = m.rect.left + (uv.x * m.rect.width);
-      const y = m.rect.top  + ((1 - uv.y) * m.rect.height);
-      return {x, y};
-    }
-
-    function dispatchMouse(target, type, x, y){
-      if(!target) return;
-      const evt = new MouseEvent(type, {
-        bubbles:true, cancelable:true, composed:true,
-        clientX:x, clientY:y
-      });
-      target.dispatchEvent(evt);
-    }
-
-    function scrollBy(panelId, dyPx){
-      const m = panelMap[panelId];
-      if(!m || !m.scrollEl) return;
-      m.scrollEl.scrollTop += dyPx;
-      scheduleSnapshot(60);
-    }
-
-    // Expose interaction handlers for the A-Frame component
-    window.__vrDomForward = {
-      click(panelId, uv){
-        const m = panelMap[panelId];
-        if(!m || !m.dom || !m.rect) return;
-        const pt = uvToPoint(panelId, uv);
-        if(!pt) return;
-
-        // Find element inside the cloned panel even though VR is on top
-        const t = findInElementsFromPoint(pt.x, pt.y, m.dom);
-        if(!t) return;
-
-        dispatchMouse(t, "mousedown", pt.x, pt.y);
-        dispatchMouse(t, "mouseup", pt.x, pt.y);
-        dispatchMouse(t, "click", pt.x, pt.y);
-
-        // Refresh textures so viewer updates after click (e.g. selecting a project)
-        scheduleSnapshot(90);
-      },
-      pointerDown(panelId, uv){
-        this._drag = { panelId, uv0:uv, uvPrev:uv };
-      },
-      pointerMove(panelId, uvPrev, uvNow){
-        // Scroll gesture: vertical drag on panel scrolls its internal scroller
-        const drag = this._drag;
-        if(!drag || drag.panelId !== panelId) return;
-        const m = panelMap[panelId];
-        if(!m || !m.rect) return;
-
-        const dy = (uvNow.y - uvPrev.y);     // positive when moving up in UV
-        const px = -dy * m.rect.height;      // drag up => scroll down (natural)
-        if(Math.abs(px) > 0.5) scrollBy(panelId, px);
-      },
-      pointerUp(){
-        this._drag = null;
-      }
-    };
-
-    function drawToCanvas(srcEl, canvasEl, scale=2){
-      if(!srcEl || !canvasEl || !window.html2canvas) return Promise.resolve(false);
-      const rect = srcEl.getBoundingClientRect();
-      const w = Math.max(320, Math.floor(rect.width));
-      const h = Math.max(320, Math.floor(rect.height));
-
-      // Resize target canvas to keep sharp text
-      canvasEl.width = Math.floor(w * scale);
-      canvasEl.height = Math.floor(h * scale);
-
-      return html2canvas(srcEl, {
-        backgroundColor: null,
-        scale: scale,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        windowWidth: document.documentElement.clientWidth,
-        windowHeight: document.documentElement.clientHeight
-      }).then(cv=>{
-        const ctx = canvasEl.getContext("2d");
-        ctx.clearRect(0,0,canvasEl.width, canvasEl.height);
-        ctx.drawImage(cv, 0, 0, canvasEl.width, canvasEl.height);
-        return true;
-      }).catch(()=>false);
-    }
-
-    async function snapshotPanels(){
-      // Grab your existing panels from the original layout (real state)
-      const wrap = document.querySelector(".wrap");
-      if(!wrap || !capture) return;
-
-      // Clone the wrap so we keep the same aesthetics (CSS applies)
-      capture.innerHTML = "";
-      const clone = wrap.cloneNode(true);
-
-      // IMPORTANT: keep it in the viewport so elementsFromPoint can see it.
-      // It's behind VR overlay (lower z-index), but still in the DOM stack.
-      clone.style.position = "fixed";
-      clone.style.left = "0";
-      clone.style.top = "0";
-      clone.style.width = "100vw";
-      clone.style.height = "100vh";
-      clone.style.transform = "none";
-      clone.style.margin = "0";
-      clone.style.pointerEvents = "auto"; // we don't rely on real pointer events, but helps hit-testing
-      capture.style.left = "0";
-      capture.style.top = "0";
-      capture.style.opacity = "0";
-      capture.style.pointerEvents = "none"; // prevent any accidental interaction
-
-      capture.appendChild(clone);
-
-      const left = clone.querySelector("aside.panel:not(.viewerCol)");
-      const mid = clone.querySelector("section.wall");
-      const right = clone.querySelector("aside.viewerCol");
-
-      // Identify internal scroll elements to support drag-scroll
-      panelMap.left.dom = left;
-      panelMap.mid.dom = mid;
-      panelMap.right.dom = right;
-
-      panelMap.left.scrollEl  = left && left.querySelector(".panelBody.scrollY");
-      panelMap.mid.scrollEl   = mid && mid.querySelector(".wallScroll");
-      panelMap.right.scrollEl = right && right.querySelector(".viewerContent");
-
-      // Cache rects for UV->screen mapping
-      panelMap.left.rect  = left ? left.getBoundingClientRect() : null;
-      panelMap.mid.rect   = mid ? mid.getBoundingClientRect() : null;
-      panelMap.right.rect = right ? right.getBoundingClientRect() : null;
-
-      // Draw textures
-      await drawToCanvas(left, panelMap.left.tex(), 2);
-      await drawToCanvas(mid, panelMap.mid.tex(), 2);
-      await drawToCanvas(right, panelMap.right.tex(), 2);
-
-      // Force textures update
-      const scene = document.getElementById("vrScene");
-      if(scene && scene.renderer){
-        const planes = scene.querySelectorAll("a-plane");
-        planes.forEach(p=>{
-          const mesh = p.getObject3D("mesh");
-          const mat = mesh && mesh.material;
-          if(mat && mat.map){ mat.map.needsUpdate = true; mat.needsUpdate = true; }
-        });
-      }
-    }
-
-    // HUD search -> forward to original search input (#q) and refresh textures
-    const vrSearch = document.getElementById("vrSearch");
-    const desktopSearch = document.getElementById("q");
-    if(vrSearch && desktopSearch){
-      vrSearch.addEventListener("input", ()=>{
-        desktopSearch.value = vrSearch.value;
-        desktopSearch.dispatchEvent(new Event("input", {bubbles:true}));
-        scheduleSnapshot(80);
-      });
-    }
-
-    // Initial snapshot after fonts/styles are ready
-    setTimeout(snapshotPanels, 280);
-    window.addEventListener("resize", ()=>scheduleSnapshot(350), {passive:true});
-
-
-    // Wait a moment so fonts/styles are ready, then snapshot
-    setTimeout(snapshotPanels, 250);
-    window.addEventListener("resize", ()=>setTimeout(snapshotPanels, 400), {passive:true});
-
-
-    const hud = document.getElementById("vrHud");
-    const hint = document.getElementById("vrHint");
-    const btnEnable = document.getElementById("vrEnableMotion");
-    const btnExit = document.getElementById("vrExit");
-
-    async function requestMotion(){
-      try{
-        if (typeof DeviceOrientationEvent !== "undefined" &&
-            typeof DeviceOrientationEvent.requestPermission === "function") {
-          const res = await DeviceOrientationEvent.requestPermission();
-          if(res !== "granted") throw new Error("permission not granted");
-        }
-        hud && hud.setAttribute("data-on","1");
-        if(btnEnable) btnEnable.textContent = "On";
-        if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
-      }catch(e){
-        hud && hud.setAttribute("data-on","0");
-        if(btnEnable) btnEnable.textContent = "Enable motion";
-        if(hint) hint.textContent = "On iPhone: tap Enable motion • Then move phone";
-      }
-    }
-
-    btnEnable && btnEnable.addEventListener("click", requestMotion);
-
-    btnExit && btnExit.addEventListener("click", ()=>{
-      document.body.classList.remove("vrmode");
-      // When leaving, the desktop is visible again immediately
-      if(hint){ hint.style.opacity = "1"; hint.textContent = "Move your phone • Drag to look around"; }
-      if(btnEnable) btnEnable.textContent = "Enable motion";
-      hud && hud.setAttribute("data-on","0");
-    });
-
-    // Auto-try once (Android usually works without prompt)
-    requestMotion();
-  })();
-  </script>
-</div>
-
+// Initialize
+window.addEventListener('load', initVR);
+</script>
 </body>
 </html>
