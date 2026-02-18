@@ -907,14 +907,17 @@ renderAll(false);
 
       const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
       const scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0.02,0.02,0.02,1);
+      scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
 
       cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
       cam.setTarget(new BABYLON.Vector3(0,1.6,5));
       cam.attachControl(canvas, true);
       cam.speed = 0;
 
-      new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene).intensity = 0.9;
+      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      hemi.intensity = 1.05;
+      const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
+      pl.intensity = 0.55;
 
       // Simple dish background so it's not "pure black"
       const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
@@ -929,20 +932,19 @@ renderAll(false);
 
       // Panels in a concave arc (parabolic feel) — visible Babylon GUI
       function makeGuiPanel(name, w, h, title){
-        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
+        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        // Flip the mesh so text is not mirrored, without breaking GUI layout
+        mesh.scaling.x = -1;
 
         const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
         mat.diffuseColor = new BABYLON.Color3(0.18,0.18,0.18);
         mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
         mat.specularColor = new BABYLON.Color3(0,0,0);
         mat.alpha = 0.98;
+        mat.backFaceCulling = false;
         mesh.material = mat;
 
-        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
-
-        // Fix mirrored text on planes: flip GUI horizontally
-        adt.rootContainer.scaleX = -1;
-
+        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 900, 1200, false);
         const frame = new BABYLON.GUI.Rectangle(name+"_frame");
         frame.width = 0.92;
         frame.height = 0.92;
