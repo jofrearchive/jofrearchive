@@ -418,7 +418,7 @@ body::after{
   background:rgba(15,15,15,.75);
   backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);
-  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-family: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size:12px;
   letter-spacing:.18em;
   cursor:pointer;
@@ -932,52 +932,57 @@ renderAll(false);
         const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
 
         const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-        mat.diffuseColor = new BABYLON.Color3(0.14,0.14,0.14);
-        mat.emissiveColor = new BABYLON.Color3(0.08,0.08,0.08);
+        mat.diffuseColor = new BABYLON.Color3(0.18,0.18,0.18);
+        mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
         mat.specularColor = new BABYLON.Color3(0,0,0);
         mat.alpha = 0.98;
         mesh.material = mat;
 
         const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
 
+        // Fix mirrored text on planes: flip GUI horizontally
+        adt.rootContainer.scaleX = -1;
+
         const frame = new BABYLON.GUI.Rectangle(name+"_frame");
         frame.width = 0.92;
         frame.height = 0.92;
-        frame.thickness = 2;
-        frame.cornerRadius = 24;
-        frame.color = "rgba(232,226,214,0.22)";
-        frame.background = "rgba(10,10,10,0.55)";
+        frame.thickness = 1;
+        frame.cornerRadius = 28;
+        frame.color = "rgba(255,255,255,0.16)";
+        frame.background = "rgba(15,15,15,0.78)";
         adt.addControl(frame);
 
         const header = new BABYLON.GUI.TextBlock(name+"_hdr", title);
         header.height = "70px";
         header.top = "-42%";
         header.color = "#e8e2d6";
-        header.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-        header.fontSize = 34;
-        header.letterSpacing = "6px";
-        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        header.fontFamily = "EB Garamond, serif";
+        header.fontSize = 42;
+        header.letterSpacing = "0px";
+        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        header.paddingLeft = "34px";
         frame.addControl(header);
 
         const body = new BABYLON.GUI.TextBlock(name+"_body",
           "Panels visible ✅\n\nNext step: connect real data (categories/projects) and add ScrollViewer + buttons.");
         body.top = "6%";
         body.color = "rgba(232,226,214,0.82)";
-        body.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
-        body.fontSize = 22;
+        body.fontFamily = "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        body.fontSize = 20;
         body.textWrapping = true;
-        body.lineSpacing = "8px";
+        body.lineSpacing = "10px";
         body.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
         body.paddingLeft = "34px";
+        body.paddingTop = "26px";
         body.paddingRight = "34px";
         frame.addControl(body);
 
         return mesh;
       }
 
-      const left  = makeGuiPanel("panelLeft",  1.75, 2.35, "CATEGORIES");
-      const mid   = makeGuiPanel("panelMid",   2.25, 2.35, "PROJECT WALL");
-      const right = makeGuiPanel("panelRight", 1.75, 2.35, "VIEWER");
+      const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
+      const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
+      const right = makeGuiPanel("panelRight", 1.85, 2.45, "Viewer");
 
       function place(){
         const R = 3.4;
