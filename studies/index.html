@@ -893,9 +893,59 @@ renderAll(false);
   <canvas id="babylonCanvas"></canvas>
 </div>
 
-<!-- Babylon.js -->
-<script src="https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js"></script>
+<!-- Babylon.js will be loaded with CDN fallback -->
+
+<script>
+/* Babylon loader with CDN fallback + clear debug messages */
+(function(){
+  function loadScript(url){
+    return new Promise((resolve, reject)=>{
+      const s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = ()=>resolve(url);
+      s.onerror = ()=>reject(new Error("failed: " + url));
+      document.head.appendChild(s);
+    });
+  }
+  async function loadWithFallback(urls, label){
+    let lastErr = null;
+    for(const u of urls){
+      try{
+        await loadScript(u);
+        return u;
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    throw new Error(label + " not loaded. Last error: " + (lastErr && lastErr.message ? lastErr.message : String(lastErr)));
+  }
+  window.__babylonLoad = async function(debugFn){
+    if(window.BABYLON && window.BABYLON.GUI) return {babylon:"already", gui:"already"};
+    if(typeof debugFn !== "function") debugFn = ()=>{};
+    debugFn("LOAD: Babylon…");
+
+    const babylonUrls = [
+      "https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js",
+      "https://unpkg.com/babylonjs@7.15.0/babylon.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.15.0/babylon.js"
+    ];
+    const guiUrls = [
+      "https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js",
+      "https://unpkg.com/babylonjs-gui@7.15.0/babylon.gui.min.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/babylonjs-gui/7.15.0/babylon.gui.min.js"
+    ];
+
+    const bab = await loadWithFallback(babylonUrls, "Babylon.js");
+    debugFn("LOAD: GUI…");
+    const gui = await loadWithFallback(guiUrls, "Babylon GUI");
+
+    if(!window.BABYLON) throw new Error("BABYLON global missing after load");
+    if(!window.BABYLON.GUI) throw new Error("BABYLON.GUI missing after load");
+    return {babylon: bab, gui: gui};
+  };
+})();
+</script>
 
 <script>
 (function(){
@@ -948,17 +998,20 @@ renderAll(false);
 
   let _inited = false;
 
-  function init3D(){
+  async function init3D(){
     if(_inited) return;
     dbg("INIT: starting...");
-    if(!window.BABYLON){
-      dbg("ERROR: Babylon.js not loaded (HTTPS / connection)");
-      if(hint){ hint.style.display='block'; hint.style.opacity='1'; hint.textContent='Babylon.js not loaded (open via HTTPS / check connection)'; }
-      return;
-    }
-    if(!window.BABYLON.GUI){
-      dbg("ERROR: babylon GUI not loaded");
-      if(hint){ hint.style.display='block'; hint.style.opacity='1'; hint.textContent='babylon GUI not loaded'; }
+    // Load Babylon + GUI with CDN fallback (works on HTTPS; may fail on file:// or blocked networks)
+    try{
+      await window.__babylonLoad(dbg);
+    }catch(loadErr){
+      console.error(loadErr);
+      dbg("ERROR: " + (loadErr && loadErr.message ? loadErr.message : String(loadErr)));
+      if(hint){ hint.style.display="block"; hint.style.opacity="1"; hint.textContent="Load error: " + (loadErr && loadErr.message ? loadErr.message : String(loadErr)); }
+      // bring back overlay so user can retry
+      document.body.classList.remove("bab3d-on");
+      document.body.classList.add("bab3d-ready");
+      if(startOverlay) startOverlay.style.display="flex";
       return;
     }
     _inited = true;
