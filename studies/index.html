@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -25,10 +25,9 @@ html,body{
   background:var(--bg);
   color:var(--ink);
   font-family:var(--serif);
-  overflow:hidden; /* fixed columns */
+  overflow:hidden;
 }
 
-/* Vitrine background */
 #vitrine-bg{
   position:fixed; inset:0; z-index:0; pointer-events:none;
   background:
@@ -57,7 +56,6 @@ body::after{
   opacity:.55;
 }
 
-/* Header */
 .siteHeader{
   position:fixed; top:0; left:0; right:0;
   height: calc(96px + env(safe-area-inset-top));
@@ -68,9 +66,7 @@ body::after{
 }
 .siteHeader a{pointer-events:auto; text-decoration:none}
 .siteHeader img{height:56px; width:auto; display:block; opacity:.92}
-.siteHeader img:hover{opacity:1}
 
-/* Fixed viewport layout */
 .page{
   position:relative;
   z-index:10;
@@ -87,7 +83,6 @@ body::after{
   align-items:stretch;
 }
 
-/* Panels */
 .panel{
   border:1px solid var(--line2);
   background: linear-gradient(180deg, rgba(10,10,10,.86), rgba(0,0,0,.46));
@@ -156,7 +151,6 @@ body::after{
 }
 .hr{height:1px;background:rgba(232,226,214,.12);margin:12px 0}
 
-/* Controls */
 .input{
   width:100%;
   border:1px solid rgba(232,226,214,.22);
@@ -196,11 +190,9 @@ body::after{
   opacity:.62;
 }
 
-/* Internal scrolls */
 .scrollY{overflow:auto; scrollbar-width:none;}
 .scrollY::-webkit-scrollbar{width:0;height:0}
 
-/* Wall column */
 .wall{
   border:1px solid rgba(232,226,214,.12);
   background:
@@ -241,7 +233,7 @@ body::after{
 .wallScroll{
   flex:1;
   min-height:0;
-  overflow:auto; /* only scrolling area for projects */
+  overflow:auto;
   scrollbar-width:none;
   position:relative;
   z-index:2;
@@ -254,7 +246,6 @@ body::after{
   gap:12px;
 }
 
-/* Cards */
 .card{
   border:1px solid rgba(232,226,214,.14);
   background: rgba(0,0,0,.22);
@@ -327,7 +318,6 @@ body::after{
   opacity:.9;
 }
 
-/* Viewer */
 .viewerMedia{
   border-bottom:1px solid rgba(232,226,214,.12);
   background: rgba(0,0,0,.22);
@@ -393,152 +383,260 @@ body::after{
 }
 .link:hover{opacity:1;background:rgba(255,255,255,.05);}
 
-/* Responsive */
 @media (max-width: 1100px){ .wrap{grid-template-columns: 260px 1fr} .viewerCol{display:none} }
 @media (max-width: 860px){ .wrap{grid-template-columns:1fr} .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
 @media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
 
 /* ===========================
-   MOBILE 3D DOM (Three.js CSS3DRenderer)
-   - Only activates on phones (coarse pointer)
-   - Keeps DOM fully interactive (real clicks/scroll/inputs)
-=========================== */
-#vr3dRoot{ display:none; }
-body.vr3d-on{
+   VR MODE STYLES
+   =========================== */
+body.vrmode{
   overflow:hidden !important;
-  height:100vh;
-  width:100vw;
+  background:#000;
 }
-body.vr3d-on #vr3dRoot{
-  display:block;
-  position:fixed;
-  inset:0;
-  z-index:5000;
-  background:
-    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
-    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.55)),
-    #0b0b0b;
-}
-body.vr3d-on #vr3dBgVignette{
-  position:absolute; inset:0; pointer-events:none;
-  background:radial-gradient(circle at 50% 45%, transparent 38%, rgba(0,0,0,.92) 100%);
-  opacity:.75;
-}
-body.vr3d-on .siteHeader,
-body.vr3d-on .page,
-body.vr3d-on #vitrine-bg,
-body.vr3d-on #glass{
+
+body.vrmode .siteHeader,
+body.vrmode .page,
+body.vrmode #vitrine-bg,
+body.vrmode #glass,
+body.vrmode body::after{
   display:none !important;
 }
-body.vr3d-on::after{ display:none !important; }
 
-/* Make panels readable on phone inside 3D */
-body.vr3d-on .panel,
-body.vr3d-on .wall{
-  box-shadow: 0 40px 90px rgba(0,0,0,.72);
-  transform: translateZ(0);
+#vrContainer{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:none;
+  background:#000;
+  touch-action:none;
+}
+body.vrmode #vrContainer{
+  display:block;
 }
 
-/* HUD */
-#vr3dHud{
+#vrScene{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:1;
+}
+
+#vrDomLayer{
+  position:absolute;
+  inset:0;
+  z-index:10;
+  pointer-events:none;
+  perspective:1200px;
+  overflow:hidden;
+}
+
+.vr-panel{
+  position:absolute;
+  pointer-events:auto;
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
+  background: linear-gradient(180deg, rgba(10,10,10,.98), rgba(5,5,5,.99));
+  border:1px solid rgba(232,226,214,.3);
+  box-shadow: 0 30px 100px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+  border-radius:4px;
+  overflow:hidden;
+  will-change:transform;
+  /* Prevent text selection during drag */
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+.vr-panel-inner{
+  width:100%;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Panel dimensions */
+#vrPanelLeft{ width:300px; height:520px; }
+#vrPanelCenter{ width:360px; height:580px; }
+#vrPanelRight{ width:320px; height:520px; }
+
+#vrUI{
   position:fixed;
-  top:12px;
-  left:12px;
-  right:12px;
-  z-index:6000;
+  top:0;
+  left:0;
+  right:0;
+  z-index:10000;
+  pointer-events:none;
+}
+#vrUI > * { pointer-events:auto; }
+
+#vrTopBar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 20px;
+  background:linear-gradient(180deg, rgba(0,0,0,.9), transparent);
+}
+
+#vrStatus{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  font-size:11px;
+  letter-spacing:.15em;
+  color:#e8e2d6;
+}
+#vrStatusDot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:rgba(255,50,50,.8);
+  box-shadow:0 0 10px rgba(255,50,50,.5);
+  transition:all .3s;
+}
+#vrStatus.active #vrStatusDot{
+  background:rgba(50,255,120,1);
+  box-shadow:0 0 15px rgba(50,255,120,.6);
+}
+
+#vrControls{
   display:flex;
   gap:10px;
-  align-items:center;
-  justify-content:space-between;
-  padding:10px 12px;
-  border:1px solid rgba(255,255,255,.18);
-  border-radius:14px;
-  background:rgba(10,10,10,.72);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  color: var(--ink);
-  font-family: var(--mono);
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  font-size:11px;
-  user-select:none;
 }
-#vr3dHud .left{display:flex; gap:10px; align-items:center;}
-#vr3dHud .dot{width:8px;height:8px;border-radius:50%;background:rgba(232,226,214,.35);}
-#vr3dHud[data-on="1"] .dot{background:rgba(120,255,180,.9);}
-#vr3dHud input{
-  width:min(42vw, 220px);
-  max-width:220px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(255,255,255,.03);
-  color:var(--ink);
-  border-radius:12px;
-  padding:8px 10px;
-  font-family: var(--mono);
-  letter-spacing:.10em;
-  text-transform:uppercase;
-  font-size:11px;
-  outline:none;
-  opacity:.92;
-}
-#vr3dHud input::placeholder{ color: rgba(232,226,214,.55); }
-#vr3dHud button{
-  all:unset;
-  cursor:pointer;
-  padding:8px 10px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,.18);
-  background:rgba(255,255,255,.03);
-  opacity:.92;
-}
-#vr3dHud button:active{transform: translateY(1px);}
-
-#vr3dHint{
-  position:fixed;
-  bottom:14px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:6000;
-  padding:8px 10px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(0,0,0,.55);
-  color:rgba(232,226,214,.82);
-  font-family: var(--mono);
-  letter-spacing:.10em;
+.vr-btn{
+  padding:10px 16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2);
+  color:#e8e2d6;
+  font-family:var(--mono);
   text-transform:uppercase;
   font-size:10px;
-  max-width:92vw;
+  letter-spacing:.1em;
+  border-radius:6px;
+  cursor:pointer;
+  backdrop-filter:blur(10px);
+}
+.vr-btn:active{
+  background:rgba(255,255,255,.15);
+  transform:scale(0.95);
+}
+
+#vrHint{
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:14px 24px;
+  background:rgba(0,0,0,.8);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:30px;
+  color:#e8e2d6;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  font-size:11px;
+  letter-spacing:.1em;
   text-align:center;
-  user-select:none;
+  backdrop-filter:blur(10px);
+  z-index:10000;
+  transition:opacity .5s;
+  pointer-events:none;
 }
 
-/* Ensure touch scrolling works inside panels */
-body.vr3d-on .scrollY,
-body.vr3d-on .wallScroll,
-body.vr3d-on .viewerContent{
-  -webkit-overflow-scrolling: touch;
+#reticle{
+  position:fixed;
+  top:50%;
+  left:50%;
+  width:30px;
+  height:30px;
+  border:2px solid rgba(232,226,214,.5);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  z-index:9998;
+  pointer-events:none;
+  transition:all .2s;
+}
+#reticle::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:4px;
+  height:4px;
+  background:rgba(232,226,214,.9);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+}
+#reticle.active{
+  border-color:rgba(120,255,180,.9);
+  transform:translate(-50%,-50%) scale(1.3);
+  border-width:3px;
 }
 
+#vrLoading{
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  z-index:10001;
+  color:#e8e2d6;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  font-size:12px;
+  letter-spacing:.2em;
+  gap:20px;
+}
+#vrLoading::after{
+  content:'';
+  width:40px;
+  height:40px;
+  border:3px solid rgba(232,226,214,.1);
+  border-top-color:#e8e2d6;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Debug button for desktop testing */
+#vrDebugBtn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:100000;
+  padding:12px 20px;
+  background:rgba(120,50,255,.3);
+  border:1px solid rgba(120,50,255,.5);
+  color:#fff;
+  font-family:var(--mono);
+  font-size:11px;
+  cursor:pointer;
+  border-radius:8px;
+}
+@media (pointer: coarse){
+  #vrDebugBtn{display:none;}
+}
 </style>
 </head>
 
 <body>
-<header class="siteHeader" role="banner" aria-label="Primary">
-  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
+<!-- DESKTOP UI -->
+<header class="siteHeader">
+  <a href="https://jofrearchive.com/">
     <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
   </a>
 </header>
 
-<div id="vitrine-bg" aria-hidden="true"></div>
-<div id="glass" aria-hidden="true"></div>
+<div id="vitrine-bg"></div>
+<div id="glass"></div>
 
 <div class="page">
   <div class="wrap">
-
-    <!-- LEFT: categories + filters -->
-    <aside class="panel" aria-label="Categories">
+    <aside class="panel" id="desktopLeft">
       <div class="panelHeader">
         <div class="kicker">studies / navigation</div>
         <div class="titleRow">
@@ -550,19 +648,16 @@ body.vr3d-on .viewerContent{
         <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
         <div class="hr"></div>
         <div class="row" id="catRow"></div>
-</div>
+      </div>
     </aside>
 
-    <!-- CENTER: wall (scroll inside) -->
-    <section class="wall" aria-label="Project wall">
+    <section class="wall" id="desktopCenter">
       <div class="wallTop">
         <h3 class="wallTitle">PROJECT WALL</h3>
-        
         <div class="row">
           <button class="btn" id="btnSort">Sort: newest</button>
           <button class="btn" id="btnReset">Reset</button>
         </div>
-
         <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
       </div>
       <div class="wallScroll">
@@ -570,8 +665,7 @@ body.vr3d-on .viewerContent{
       </div>
     </section>
 
-    <!-- RIGHT: viewer -->
-    <aside class="panel viewerCol" aria-label="Viewer">
+    <aside class="panel viewerCol" id="desktopRight">
       <div class="panelHeader">
         <div class="kicker">retrieval / viewer</div>
         <div class="titleRow">
@@ -579,30 +673,73 @@ body.vr3d-on .viewerContent{
           <div class="pill" id="vCat">—</div>
         </div>
       </div>
-
       <div class="viewerMedia">
         <img id="vImg" alt="" src="" style="display:none">
-        <div class="grid" aria-hidden="true"></div>
+        <div class="grid"></div>
       </div>
-
       <div class="viewerContent">
         <div id="vMeta"></div>
         <div class="hr"></div>
         <div class="excerpt" id="vText">Use the wall to open an entry.</div>
       </div>
-
       <div class="viewerFooter">
-        <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
+        <a class="link" id="vLink" href="#" style="display:none">Open</a>
         <button class="btn" id="vCopy" disabled>Copy</button>
       </div>
     </aside>
-
   </div>
 </div>
 
-<script>
-const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
+<!-- VR CONTAINER -->
+<div id="vrContainer">
+  <div id="vrLoading">Initializing VR Environment</div>
+  
+  <!-- A-Frame Scene (invisible, used only for gyro camera) -->
+  <a-scene id="vrScene" embedded vr-mode-ui="enabled:false" renderer="antialias:true; alpha:true; colorManagement:true">
+    <a-entity id="cameraRig" position="0 0 0">
+      <a-camera id="vrCamera" look-controls="enabled:true; touchEnabled:true; magicWindowTrackingEnabled:true; reverseMouseDrag:false" wasd-controls="enabled:false" fov="70"></a-camera>
+    </a-entity>
+  </a-scene>
 
+  <!-- DOM Panels Layer - REAL PANELS FROM DESKTOP -->
+  <div id="vrDomLayer">
+    <div class="vr-panel" id="vrPanelLeft">
+      <div class="vr-panel-inner" id="vrLeftContent"></div>
+    </div>
+    <div class="vr-panel" id="vrPanelCenter">
+      <div class="vr-panel-inner" id="vrCenterContent"></div>
+    </div>
+    <div class="vr-panel" id="vrPanelRight">
+      <div class="vr-panel-inner" id="vrRightContent"></div>
+    </div>
+  </div>
+
+  <!-- VR UI -->
+  <div id="vrUI">
+    <div id="vrTopBar">
+      <div id="vrStatus">
+        <div id="vrStatusDot"></div>
+        <span>VR Mode</span>
+      </div>
+      <div id="vrControls">
+        <button class="vr-btn" id="vrRecenter">Recenter</button>
+        <button class="vr-btn" id="vrExit">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="vrHint">Move your phone to look around • Tap panels to interact</div>
+  <div id="reticle"></div>
+</div>
+
+<button id="vrDebugBtn" onclick="forceVR()">Force VR Mode</button>
+
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+<script>
+// ===========================
+// DATA
+// ===========================
+const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
 const PROJECTS = [
   {
     id:"BIO-0001",
@@ -678,30 +815,17 @@ const PROJECTS = [
   }
 ];
 
+// ===========================
+// STATE & DESKTOP APP
+// ===========================
 let state = { category:"All", q:"", newestFirst:true, openId:null };
-
-const catRow = document.getElementById("catRow");
-const qEl = document.getElementById("q");
-const grid = document.getElementById("grid");
-const shownEl = document.getElementById("shown");
-const totalEl = document.getElementById("total");
-const pillCount = document.getElementById("pillCount");
-const btnSort = document.getElementById("btnSort");
-const btnReset = document.getElementById("btnReset");
-
-const vTitle = document.getElementById("vTitle");
-const vCat = document.getElementById("vCat");
-const vImg = document.getElementById("vImg");
-const vMeta = document.getElementById("vMeta");
-const vText = document.getElementById("vText");
-const vLink = document.getElementById("vLink");
-const vCopy = document.getElementById("vCopy");
 
 function norm(s){ return String(s||"").toLowerCase().trim(); }
 function escapeHtml(s){
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
+
 function filtered(){
   let items = [...PROJECTS];
   if(state.category !== "All") items = items.filter(p => p.category === state.category);
@@ -714,13 +838,19 @@ function filtered(){
 }
 
 function renderCategories(){
+  const catRow = document.getElementById("catRow");
   catRow.innerHTML = "";
   CATEGORIES.forEach(c=>{
     const b = document.createElement("button");
     b.type="button";
     b.className = "btn" + (c === state.category ? " active" : "");
     b.textContent = c;
-    b.addEventListener("click", ()=>{ state.category = c; state.openId=null; renderAll(false); });
+    b.addEventListener("click", ()=>{ 
+      state.category = c; 
+      state.openId=null; 
+      renderAll(false);
+      if(isVRMode) updateVRPanels();
+    });
     catRow.appendChild(b);
   });
 }
@@ -728,38 +858,38 @@ function renderCategories(){
 function kvRow(k,v){ return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`; }
 
 function setViewerEmpty(){
-  vTitle.textContent = "SELECT A PROJECT";
-  vCat.textContent = "—";
-  vText.textContent = "Use the wall to open an entry.";
-  vMeta.innerHTML = "";
-  vImg.style.display = "none";
-  vImg.src = "";
-  vLink.style.display = "none";
-  vCopy.disabled = true;
+  document.getElementById("vTitle").textContent = "SELECT A PROJECT";
+  document.getElementById("vCat").textContent = "—";
+  document.getElementById("vText").textContent = "Use the wall to open an entry.";
+  document.getElementById("vMeta").innerHTML = "";
+  document.getElementById("vImg").style.display = "none";
+  document.getElementById("vLink").style.display = "none";
+  document.getElementById("vCopy").disabled = true;
 }
 
 function fillViewer(p){
-  vTitle.textContent = p.title.toUpperCase();
-  vCat.textContent = (p.category || "—").toUpperCase();
-  vMeta.innerHTML =
+  document.getElementById("vTitle").textContent = p.title.toUpperCase();
+  document.getElementById("vCat").textContent = (p.category || "—").toUpperCase();
+  document.getElementById("vMeta").innerHTML =
     kvRow("ID", p.id) +
     kvRow("CATEGORY", p.category) +
     kvRow("YEAR", String(p.year)) +
     kvRow("PLACE", p.place || "—") +
     kvRow("TAGS", (p.tags||[]).join(", ") || "—");
-  vText.textContent = p.excerpt || "—";
+  document.getElementById("vText").textContent = p.excerpt || "—";
   const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  const vImg = document.getElementById("vImg");
   if(imgSrc){
     vImg.style.display = "block";
     vImg.src = imgSrc;
     vImg.alt = p.title;
   } else {
     vImg.style.display = "none";
-    vImg.src = "";
   }
+  const vLink = document.getElementById("vLink");
   if(p.link && p.link !== "#"){ vLink.style.display = "inline-block"; vLink.href = p.link; }
   else { vLink.style.display = "none"; }
-  vCopy.disabled = false;
+  document.getElementById("vCopy").disabled = false;
 }
 
 function openProject(id){
@@ -767,24 +897,24 @@ function openProject(id){
   if(!p) return;
   state.openId = id;
   fillViewer(p);
+  if(isVRMode) updateVRPanels();
 }
 
 function renderWall(keepSelection){
   const items = filtered();
-  totalEl.textContent = PROJECTS.length;
-  shownEl.textContent = items.length;
-  pillCount.textContent = PROJECTS.length + " items";
+  document.getElementById("total").textContent = PROJECTS.length;
+  document.getElementById("shown").textContent = items.length;
+  document.getElementById("pillCount").textContent = PROJECTS.length + " items";
 
+  const grid = document.getElementById("grid");
   grid.innerHTML = "";
   items.forEach(p=>{
     const el = document.createElement("div");
     el.className = "card";
-    el.tabIndex = 0;
-    el.setAttribute("role","button");
     el.innerHTML = `
       <div class="thumb">
         <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
-        <div class="scan" aria-hidden="true"></div>
+        <div class="scan"></div>
       </div>
       <div class="cardBody">
         <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
@@ -793,18 +923,11 @@ function renderWall(keepSelection){
       </div>
     `;
     el.addEventListener("click", ()=> openProject(p.id));
-    el.addEventListener("keydown",(e)=>{
-      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
-    });
     grid.appendChild(el);
   });
 
   if(items.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "smallHint";
-    empty.style.padding = "14px";
-    empty.textContent = "No matches.";
-    grid.appendChild(empty);
+    grid.innerHTML = '<div class="smallHint" style="padding:14px">No matches.</div>';
     state.openId = null;
     setViewerEmpty();
     return;
@@ -814,495 +937,434 @@ function renderWall(keepSelection){
   openProject(items[0].id);
 }
 
-qEl.addEventListener("input",(e)=>{
+function renderAll(keepSelection){ 
+  renderCategories(); 
+  renderWall(keepSelection);
+  if(isVRMode) updateVRPanels();
+}
+
+// Desktop events
+document.getElementById("q").addEventListener("input",(e)=>{
   state.q = e.target.value;
   state.openId = null;
   renderAll(false);
 });
-btnSort.addEventListener("click", ()=>{
+
+document.getElementById("btnSort").addEventListener("click", ()=>{
   state.newestFirst = !state.newestFirst;
-  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
+  document.getElementById("btnSort").textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
   state.openId = null;
   renderAll(false);
 });
-btnReset.addEventListener("click", ()=>{
+
+document.getElementById("btnReset").addEventListener("click", ()=>{
   state.category = "All";
   state.q = "";
   state.newestFirst = true;
   state.openId = null;
-  qEl.value = "";
-  btnSort.textContent = "Sort: newest";
+  document.getElementById("q").value = "";
+  document.getElementById("btnSort").textContent = "Sort: newest";
   renderAll(false);
   setViewerEmpty();
 });
 
-async function copyPayload(){
+document.getElementById("vCopy").addEventListener("click", async ()=>{
   const p = PROJECTS.find(x=>x.id===state.openId);
-  if(!p) return false;
+  if(!p) return;
   const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
-  try{ await navigator.clipboard.writeText(payload); return true; }
-  catch(_){ return false; }
-}
-vCopy.addEventListener("click", async ()=>{
-  const ok = await copyPayload();
-  vCopy.textContent = ok ? "Copied" : "Blocked";
-  setTimeout(()=> vCopy.textContent = "Copy", 900);
+  try{ 
+    await navigator.clipboard.writeText(payload); 
+    document.getElementById("vCopy").textContent = "Copied";
+    setTimeout(()=> document.getElementById("vCopy").textContent = "Copy", 900);
+  } catch(e){}
 });
 
-function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
+// Init desktop
 setViewerEmpty();
 renderAll(false);
-</script>
 
-<!-- ===========================
-     MOBILE 3D DOM ROOT (Three.js CSS3DRenderer)
-=========================== -->
-<div id="vr3dRoot" aria-hidden="true">
-  <div id="vr3dBgVignette" aria-hidden="true"></div>
-  <div id="vr3dHud" data-on="0">
-    <div class="left">
-      <span class="dot" aria-hidden="true"></span>
-      <span>VR</span>
-      <span style="opacity:.65">DOM</span>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <input id="vr3dSearch" type="search" placeholder="Search…" aria-label="Search" />
-      <button type="button" id="vr3dEnable">Enable motion</button>
-      <button type="button" id="vr3dExit">Exit</button>
-    </div>
-  </div>
-  <div id="vr3dHint">Move your phone • Drag to look around • Scroll inside panels</div>
-  <div id="vr3dStage" style="position:absolute; inset:0;"></div>
-</div>
+// ===========================
+// VR SYSTEM
+// ===========================
+let isVRMode = false;
+let vrCamera = null;
+let vrPanels = {};
+let animationFrameId = null;
 
-<!-- Three.js + CSS3DRenderer + DeviceOrientationControls (bundled to avoid CDN issues) -->
+const VR_CONFIG = {
+  left:   { distance: 3.5, yaw: -35, pitch: 0, width: 300, height: 520 },
+  center: { distance: 3.0, yaw: 0,   pitch: 0, width: 360, height: 580 },
+  right:  { distance: 3.5, yaw: 35,  pitch: 0, width: 320, height: 520 }
+};
 
-<script>
+function isMobile(){
+  return (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || 
+         Math.min(window.innerWidth, window.innerHeight) <= 900;
+}
 
-(function(){
-  // Preflight
-  function showFatal(msg){
-    var hint = document.getElementById("vr3dHint");
-    var hud = document.getElementById("vr3dHud");
-    if(hud) hud.setAttribute("data-on","0");
-    if(hint){ hint.style.opacity="1"; hint.textContent = msg; }
-    // If we cannot init, fall back to desktop UI
-    document.body.classList.remove("vr3d-on");
-    var root = document.getElementById("vr3dRoot");
-    if(root) root.style.display = "none";
+function initVR(){
+  if(!isMobile() && !window.forceVRMode){
+    console.log("Not mobile, VR disabled");
+    return;
   }
-
-  const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  const isSmall = Math.min(window.innerWidth, window.innerHeight) <= 820;
-  const isMobile = isCoarse || isSmall;
-  if(!isMobile) return;
-
-  if(!window.THREE){ showFatal('Three.js not loaded (offline?)'); return; }
-  if(!window.THREE.CSS3DRenderer){ showFatal('CSS3DRenderer not available'); return; }
-
-  const wrap = document.querySelector(".wrap");
-  if(!wrap) return;
-
-  // Original columns (your real UI)
-  const left  = wrap.querySelector("aside.panel:not(.viewerCol)");
-  const mid   = wrap.querySelector("section.wall");
-  const right = wrap.querySelector("aside.viewerCol");
-  if(!left || !mid || !right) return;
-
-  const restore = [
-    {el:left,  parent:left.parentNode,  next:left.nextSibling},
-    {el:mid,   parent:mid.parentNode,   next:mid.nextSibling},
-    {el:right, parent:right.parentNode, next:right.nextSibling}
-  ];
-
-  const root = document.getElementById("vr3dRoot");
-  const stage = document.getElementById("vr3dStage");
-  const hud = document.getElementById("vr3dHud");
-  const hint = document.getElementById("vr3dHint");
-  const btnEnable = document.getElementById("vr3dEnable");
-  const btnExit = document.getElementById("vr3dExit");
-  const vrSearch = document.getElementById("vr3dSearch");
-  const desktopSearch = document.getElementById("q");
-
-  // Activate VR DOM mode
-  document.body.classList.add("vr3d-on");
-  root.setAttribute("aria-hidden", "false");
-
-  // CSS3D scene
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
-  camera.position.set(0, 0, 0.01); // inside the "dish"
-
-  const renderer = new THREE.CSS3DRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.domElement.style.position = "absolute";
-  renderer.domElement.style.top = "0";
-  renderer.domElement.style.left = "0";
-  renderer.domElement.style.pointerEvents = "auto"; // DOM remains interactive
-  stage.appendChild(renderer.domElement);
-
-  // Wrap panels as CSS3DObjects (REAL DOM)
-  function prepEl(el){
-    el.style.margin = "0";
-    el.style.position = "absolute";
-    el.style.left = "0";
-    el.style.top = "0";
-  }
-  prepEl(left); prepEl(mid); prepEl(right);
-
-  const objL = new THREE.CSS3DObject(left);
-  const objM = new THREE.CSS3DObject(mid);
-  const objR = new THREE.CSS3DObject(right);
-
-  scene.add(objL); scene.add(objM); scene.add(objR);
-
-  // Parabolic/dish placement: concave arc around camera
-  function place(){
-    const w = Math.min(window.innerWidth, window.innerHeight);
-    const R = (w < 420) ? 900 : (w < 520 ? 1050 : 1200); // px-ish units
-    const spread = (w < 420) ? 32 : 28; // degrees
-
-    const toRad = d => d*Math.PI/180;
-
-    // scale for readability
-    const s = (w < 420) ? 0.75 : (w < 520 ? 0.82 : 0.9);
-    objL.scale.setScalar(s);
-    objM.scale.setScalar(s);
-    objR.scale.setScalar(s);
-
-    function setOnArc(obj, angDeg){
-      const a = toRad(angDeg);
-      const x = Math.sin(a) * R;
-      const z = -Math.cos(a) * R;
-      obj.position.set(x, 0, z);
-      obj.lookAt(camera.position); // screen-facing
+  
+  console.log("Initializing VR...");
+  
+  // Wait for A-Frame
+  const checkInterval = setInterval(()=>{
+    if(window.AFRAME && window.THREE && document.querySelector('a-scene').hasLoaded){
+      clearInterval(checkInterval);
+      startVR();
     }
+  }, 100);
+  
+  // Timeout after 5 seconds
+  setTimeout(()=>{
+    clearInterval(checkInterval);
+    if(!isVRMode) console.error("A-Frame failed to load in time");
+  }, 5000);
+}
 
-    setOnArc(objL, -spread);
-    setOnArc(objM, 0);
-    setOnArc(objR, spread);
-
-    // Center slightly closer for readability
-    objM.position.z += 120;
-
-    objL.position.y = 0;
-    objM.position.y = 0;
-    objR.position.y = 0;
-  }
-  place();
-
-  // Motion controls (gyro) + drag offset fallback
-  let controls = null;
-  let motionEnabled = false;
-
-  // Drag offsets (applied on top of gyro)
-  const drag = {active:false, x0:0, y0:0, yaw0:0, pitch0:0, yaw:0, pitch:0};
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  const MAX_YAW = Math.PI/5.2;   // ~34°
-  const MAX_PITCH = Math.PI/10;  // ~18°
-
-  function applyOffsets(){
-    const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), drag.yaw);
-    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), drag.pitch);
-    const q = new THREE.Quaternion().multiplyQuaternions(qYaw, qPitch);
-    camera.quaternion.multiply(q);
-  }
-
-  async function enableMotion(){
-    try{
-      if(typeof DeviceOrientationEvent !== "undefined" &&
-         typeof DeviceOrientationEvent.requestPermission === "function"){
-        const res = await DeviceOrientationEvent.requestPermission();
-        if(res !== "granted") throw new Error("permission not granted");
-      }
-      controls = new THREE.DeviceOrientationControls(camera);
-      motionEnabled = true;
-      hud.setAttribute("data-on","1");
-      btnEnable.textContent = "On";
-      if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
-    }catch(e){
-      motionEnabled = false;
-      hud.setAttribute("data-on","0");
-      btnEnable.textContent = "Enable motion";
-      if(hint) hint.textContent = "On iPhone: tap Enable motion • Then move phone";
+function startVR(){
+  try {
+    vrCamera = document.getElementById('vrCamera');
+    vrPanels = {
+      left: document.getElementById('vrPanelLeft'),
+      center: document.getElementById('vrPanelCenter'),
+      right: document.getElementById('vrPanelRight')
+    };
+    
+    // Build VR panels with real content
+    buildVRPanels();
+    
+    // Activate VR mode
+    document.body.classList.add('vrmode');
+    isVRMode = true;
+    document.getElementById('vrStatus').classList.add('active');
+    
+    // Request orientation permission for iOS
+    if(typeof DeviceOrientationEvent !== 'undefined' && 
+       typeof DeviceOrientationEvent.requestPermission === 'function'){
+      DeviceOrientationEvent.requestPermission().catch(e => console.log("Orientation permission:", e));
     }
+    
+    // Start render loop
+    updateVRFrame();
+    
+    // Hide loading
+    setTimeout(()=>{
+      document.getElementById('vrLoading').style.display = 'none';
+    }, 500);
+    
+    console.log("VR Mode active");
+    
+  } catch(e) {
+    console.error("VR init failed:", e);
   }
+}
 
-  btnEnable && btnEnable.addEventListener("click", enableMotion);
-  enableMotion(); // auto-try (Android)
-
-  // Drag on empty space to look around (do NOT hijack scrolling inside panels)
-  function ignoreDrag(t){
-    return !!(t && t.closest && t.closest(".scrollY, .wallScroll, .viewerContent, input, textarea, button, a, select"));
-  }
-  window.addEventListener("touchstart", (e)=>{
-    const t = e.target;
-    if(ignoreDrag(t)) return;
-    drag.active = true;
-    const p = e.touches[0];
-    drag.x0 = p.clientX; drag.y0 = p.clientY;
-    drag.yaw0 = drag.yaw; drag.pitch0 = drag.pitch;
-  }, {passive:true});
-
-  window.addEventListener("touchmove", (e)=>{
-    if(!drag.active) return;
-    const p = e.touches[0];
-    const dx = (p.clientX - drag.x0);
-    const dy = (p.clientY - drag.y0);
-    const k = 0.0032;
-    drag.yaw = clamp(drag.yaw0 + dx*k, -MAX_YAW, MAX_YAW);
-    drag.pitch = clamp(drag.pitch0 + dy*k, -MAX_PITCH, MAX_PITCH);
-  }, {passive:true});
-
-  window.addEventListener("touchend", ()=>{ drag.active=false; }, {passive:true});
-  window.addEventListener("touchcancel", ()=>{ drag.active=false; }, {passive:true});
-
-  // Search HUD controls your real search input
-  if(vrSearch && desktopSearch){
-    vrSearch.addEventListener("input", ()=>{
-      desktopSearch.value = vrSearch.value;
-      desktopSearch.dispatchEvent(new Event("input", {bubbles:true}));
+function buildVRPanels(){
+  const items = filtered();
+  
+  // LEFT PANEL: Categories (clone desktop structure)
+  document.getElementById('vrLeftContent').innerHTML = `
+    <div class="panelHeader" style="padding:16px 16px 14px; border-bottom:1px solid rgba(232,226,214,.12); background:rgba(10,10,10,.92);">
+      <div class="kicker" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.18em; font-size:11px; opacity:.68; margin-bottom:6px;">
+        studies / navigation
+      </div>
+      <div class="titleRow" style="display:flex; gap:10px; align-items:baseline;">
+        <h2 class="h1" style="margin:0; font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-weight:500; font-size:16px;">
+          CATEGORIES
+        </h2>
+        <div class="pill" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:10px; padding:6px 8px; border:1px solid rgba(232,226,214,.14); background:rgba(255,255,255,.03);">
+          ${PROJECTS.length} items
+        </div>
+      </div>
+    </div>
+    <div class="panelBody scrollY" style="padding:14px 16px 16px; flex:1; overflow:auto;">
+      <input type="search" id="vrSearch" value="${escapeHtml(state.q)}" placeholder="Search (title, tag, year) …" 
+        style="width:100%; border:1px solid rgba(232,226,214,.22); background:rgba(255,255,255,.03); color:var(--ink); 
+        padding:10px; font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:11px; outline:none; margin-bottom:12px;">
+      <div style="height:1px; background:rgba(232,226,214,.12); margin:12px 0;"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;" id="vrCatRow">
+        ${CATEGORIES.map(c => `
+          <button onclick="selectVRCategory('${c}')" 
+            style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--ink); 
+            background:${c===state.category?'rgba(255,255,255,.08)':'rgba(255,255,255,.03)'}; 
+            border:1px solid ${c===state.category?'rgba(232,226,214,.4)':'rgba(232,226,214,.22)'}; 
+            padding:10px 12px; cursor:pointer; opacity:.92;">
+            ${c}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  // Attach search listener
+  const searchInput = document.getElementById('vrSearch');
+  if(searchInput){
+    searchInput.addEventListener('input', (e)=>{
+      state.q = e.target.value;
+      state.openId = null;
+      renderAll(false);
     });
   }
+  
+  updateVRPanels();
+}
 
-  // Exit: restore desktop layout instantly
-  btnExit && btnExit.addEventListener("click", ()=>{
-    document.body.classList.remove("vr3d-on");
-    root.setAttribute("aria-hidden","true");
-    try{ stage.removeChild(renderer.domElement); }catch(_){}
-    restore.forEach(r=>{
-      try{
-        if(r.next) r.parent.insertBefore(r.el, r.next);
-        else r.parent.appendChild(r.el);
-        r.el.style.position = "";
-        r.el.style.left = "";
-        r.el.style.top = "";
-        r.el.style.margin = "";
-      }catch(_){}
-    });
+function updateVRPanels(){
+  const items = filtered();
+  
+  // CENTER PANEL: Project Wall
+  let centerHTML = `
+    <div class="wallTop" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 16px 14px; border-bottom:1px solid rgba(232,226,214,.12); background:rgba(10,10,10,.72);">
+      <h3 style="margin:0; font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-weight:500; font-size:14px;">
+        PROJECT WALL
+      </h3>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button onclick="toggleVRSort()" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--ink); background:rgba(255,255,255,.03); border:1px solid rgba(232,226,214,.22); padding:10px 12px; cursor:pointer;">
+          Sort: ${state.newestFirst ? 'newest' : 'oldest'}
+        </button>
+        <button onclick="resetVR()" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--ink); background:rgba(255,255,255,.03); border:1px solid rgba(232,226,214,.22); padding:10px 12px; cursor:pointer;">
+          Reset
+        </button>
+      </div>
+      <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:10px; opacity:.72;">
+        ${items.length} / ${PROJECTS.length}
+      </div>
+    </div>
+    <div class="wallScroll" style="flex:1; min-height:0; overflow:auto; padding:14px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+  `;
+  
+  items.forEach(p=>{
+    const isSelected = p.id === state.openId;
+    centerHTML += `
+      <div onclick="openVRProject('${p.id}')" 
+        style="border:1px solid ${isSelected?'rgba(232,226,214,.26)':'rgba(232,226,214,.14)'}; 
+        background:${isSelected?'rgba(255,255,255,.05)':'rgba(0,0,0,.22)'}; 
+        overflow:hidden; cursor:pointer; position:relative; border-radius:2px;">
+        <div style="aspect-ratio:4/3; width:100%; background:rgba(255,255,255,.03); position:relative; overflow:hidden; border-bottom:1px solid rgba(232,226,214,.1);">
+          <img src="${escapeHtml(p.thumb)}" style="width:100%; height:100%; object-fit:cover; display:block; filter:saturate(.95) contrast(1.05); opacity:.92;">
+        </div>
+        <div style="padding:12px;">
+          <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-size:10px; opacity:.78; display:flex; justify-content:space-between;">
+            <span>${escapeHtml(p.category)}</span>
+            <span>${p.year}</span>
+          </div>
+          <div style="margin:8px 0; font-size:15px; line-height:1.25; opacity:.96; font-weight:${isSelected?'600':'400'};">
+            ${escapeHtml(p.title)}
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${(p.tags||[]).slice(0,3).map(t=>`<span style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:10px; padding:6px 8px; border:1px solid rgba(232,226,214,.13); background:rgba(255,255,255,.03); opacity:.9;">${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
   });
-
-  function onResize(){
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    place();
+  
+  centerHTML += '</div></div>';
+  document.getElementById('vrCenterContent').innerHTML = centerHTML;
+  
+  // RIGHT PANEL: Viewer
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  let rightHTML = '';
+  
+  if(!p){
+    rightHTML = `
+      <div style="height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; opacity:.4; padding:20px;">
+        <div style="font-family:var(--mono); text-transform:uppercase; font-size:12px; letter-spacing:.15em; margin-bottom:12px;">
+          No Selection
+        </div>
+        <div style="font-family:var(--mono); font-size:11px; line-height:1.6;">
+          Select a project from<br>the center wall to<br>view details
+        </div>
+      </div>
+    `;
+  } else {
+    const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+    rightHTML = `
+      <div class="panelHeader" style="padding:16px 16px 14px; border-bottom:1px solid rgba(232,226,214,.12); background:rgba(10,10,10,.92);">
+        <div class="kicker" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.18em; font-size:11px; opacity:.68; margin-bottom:6px;">
+          retrieval / viewer
+        </div>
+        <div class="titleRow" style="display:flex; gap:10px; align-items:baseline; flex-wrap:wrap;">
+          <h2 class="h1" style="margin:0; font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; font-weight:500; font-size:15px; line-height:1.3;">
+            ${escapeHtml(p.title)}
+          </h2>
+          <div class="pill" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:10px; padding:6px 8px; border:1px solid rgba(232,226,214,.14); background:rgba(255,255,255,.03);">
+            ${escapeHtml(p.category)}
+          </div>
+        </div>
+      </div>
+      <div class="viewerContent scrollY" style="flex:1; min-height:0; overflow:auto; padding:14px 16px 16px;">
+        ${imgSrc ? `<div style="border-bottom:1px solid rgba(232,226,214,.12); background:rgba(0,0,0,.22); aspect-ratio:4/3; position:relative; overflow:hidden; margin-bottom:16px;">
+          <img src="${escapeHtml(imgSrc)}" style="width:100%; height:100%; object-fit:cover; display:block; opacity:.92; filter:saturate(.95) contrast(1.05);">
+        </div>` : ''}
+        
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed rgba(232,226,214,.12);">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:10px; opacity:.65;">ID</div>
+            <div style="font-family:var(--mono); letter-spacing:.08em; font-size:10px; opacity:.92; text-align:right;">${escapeHtml(p.id)}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed rgba(232,226,214,.12);">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:10px; opacity:.65;">CATEGORY</div>
+            <div style="font-family:var(--mono); letter-spacing:.08em; font-size:10px; opacity:.92; text-align:right;">${escapeHtml(p.category)}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed rgba(232,226,214,.12);">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:10px; opacity:.65;">YEAR</div>
+            <div style="font-family:var(--mono); letter-spacing:.08em; font-size:10px; opacity:.92; text-align:right;">${p.year}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed rgba(232,226,214,.12);">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:10px; opacity:.65;">PLACE</div>
+            <div style="font-family:var(--mono); letter-spacing:.08em; font-size:10px; opacity:.92; text-align:right;">${escapeHtml(p.place || '—')}</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px dashed rgba(232,226,214,.12);">
+            <div style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.10em; font-size:10px; opacity:.65;">TAGS</div>
+            <div style="font-family:var(--mono); letter-spacing:.08em; font-size:10px; opacity:.92; text-align:right;">${(p.tags||[]).join(", ") || '—'}</div>
+          </div>
+        </div>
+        
+        <div style="height:1px; background:rgba(232,226,214,.12); margin:12px 0;"></div>
+        
+        <div style="font-family:var(--mono); font-size:12.5px; line-height:1.7; letter-spacing:.05em; white-space:pre-wrap; opacity:.92;">
+          ${escapeHtml(p.excerpt)}
+        </div>
+        
+        <div style="border-top:1px solid rgba(232,226,214,.12); padding:16px; background:rgba(10,10,10,.92); margin:20px -16px -16px; display:flex; justify-content:space-between; gap:10px;">
+          <a href="${p.link}" style="color:var(--ink); text-decoration:none; border:1px solid rgba(232,226,214,.22); background:rgba(255,255,255,.03); padding:10px 12px; font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:11px; opacity:.92; ${p.link==='#'?'display:none':''}">Open</a>
+          <button onclick="copyVRInfo()" style="font-family:var(--mono); text-transform:uppercase; letter-spacing:.14em; font-size:11px; color:var(--ink); background:rgba(255,255,255,.03); border:1px solid rgba(232,226,214,.22); padding:10px 12px; cursor:pointer; opacity:.92; margin-left:auto;">Copy</button>
+        </div>
+      </div>
+    `;
   }
-  window.addEventListener("resize", ()=>setTimeout(onResize, 120), {passive:true});
-  window.addEventListener("orientationchange", ()=>setTimeout(onResize, 250), {passive:true});
+  
+  document.getElementById('vrRightContent').innerHTML = rightHTML;
+}
 
-  // Render loop
-  function tick(){
-    if(controls && motionEnabled){
-      controls.update();
-      applyOffsets(); // drag offsets after gyro update
-    } else {
-      camera.rotation.set(drag.pitch, drag.yaw, 0);
+// VR Actions
+window.selectVRCategory = function(cat){
+  state.category = cat;
+  state.openId = null;
+  renderAll(false);
+};
+
+window.openVRProject = function(id){
+  openProject(id);
+};
+
+window.toggleVRSort = function(){
+  state.newestFirst = !state.newestFirst;
+  renderAll(false);
+};
+
+window.resetVR = function(){
+  state.category = "All";
+  state.q = "";
+  state.newestFirst = true;
+  state.openId = null;
+  renderAll(false);
+};
+
+window.copyVRInfo = async function(){
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  if(!p) return;
+  const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
+  try{
+    await navigator.clipboard.writeText(payload);
+    const btn = document.querySelector('#vrRightContent button');
+    if(btn){
+      btn.textContent = "Copied!";
+      setTimeout(()=> btn.textContent = "Copy", 1000);
     }
+  }catch(e){}
+};
 
-    // Keep panels facing camera for legibility (parabolic dish)
-    objL.lookAt(camera.position);
-    objM.lookAt(camera.position);
-    objR.lookAt(camera.position);
-
-    renderer.render(scene, camera);
-    requestAnimationFrame(tick);
+function updateVRFrame(){
+  if(!isVRMode || !vrCamera) return;
+  
+  const camObj = vrCamera.object3D;
+  if(!camObj) {
+    animationFrameId = requestAnimationFrame(updateVRFrame);
+    return;
   }
-  tick();
-})();
-})();
-</script>
+  
+  camObj.updateMatrixWorld();
+  const rotation = new THREE.Euler().setFromQuaternion(camObj.quaternion, 'YXZ');
+  const camYaw = rotation.y;
+  const camPitch = rotation.x;
+  
+  updatePanel('left', camYaw, camPitch);
+  updatePanel('center', camYaw, camPitch);
+  updatePanel('right', camYaw, camPitch);
+  
+  animationFrameId = requestAnimationFrame(updateVRFrame);
+}
 
+function updatePanel(id, camYaw, camPitch){
+  const panel = vrPanels[id];
+  const cfg = VR_CONFIG[id];
+  if(!panel || !cfg) return;
+  
+  const totalYaw = camYaw + (cfg.yaw * Math.PI / 180);
+  const totalPitch = camPitch + (cfg.pitch * Math.PI / 180);
+  
+  const x = Math.sin(totalYaw) * Math.cos(totalPitch) * cfg.distance;
+  const y = Math.sin(totalPitch) * cfg.distance;
+  const z = -Math.cos(totalYaw) * Math.cos(totalPitch) * cfg.distance;
+  
+  const fov = 70 * (Math.PI / 180);
+  const scale = (window.innerHeight / 2) / Math.tan(fov / 2);
+  
+  const screenX = (x / -z) * scale + window.innerWidth / 2;
+  const screenY = (y / -z) * scale + window.innerHeight / 2;
+  
+  const distance = Math.sqrt(x*x + y*y + z*z);
+  const scaleFactor = (cfg.width / distance) * scale / cfg.width;
+  const finalScale = Math.max(0.4, Math.min(1.5, scaleFactor));
+  
+  panel.style.transform = `translate3d(${screenX - cfg.width/2}px, ${screenY - cfg.height/2}px, 0) scale(${finalScale})`;
+  
+  if(z > -0.5){
+    panel.style.opacity = Math.max(0, Math.min(1, (-z + 0.5) * 2));
+    panel.style.pointerEvents = z < 0 ? 'auto' : 'none';
+  } else {
+    panel.style.opacity = 1;
+    panel.style.pointerEvents = 'auto';
+  }
+}
+
+// VR Controls
+document.getElementById('vrExit').addEventListener('click', ()=>{
+  isVRMode = false;
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  document.body.classList.remove('vrmode');
+  document.getElementById('vrStatus').classList.remove('active');
+  document.getElementById('vrLoading').style.display = 'flex';
+});
+
+document.getElementById('vrRecenter').addEventListener('click', ()=>{
+  if(vrCamera && vrCamera.components['look-controls']){
+    vrCamera.components['look-controls'].pitchObject.rotation.x = 0;
+    vrCamera.components['look-controls'].yawObject.rotation.y = 0;
+  }
+});
+
+// Debug function for desktop testing
+window.forceVR = function(){
+  window.forceVRMode = true;
+  initVR();
+};
+
+// Initialize
+if(isMobile()){
+  window.addEventListener('load', ()=>{
+    setTimeout(initVR, 300);
+  });
+}
+
+console.log("Page loaded, mobile:", isMobile());
+</script>
 </body>
-</html><script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-
-<script>
-/* three.js examples - CSS3DRenderer (MIT) - trimmed, r160-compatible */
-(function(){
-  if(!window.THREE) return;
-  const THREE = window.THREE;
-
-  THREE.CSS3DObject = function ( element ) {
-    THREE.Object3D.call( this );
-    this.element = element;
-    this.element.style.position = 'absolute';
-    this.element.style.pointerEvents = 'auto';
-    this.addEventListener( 'removed', function () {
-      if ( this.element && this.element.parentNode !== null ) {
-        this.element.parentNode.removeChild( this.element );
-      }
-    } );
-  };
-  THREE.CSS3DObject.prototype = Object.assign( Object.create( THREE.Object3D.prototype ), {
-    constructor: THREE.CSS3DObject
-  } );
-
-  THREE.CSS3DSprite = function ( element ) {
-    THREE.CSS3DObject.call( this, element );
-  };
-  THREE.CSS3DSprite.prototype = Object.assign( Object.create( THREE.CSS3DObject.prototype ), {
-    constructor: THREE.CSS3DSprite
-  } );
-
-  THREE.CSS3DRenderer = function () {
-    const _this = this;
-    const _width = 0, _height = 0;
-    let _widthHalf = 0, _heightHalf = 0;
-
-    const cache = { camera: { fov: 0, style: '' }, objects: new WeakMap() };
-    const domElement = document.createElement( 'div' );
-    domElement.style.overflow = 'hidden';
-    domElement.style.transformStyle = 'preserve-3d';
-    domElement.style.pointerEvents = 'auto';
-
-    const cameraElement = document.createElement( 'div' );
-    cameraElement.style.transformStyle = 'preserve-3d';
-    cameraElement.style.pointerEvents = 'none';
-    domElement.appendChild( cameraElement );
-
-    this.domElement = domElement;
-
-    this.setSize = function ( width, height ) {
-      _this.setSize.width = width;
-      _this.setSize.height = height;
-      _widthHalf = width / 2;
-      _heightHalf = height / 2;
-      domElement.style.width = width + 'px';
-      domElement.style.height = height + 'px';
-      cameraElement.style.width = width + 'px';
-      cameraElement.style.height = height + 'px';
-    };
-
-    function epsilon( value ) {
-      return Math.abs( value ) < 1e-10 ? 0 : value;
-    }
-
-    function getCameraCSSMatrix( matrix ) {
-      const e = matrix.elements;
-      return 'matrix3d(' +
-        epsilon( e[ 0 ] ) + ',' + epsilon( - e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
-        epsilon( e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( e[ 6 ] ) + ',' + epsilon( e[ 7 ] ) + ',' +
-        epsilon( e[ 8 ] ) + ',' + epsilon( - e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
-        epsilon( e[ 12 ] ) + ',' + epsilon( - e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
-      ')';
-    }
-
-    function getObjectCSSMatrix( matrix ) {
-      const e = matrix.elements;
-      return 'translate(-50%,-50%) matrix3d(' +
-        epsilon( e[ 0 ] ) + ',' + epsilon( e[ 1 ] ) + ',' + epsilon( e[ 2 ] ) + ',' + epsilon( e[ 3 ] ) + ',' +
-        epsilon( - e[ 4 ] ) + ',' + epsilon( - e[ 5 ] ) + ',' + epsilon( - e[ 6 ] ) + ',' + epsilon( - e[ 7 ] ) + ',' +
-        epsilon( e[ 8 ] ) + ',' + epsilon( e[ 9 ] ) + ',' + epsilon( e[ 10 ] ) + ',' + epsilon( e[ 11 ] ) + ',' +
-        epsilon( e[ 12 ] ) + ',' + epsilon( e[ 13 ] ) + ',' + epsilon( e[ 14 ] ) + ',' + epsilon( e[ 15 ] ) +
-      ')';
-    }
-
-    function renderObject( object, camera, cameraCSSMatrix ) {
-      if ( object instanceof THREE.CSS3DObject ) {
-        const style = getObjectCSSMatrix( object.matrixWorld );
-        const element = object.element;
-        const cached = cache.objects.get( object );
-        if ( cached === undefined || cached.style !== style ) {
-          element.style.transform = style;
-          cache.objects.set( object, { style: style } );
-        }
-        if ( element.parentNode !== cameraElement ) {
-          cameraElement.appendChild( element );
-        }
-      }
-      for ( let i = 0, l = object.children.length; i < l; i ++ ) {
-        renderObject( object.children[ i ], camera, cameraCSSMatrix );
-      }
-    }
-
-    this.render = function ( scene, camera ) {
-      if ( scene.autoUpdate === true ) scene.updateMatrixWorld();
-      if ( camera.parent === null && camera.autoUpdate === true ) camera.updateMatrixWorld();
-
-      const fov = camera.projectionMatrix.elements[ 5 ] * _heightHalf;
-      if ( cache.camera.fov !== fov ) {
-        domElement.style.perspective = fov + 'px';
-        cache.camera.fov = fov;
-      }
-
-      const cameraCSSMatrix = 'translateZ(' + fov + 'px) ' + getCameraCSSMatrix( camera.matrixWorldInverse );
-      const style = cameraCSSMatrix + ' translate(' + _widthHalf + 'px,' + _heightHalf + 'px)';
-
-      if ( cache.camera.style !== style ) {
-        cameraElement.style.transform = style;
-        cache.camera.style = style;
-      }
-
-      renderObject( scene, camera, cameraCSSMatrix );
-    };
-  };
-})();
-</script>
-
-<script>
-/* three.js examples - DeviceOrientationControls (MIT) - trimmed */
-(function(){
-  if(!window.THREE) return;
-  const THREE = window.THREE;
-
-  THREE.DeviceOrientationControls = function ( object ) {
-    const scope = this;
-    this.object = object;
-    this.object.rotation.reorder( "YXZ" );
-
-    this.enabled = true;
-    this.deviceOrientation = {};
-    this.screenOrientation = 0;
-
-    const onDeviceOrientationChangeEvent = function ( event ) {
-      scope.deviceOrientation = event;
-    };
-
-    const onScreenOrientationChangeEvent = function () {
-      scope.screenOrientation = window.orientation || 0;
-    };
-
-    const setObjectQuaternion = function () {
-      const zee = new THREE.Vector3( 0, 0, 1 );
-      const euler = new THREE.Euler();
-      const q0 = new THREE.Quaternion();
-      const q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) );
-
-      return function ( quaternion, alpha, beta, gamma, orient ) {
-        euler.set( beta, alpha, - gamma, 'YXZ' );
-        quaternion.setFromEuler( euler );
-        quaternion.multiply( q1 );
-        quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) );
-      };
-    }();
-
-    this.connect = function () {
-      onScreenOrientationChangeEvent();
-      window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent );
-      window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
-      scope.enabled = true;
-    };
-
-    this.disconnect = function () {
-      window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent );
-      window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent );
-      scope.enabled = false;
-    };
-
-    this.update = function () {
-      if ( scope.enabled === false ) return;
-      const device = scope.deviceOrientation;
-      if ( device ) {
-        const alpha = device.alpha ? THREE.MathUtils.degToRad( device.alpha ) : 0;
-        const beta = device.beta ? THREE.MathUtils.degToRad( device.beta ) : 0;
-        const gamma = device.gamma ? THREE.MathUtils.degToRad( device.gamma ) : 0;
-        const orient = scope.screenOrientation ? THREE.MathUtils.degToRad( scope.screenOrientation ) : 0;
-        setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
-      }
-    };
-
-    this.connect();
-  };
-})();
-</script>
-
+</html>
