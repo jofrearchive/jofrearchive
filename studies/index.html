@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
@@ -25,7 +25,7 @@ html,body{
   background:var(--bg);
   color:var(--ink);
   font-family:var(--serif);
-  overflow:hidden; /* fixed columns */
+  overflow:hidden;
 }
 
 /* Vitrine background */
@@ -68,7 +68,6 @@ body::after{
 }
 .siteHeader a{pointer-events:auto; text-decoration:none}
 .siteHeader img{height:56px; width:auto; display:block; opacity:.92}
-.siteHeader img:hover{opacity:1}
 
 /* Fixed viewport layout */
 .page{
@@ -241,7 +240,7 @@ body::after{
 .wallScroll{
   flex:1;
   min-height:0;
-  overflow:auto; /* only scrolling area for projects */
+  overflow:auto;
   scrollbar-width:none;
   position:relative;
   z-index:2;
@@ -400,8 +399,7 @@ body::after{
 
 /* ===========================
    MOBILE VR (Babylon.js) — desktop unchanged
-   activates only on: (pointer: coarse) AND (hover: none) AND max-width 900px
-=========================== */
+   =========================== */
 
 #vrCanvas{ display:none; width:100vw; height:100vh; touch-action:none; }
 #vrButton{
@@ -440,15 +438,73 @@ body::after{
 }
 #vrState{ opacity:.65; text-transform:uppercase; }
 
+/* VR DOM Panels - Real panels from desktop layout */
+#vrDomPanels{
+  position:fixed;
+  inset:0;
+  z-index:6001;
+  pointer-events:none;
+  perspective:1200px;
+  display:none;
+}
+.vr-mobile #vrDomPanels{
+  display:block;
+}
+
+.vr-dom-panel{
+  position:absolute;
+  pointer-events:auto;
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
+  background: linear-gradient(180deg, rgba(10,10,10,.98), rgba(5,5,5,.99));
+  border:1px solid rgba(232,226,214,.3);
+  box-shadow: 0 30px 100px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+  border-radius:4px;
+  overflow:hidden;
+  will-change:transform;
+}
+
+.vr-dom-panel-inner{
+  width:100%;
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Panel dimensions */
+#vrDomLeft{ width:280px; height:520px; }
+#vrDomCenter{ width:360px; height:580px; }
+#vrDomRight{ width:320px; height:520px; }
+
+#vrExitBtn{
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:7001;
+  display:none;
+  padding:10px 16px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2);
+  color:#e8e2d6;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  font-size:10px;
+  letter-spacing:.1em;
+  border-radius:6px;
+  cursor:pointer;
+  backdrop-filter:blur(10px);
+}
+.vr-mobile #vrExitBtn{
+  display:block;
+}
+
 @media (pointer:coarse) and (hover:none) and (max-width: 900px){
-  /* Hide your desktop layout on real mobile only */
   body{ overflow:hidden; height:100vh; }
   #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
   #vrButton{ display:flex; }
-  /* Hide everything else (desktop UI) */
-  body > *:not(#vrCanvas):not(#vrButton){ display:none !important; }
+  body > *:not(#vrCanvas):not(#vrButton):not(#vrDomPanels):not(#vrExitBtn){ display:none !important; }
 }
-
 </style>
 </head>
 
@@ -466,7 +522,7 @@ body::after{
   <div class="wrap">
 
     <!-- LEFT: categories + filters -->
-    <aside class="panel" aria-label="Categories">
+    <aside class="panel" aria-label="Categories" id="desktopLeft">
       <div class="panelHeader">
         <div class="kicker">studies / navigation</div>
         <div class="titleRow">
@@ -482,7 +538,7 @@ body::after{
     </aside>
 
     <!-- CENTER: wall (scroll inside) -->
-    <section class="wall" aria-label="Project wall">
+    <section class="wall" aria-label="Project wall" id="desktopCenter">
       <div class="wallTop">
         <h3 class="wallTitle">PROJECT WALL</h3>
         
@@ -499,7 +555,7 @@ body::after{
     </section>
 
     <!-- RIGHT: viewer -->
-    <aside class="panel viewerCol" aria-label="Viewer">
+    <aside class="panel viewerCol" aria-label="Viewer" id="desktopRight">
       <div class="panelHeader">
         <div class="kicker">retrieval / viewer</div>
         <div class="titleRow">
@@ -528,7 +584,34 @@ body::after{
   </div>
 </div>
 
+<!-- VR Elements -->
+<canvas id="vrCanvas" aria-label="VR canvas"></canvas>
+
+<div id="vrButton" aria-label="VR motion toggle">
+  <div id="vrLed" aria-hidden="true"></div>
+  <div>VR</div>
+  <div id="vrState">OFF</div>
+</div>
+
+<button id="vrExitBtn">Exit VR</button>
+
+<!-- VR DOM Panels - Real panels -->
+<div id="vrDomPanels">
+  <div class="vr-dom-panel" id="vrDomLeft">
+    <div class="vr-dom-panel-inner" id="vrLeftContent"></div>
+  </div>
+  <div class="vr-dom-panel" id="vrDomCenter">
+    <div class="vr-dom-panel-inner" id="vrCenterContent"></div>
+  </div>
+  <div class="vr-dom-panel" id="vrDomRight">
+    <div class="vr-dom-panel-inner" id="vrRightContent"></div>
+  </div>
+</div>
+
 <script>
+// ===========================
+// DATA & STATE
+// ===========================
 const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
 
 const PROJECTS = [
@@ -608,28 +691,15 @@ const PROJECTS = [
 
 let state = { category:"All", q:"", newestFirst:true, openId:null };
 
-const catRow = document.getElementById("catRow");
-const qEl = document.getElementById("q");
-const grid = document.getElementById("grid");
-const shownEl = document.getElementById("shown");
-const totalEl = document.getElementById("total");
-const pillCount = document.getElementById("pillCount");
-const btnSort = document.getElementById("btnSort");
-const btnReset = document.getElementById("btnReset");
-
-const vTitle = document.getElementById("vTitle");
-const vCat = document.getElementById("vCat");
-const vImg = document.getElementById("vImg");
-const vMeta = document.getElementById("vMeta");
-const vText = document.getElementById("vText");
-const vLink = document.getElementById("vLink");
-const vCopy = document.getElementById("vCopy");
-
+// ===========================
+// DESKTOP APP FUNCTIONS
+// ===========================
 function norm(s){ return String(s||"").toLowerCase().trim(); }
 function escapeHtml(s){
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
+
 function filtered(){
   let items = [...PROJECTS];
   if(state.category !== "All") items = items.filter(p => p.category === state.category);
@@ -642,13 +712,19 @@ function filtered(){
 }
 
 function renderCategories(){
+  const catRow = document.getElementById("catRow");
   catRow.innerHTML = "";
   CATEGORIES.forEach(c=>{
     const b = document.createElement("button");
     b.type="button";
     b.className = "btn" + (c === state.category ? " active" : "");
     b.textContent = c;
-    b.addEventListener("click", ()=>{ state.category = c; state.openId=null; renderAll(false); });
+    b.addEventListener("click", ()=>{ 
+      state.category = c; 
+      state.openId=null; 
+      renderAll(false);
+      if(isVRMode) updateVRPanels();
+    });
     catRow.appendChild(b);
   });
 }
@@ -656,38 +732,38 @@ function renderCategories(){
 function kvRow(k,v){ return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`; }
 
 function setViewerEmpty(){
-  vTitle.textContent = "SELECT A PROJECT";
-  vCat.textContent = "—";
-  vText.textContent = "Use the wall to open an entry.";
-  vMeta.innerHTML = "";
-  vImg.style.display = "none";
-  vImg.src = "";
-  vLink.style.display = "none";
-  vCopy.disabled = true;
+  document.getElementById("vTitle").textContent = "SELECT A PROJECT";
+  document.getElementById("vCat").textContent = "—";
+  document.getElementById("vText").textContent = "Use the wall to open an entry.";
+  document.getElementById("vMeta").innerHTML = "";
+  document.getElementById("vImg").style.display = "none";
+  document.getElementById("vLink").style.display = "none";
+  document.getElementById("vCopy").disabled = true;
 }
 
 function fillViewer(p){
-  vTitle.textContent = p.title.toUpperCase();
-  vCat.textContent = (p.category || "—").toUpperCase();
-  vMeta.innerHTML =
+  document.getElementById("vTitle").textContent = p.title.toUpperCase();
+  document.getElementById("vCat").textContent = (p.category || "—").toUpperCase();
+  document.getElementById("vMeta").innerHTML =
     kvRow("ID", p.id) +
     kvRow("CATEGORY", p.category) +
     kvRow("YEAR", String(p.year)) +
     kvRow("PLACE", p.place || "—") +
     kvRow("TAGS", (p.tags||[]).join(", ") || "—");
-  vText.textContent = p.excerpt || "—";
+  document.getElementById("vText").textContent = p.excerpt || "—";
   const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  const vImg = document.getElementById("vImg");
   if(imgSrc){
     vImg.style.display = "block";
     vImg.src = imgSrc;
     vImg.alt = p.title;
   } else {
     vImg.style.display = "none";
-    vImg.src = "";
   }
+  const vLink = document.getElementById("vLink");
   if(p.link && p.link !== "#"){ vLink.style.display = "inline-block"; vLink.href = p.link; }
   else { vLink.style.display = "none"; }
-  vCopy.disabled = false;
+  document.getElementById("vCopy").disabled = false;
 }
 
 function openProject(id){
@@ -695,24 +771,24 @@ function openProject(id){
   if(!p) return;
   state.openId = id;
   fillViewer(p);
+  if(isVRMode) updateVRPanels();
 }
 
 function renderWall(keepSelection){
   const items = filtered();
-  totalEl.textContent = PROJECTS.length;
-  shownEl.textContent = items.length;
-  pillCount.textContent = PROJECTS.length + " items";
+  document.getElementById("total").textContent = PROJECTS.length;
+  document.getElementById("shown").textContent = items.length;
+  document.getElementById("pillCount").textContent = PROJECTS.length + " items";
 
+  const grid = document.getElementById("grid");
   grid.innerHTML = "";
   items.forEach(p=>{
     const el = document.createElement("div");
     el.className = "card";
-    el.tabIndex = 0;
-    el.setAttribute("role","button");
     el.innerHTML = `
       <div class="thumb">
         <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
-        <div class="scan" aria-hidden="true"></div>
+        <div class="scan"></div>
       </div>
       <div class="cardBody">
         <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
@@ -721,18 +797,11 @@ function renderWall(keepSelection){
       </div>
     `;
     el.addEventListener("click", ()=> openProject(p.id));
-    el.addEventListener("keydown",(e)=>{
-      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
-    });
     grid.appendChild(el);
   });
 
   if(items.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "smallHint";
-    empty.style.padding = "14px";
-    empty.textContent = "No matches.";
-    grid.appendChild(empty);
+    grid.innerHTML = '<div class="smallHint" style="padding:14px">No matches.</div>';
     state.openId = null;
     setViewerEmpty();
     return;
@@ -742,75 +811,384 @@ function renderWall(keepSelection){
   openProject(items[0].id);
 }
 
-qEl.addEventListener("input",(e)=>{
+function renderAll(keepSelection){ 
+  renderCategories(); 
+  renderWall(keepSelection);
+}
+
+// Desktop events
+document.getElementById("q").addEventListener("input",(e)=>{
   state.q = e.target.value;
   state.openId = null;
   renderAll(false);
 });
-btnSort.addEventListener("click", ()=>{
+
+document.getElementById("btnSort").addEventListener("click", ()=>{
   state.newestFirst = !state.newestFirst;
-  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
+  document.getElementById("btnSort").textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
   state.openId = null;
   renderAll(false);
 });
-btnReset.addEventListener("click", ()=>{
+
+document.getElementById("btnReset").addEventListener("click", ()=>{
   state.category = "All";
   state.q = "";
   state.newestFirst = true;
   state.openId = null;
-  qEl.value = "";
-  btnSort.textContent = "Sort: newest";
+  document.getElementById("q").value = "";
+  document.getElementById("btnSort").textContent = "Sort: newest";
   renderAll(false);
   setViewerEmpty();
 });
 
-async function copyPayload(){
+document.getElementById("vCopy").addEventListener("click", async ()=>{
   const p = PROJECTS.find(x=>x.id===state.openId);
-  if(!p) return false;
+  if(!p) return;
   const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
-  try{ await navigator.clipboard.writeText(payload); return true; }
-  catch(_){ return false; }
-}
-vCopy.addEventListener("click", async ()=>{
-  const ok = await copyPayload();
-  vCopy.textContent = ok ? "Copied" : "Blocked";
-  setTimeout(()=> vCopy.textContent = "Copy", 900);
+  try{ 
+    await navigator.clipboard.writeText(payload); 
+    document.getElementById("vCopy").textContent = "Copied";
+    setTimeout(()=> document.getElementById("vCopy").textContent = "Copy", 900);
+  } catch(e){}
 });
 
-function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
+// Init desktop
 setViewerEmpty();
 renderAll(false);
-</script>
 
-<canvas id="vrCanvas" aria-label="VR canvas"></canvas>
+// ===========================
+// VR SYSTEM
+// ===========================
+let isVRMode = false;
+let vrCamera = null;
+let vrPanels = {};
+let animationFrameId = null;
 
-<div id="vrButton" aria-label="VR motion toggle">
-  <div id="vrLed" aria-hidden="true"></div>
-  <div>VR</div>
-  <div id="vrState">OFF</div>
-</div>
+const VR_CONFIG = {
+  left:   { distance: 3.4, yaw: -55, pitch: 0, width: 280, height: 520 },
+  center: { distance: 3.0, yaw: 0,   pitch: 0, width: 360, height: 580 },
+  right:  { distance: 3.4, yaw: 55,  pitch: 0, width: 320, height: 520 }
+};
 
-<script>
-(function(){
-  // Real-mobile gate (same logic as CSS)
-  const isMobile =
-    window.matchMedia("(pointer: coarse)").matches &&
-    window.matchMedia("(hover: none)").matches &&
-    window.matchMedia("(max-width: 900px)").matches;
+function isMobile(){
+  return window.matchMedia("(pointer: coarse)").matches &&
+         window.matchMedia("(hover: none)").matches &&
+         window.matchMedia("(max-width: 900px)").matches;
+}
 
-  if(!isMobile) return;
+function initVR(){
+  if(!isMobile()){
+    console.log("Not mobile, VR disabled");
+    return;
+  }
+  
+  console.log("Mobile detected, initializing VR...");
+  
+  // Load Babylon.js
+  loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js")
+    .then(() => loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js"))
+    .then(() => startVR())
+    .catch(e => console.error("Failed to load Babylon:", e));
+}
 
-  const canvas = document.getElementById("vrCanvas");
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const tag=document.createElement("script");
+    tag.src=src;
+    tag.async=true;
+    tag.onload=()=>res(src);
+    tag.onerror=()=>rej(new Error("failed to load: " + src));
+    document.head.appendChild(tag);
+  });
+}
+
+function startVR(){
+  try {
+    const canvas = document.getElementById("vrCanvas");
+    const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
+
+    vrCamera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
+    vrCamera.setTarget(new BABYLON.Vector3(0,1.6,5));
+    vrCamera.attachControl(canvas, true);
+    vrCamera.speed = 0;
+
+    // Lighting
+    const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+    hemi.intensity = 1.05;
+    const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
+    pl.intensity = 0.55;
+
+    // Dome background
+    const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
+    dome.position = new BABYLON.Vector3(0,0,8);
+    dome.rotation.y = Math.PI;
+    const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+    domeMat.backFaceCulling = false;
+    domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
+    domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+    domeMat.specularColor = new BABYLON.Color3(0,0,0);
+    dome.material = domeMat;
+
+    // Store panel references
+    vrPanels = {
+      left: document.getElementById('vrDomLeft'),
+      center: document.getElementById('vrDomCenter'),
+      right: document.getElementById('vrDomRight')
+    };
+
+    // Build VR panels content
+    buildVRPanels();
+
+    // Start update loop
+    updateVRFrame();
+
+    // Handle resize
+    engine.runRenderLoop(()=> scene.render());
+    window.addEventListener("resize", ()=>{
+      engine.resize();
+    }, {passive:true});
+
+    // Setup VR button
+    setupVRButton();
+
+    isVRMode = true;
+    document.body.classList.add('vr-mobile');
+    console.log("VR Mode active");
+
+  } catch(e) {
+    console.error("VR init failed:", e);
+  }
+}
+
+function buildVRPanels(){
+  const items = filtered();
+  
+  // LEFT PANEL: Categories
+  document.getElementById('vrLeftContent').innerHTML = `
+    <div class="panelHeader">
+      <div class="kicker">studies / navigation</div>
+      <div class="titleRow">
+        <h2 class="h1">CATEGORIES</h2>
+        <div class="pill">${PROJECTS.length} items</div>
+      </div>
+    </div>
+    <div class="panelBody scrollY">
+      <input type="search" id="vrSearch" value="${escapeHtml(state.q)}" placeholder="Search (title, tag, year) …" class="input">
+      <div class="hr"></div>
+      <div class="row" id="vrCatRow">
+        ${CATEGORIES.map(c => `
+          <button onclick="selectVRCategory('${c}')" class="btn ${c===state.category?'active':''}">
+            ${c}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  
+  // Attach search listener
+  const searchInput = document.getElementById('vrSearch');
+  if(searchInput){
+    searchInput.addEventListener('input', (e)=>{
+      state.q = e.target.value;
+      state.openId = null;
+      renderAll(false);
+    });
+  }
+  
+  updateVRPanels();
+}
+
+function updateVRPanels(){
+  const items = filtered();
+  
+  // CENTER PANEL: Project Wall
+  let centerHTML = `
+    <div class="wallTop">
+      <h3 class="wallTitle">PROJECT WALL</h3>
+      <div class="row">
+        <button onclick="toggleVRSort()" class="btn">Sort: ${state.newestFirst ? 'newest' : 'oldest'}</button>
+        <button onclick="resetVR()" class="btn">Reset</button>
+      </div>
+      <div class="counter">${items.length} / ${PROJECTS.length}</div>
+    </div>
+    <div class="wallScroll">
+      <div class="wallGrid" style="grid-template-columns:1fr;">
+  `;
+  
+  items.forEach(p=>{
+    const isSelected = p.id === state.openId;
+    centerHTML += `
+      <div onclick="openVRProject('${p.id}')" class="card" style="${isSelected?'border-color:rgba(232,226,214,.4);background:rgba(255,255,255,.06);':''}">
+        <div class="thumb">
+          <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}">
+        </div>
+        <div class="cardBody">
+          <div class="metaLine">
+            <span>${escapeHtml(p.category)}</span>
+            <span>${p.year}</span>
+          </div>
+          <div class="cardTitle">${escapeHtml(p.title)}</div>
+          <div class="tags">
+            ${(p.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  centerHTML += '</div></div>';
+  document.getElementById('vrCenterContent').innerHTML = centerHTML;
+  
+  // RIGHT PANEL: Viewer
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  let rightHTML = '';
+  
+  if(!p){
+    rightHTML = `
+      <div class="panelHeader">
+        <div class="kicker">retrieval / viewer</div>
+        <div class="titleRow">
+          <h2 class="h1">SELECT A PROJECT</h2>
+          <div class="pill">—</div>
+        </div>
+      </div>
+      <div class="viewerContent" style="display:flex;align-items:center;justify-content:center;text-align:center;opacity:.5;">
+        <div>
+          <div style="font-family:var(--mono);text-transform:uppercase;font-size:12px;letter-spacing:.15em;margin-bottom:12px;">No Selection</div>
+          <div style="font-family:var(--mono);font-size:11px;line-height:1.6;">Select a project from<br>the center wall</div>
+        </div>
+      </div>
+    `;
+  } else {
+    const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+    rightHTML = `
+      <div class="panelHeader">
+        <div class="kicker">retrieval / viewer</div>
+        <div class="titleRow">
+          <h2 class="h1">${escapeHtml(p.title)}</h2>
+          <div class="pill">${escapeHtml(p.category)}</div>
+        </div>
+      </div>
+      ${imgSrc ? `<div class="viewerMedia"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(p.title)}"><div class="grid"></div></div>` : ''}
+      <div class="viewerContent">
+        <div id="vMeta">
+          <div class="kv"><div class="k">ID</div><div class="v">${escapeHtml(p.id)}</div></div>
+          <div class="kv"><div class="k">CATEGORY</div><div class="v">${escapeHtml(p.category)}</div></div>
+          <div class="kv"><div class="k">YEAR</div><div class="v">${p.year}</div></div>
+          <div class="kv"><div class="k">PLACE</div><div class="v">${escapeHtml(p.place || '—')}</div></div>
+          <div class="kv"><div class="k">TAGS</div><div class="v">${(p.tags||[]).join(", ") || '—'}</div></div>
+        </div>
+        <div class="hr"></div>
+        <div class="excerpt">${escapeHtml(p.excerpt)}</div>
+      </div>
+      <div class="viewerFooter">
+        ${p.link !== '#' ? `<a href="${p.link}" class="link">Open</a>` : ''}
+        <button onclick="copyVRInfo()" class="btn" style="margin-left:auto;">Copy</button>
+      </div>
+    `;
+  }
+  
+  document.getElementById('vrRightContent').innerHTML = rightHTML;
+}
+
+// VR Actions (exposed to window for onclick handlers)
+window.selectVRCategory = function(cat){
+  state.category = cat;
+  state.openId = null;
+  renderAll(false);
+  buildVRPanels(); // Rebuild to update active states
+};
+
+window.openVRProject = function(id){
+  openProject(id);
+};
+
+window.toggleVRSort = function(){
+  state.newestFirst = !state.newestFirst;
+  renderAll(false);
+};
+
+window.resetVR = function(){
+  state.category = "All";
+  state.q = "";
+  state.newestFirst = true;
+  state.openId = null;
+  renderAll(false);
+};
+
+window.copyVRInfo = async function(){
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  if(!p) return;
+  const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
+  try{
+    await navigator.clipboard.writeText(payload);
+    const btn = document.querySelector('#vrRightContent .viewerFooter .btn');
+    if(btn){
+      btn.textContent = "Copied!";
+      setTimeout(()=> btn.textContent = "Copy", 1000);
+    }
+  }catch(e){}
+};
+
+function updateVRFrame(){
+  if(!isVRMode || !vrCamera) return;
+  
+  const camObj = vrCamera;
+  camObj.updateMatrixWorld();
+  
+  const rotation = camObj.rotation;
+  const camYaw = rotation.y;
+  const camPitch = rotation.x;
+  
+  updatePanel('left', camYaw, camPitch);
+  updatePanel('center', camYaw, camPitch);
+  updatePanel('right', camYaw, camPitch);
+  
+  animationFrameId = requestAnimationFrame(updateVRFrame);
+}
+
+function updatePanel(id, camYaw, camPitch){
+  const panel = vrPanels[id];
+  const cfg = VR_CONFIG[id];
+  if(!panel || !cfg) return;
+  
+  const totalYaw = camYaw + (cfg.yaw * Math.PI / 180);
+  const totalPitch = camPitch + (cfg.pitch * Math.PI / 180);
+  
+  const x = Math.sin(totalYaw) * Math.cos(totalPitch) * cfg.distance;
+  const y = Math.sin(totalPitch) * cfg.distance;
+  const z = -Math.cos(totalYaw) * Math.cos(totalPitch) * cfg.distance;
+  
+  const fov = 70 * (Math.PI / 180);
+  const scale = (window.innerHeight / 2) / Math.tan(fov / 2);
+  
+  const screenX = (x / -z) * scale + window.innerWidth / 2;
+  const screenY = (y / -z) * scale + window.innerHeight / 2;
+  
+  const distance = Math.sqrt(x*x + y*y + z*z);
+  const scaleFactor = (cfg.width / distance) * scale / cfg.width;
+  const finalScale = Math.max(0.4, Math.min(1.5, scaleFactor));
+  
+  panel.style.transform = `translate3d(${screenX - cfg.width/2}px, ${screenY - cfg.height/2}px, 0) scale(${finalScale})`;
+  
+  if(z > -0.5){
+    panel.style.opacity = Math.max(0, Math.min(1, (-z + 0.5) * 2));
+    panel.style.pointerEvents = z < 0 ? 'auto' : 'none';
+  } else {
+    panel.style.opacity = 1;
+    panel.style.pointerEvents = 'auto';
+  }
+}
+
+function setupVRButton(){
   const led = document.getElementById("vrLed");
   const stateText = document.getElementById("vrState");
   const button = document.getElementById("vrButton");
-
-  // Robust state UI (works even if Babylon fails to load)
-  let cam = null;
+  
   let gyroOn = false;
-  let ready = false;
-  let pendingToggle = false;
-
+  
   function setState(label){
     stateText.textContent = label;
     if(label === "ON"){
@@ -819,509 +1197,63 @@ renderAll(false);
       led.classList.remove("active");
     }
   }
-  setState("OFF");
-
-  // Bind button immediately so it ALWAYS responds
+  
   button.addEventListener("click", async ()=>{
-    // If not ready yet, show feedback and toggle once ready
-    if(!ready){
-      pendingToggle = true;
-      setState("…");
-      return;
-    }
-    await toggleGyro();
-  });
-
-  function loadScript(src){
-    return new Promise((res,rej)=>{
-      const tag=document.createElement("script");
-      tag.src=src;
-      tag.async=true;
-      tag.onload=()=>res(src);
-      tag.onerror=()=>rej(new Error("failed to load: " + src));
-      document.head.appendChild(tag);
-    });
-  }
-
-  async function enableOrientationInput(){
-    if(!cam) return false;
-
-    // iOS permission
-    if(typeof DeviceOrientationEvent !== "undefined" &&
-       typeof DeviceOrientationEvent.requestPermission === "function"){
-      const r = await DeviceOrientationEvent.requestPermission();
-      if(r !== "granted") return false;
-    }
-
-    // Attach orientation input (Babylon will create the input instance internally)
-    try{
-      cam.inputs.addDeviceOrientation();
-      return true;
-    }catch(e){
-      // Fallback: some builds expose the input class
-      try{
-        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
-          cam.inputs.add(new BABYLON.DeviceOrientationCameraInput());
-          return true;
-        }
-      }catch(_){}
-    }
-    return false;
-  }
-
-  async function toggleGyro(){
-    if(!cam) { setState("ERR"); return; }
-
+    if(!vrCamera) return;
+    
     if(gyroOn){
-      // Turn OFF: remove the attached input if present
+      // Turn off
       try{
-        const inp = cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation;
-        if(inp){
-          cam.inputs.remove(inp);
-        }
+        const inp = vrCamera.inputs && vrCamera.inputs.attached && vrCamera.inputs.attached.deviceOrientation;
+        if(inp) vrCamera.inputs.remove(inp);
       }catch(e){}
       gyroOn = false;
       setState("OFF");
       return;
     }
-
+    
+    // Turn on
     try{
-      const ok = await enableOrientationInput();
-      if(!ok){
-        setState("OFF");
-        return;
+      if(typeof DeviceOrientationEvent !== "undefined" &&
+         typeof DeviceOrientationEvent.requestPermission === "function"){
+        const res = await DeviceOrientationEvent.requestPermission();
+        if(res !== "granted") return;
       }
+      
+      try{
+        vrCamera.inputs.addDeviceOrientation();
+      }catch(e){
+        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
+          vrCamera.inputs.add(new BABYLON.DeviceOrientationCameraInput());
+        }
+      }
+      
       gyroOn = true;
       setState("ON");
     }catch(e){
       console.error(e);
       setState("ERR");
     }
-  }
+  });
+  
+  // Auto-enable on Android
+  button.click();
+}
 
-  async function init(){
-    try{
-      // Load Babylon + GUI
-      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
-      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
+// Exit VR button
+document.getElementById('vrExitBtn').addEventListener('click', ()=>{
+  isVRMode = false;
+  if(animationFrameId) cancelAnimationFrame(animationFrameId);
+  document.body.classList.remove('vr-mobile');
+  location.reload(); // Simple way to restore desktop view
+});
 
-      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
-      const scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
-
-      cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
-      cam.setTarget(new BABYLON.Vector3(0,1.6,5));
-      cam.attachControl(canvas, true);
-      cam.speed = 0;
-
-      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
-      hemi.intensity = 1.05;
-      const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
-      pl.intensity = 0.55;
-
-      // Simple dish background so it's not "pure black"
-      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
-      dome.position = new BABYLON.Vector3(0,0,8);
-      dome.rotation.y = Math.PI;
-      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
-      domeMat.backFaceCulling = false;
-      domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
-      domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
-      domeMat.specularColor = new BABYLON.Color3(0,0,0);
-      dome.material = domeMat;
-
-      // Panels in a concave arc (parabolic feel) — visible Babylon GUI
-      function makeGuiPanel(name, w, h, title){
-        // ---- Shared state (lives only inside GUI block) ----
-        const STORE_KEY = "__JA_VR_GUI_STORE__";
-        const store = (window[STORE_KEY] ||= (function(){
-          const s = {};
-          // Mock data (replace later with real project data)
-          s.projects = [
-            { id:"biosolar-leaf", title:"BioSolar Leaf Panels", date:"2025-10", category:"BioSystems",
-              text:"Flexible, translucent solar panel research inspired by leaf venation patterns.\nScreen-printed layers on cellulose substrates; biomimetic geometry and light diffusion." },
-            { id:"mycelium-sculpture", title:"Mycelium Sculpture Colony", date:"2025-06", category:"BioSystems",
-              text:"Interspecies archaeology through living materials.\nA sculptural system that grows, decays, and records microbial and fungal interaction over time." },
-            { id:"dystopic-carnival", title:"Dystopic Pop Carnival", date:"2024-11", category:"Dystopic Pop Art",
-              text:"A critique of modern society as a carnival of attractions.\nColorful spectacle, shallow light, and engineered desire — the void behind the glow." },
-            { id:"cymatics-field", title:"Cymatic Field Studies", date:"2024-03", category:"Cymatics",
-              text:"Experiments where sound becomes visible structure.\nFrequency-driven patterns, resonant matter, and perception as a physical event." },
-            { id:"public-mural", title:"Public Mural — Urban Signal", date:"2023-09", category:"Murals",
-              text:"Large-scale public work connecting community, place, and symbolic language.\nA wall as an interface: memory, politics, and shared territory." }
-          ];
-
-          s.categories = ["All", "BioSystems", "Landscape", "Dystopic Pop Art", "Cymatics", "Public Art", "Murals"];
-          s.activeCategory = "All";
-          s.activeProjectId = s.projects[0]?.id;
-
-          // References to controls (filled as panels are created)
-          s.refs = {
-            catButtons: [],
-            wallStack: null,
-            cardRefs: [],
-            viewerTitle: null,
-            viewerDate: null,
-            viewerText: null
-          };
-
-          s.filteredProjects = function(){
-            if (s.activeCategory === "All") return s.projects;
-            return s.projects.filter(p => p.category === s.activeCategory);
-          };
-
-          s.setActiveCategory = function(cat){
-            s.activeCategory = cat;
-            // If current project not in filtered list, pick first
-            const fp = s.filteredProjects();
-            if (!fp.some(p => p.id === s.activeProjectId) && fp[0]) s.activeProjectId = fp[0].id;
-            s.refreshAll();
-          };
-
-          s.setActiveProject = function(pid){
-            s.activeProjectId = pid;
-            s.refreshAll();
-          };
-
-          s.getActiveProject = function(){
-            return s.projects.find(p => p.id === s.activeProjectId) || s.projects[0] || {title:"",date:"",text:""};
-          };
-
-          // UI refreshers
-          s.refreshCategories = function(){
-            for (const b of s.refs.catButtons){
-              const isActive = (b.__cat === s.activeCategory);
-              b.background = isActive ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.06)";
-              b.color = isActive ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.16)";
-              if (b.__label) b.__label.color = isActive ? "#ffffff" : "rgba(255,255,255,0.88)";
-            }
-          };
-
-          s.refreshViewer = function(){
-            const p = s.getActiveProject();
-            if (s.refs.viewerTitle) s.refs.viewerTitle.text = p.title || "";
-            if (s.refs.viewerDate)  s.refs.viewerDate.text  = p.date  || "";
-            if (s.refs.viewerText)  s.refs.viewerText.text  = p.text  || "";
-          };
-
-          s.refreshWall = function(){
-            const stack = s.refs.wallStack;
-            if (!stack) return;
-            // Clear previous cards
-            while (stack.children.length) stack.removeControl(stack.children[0]);
-            s.refs.cardRefs = [];
-
-            const list = s.filteredProjects();
-            for (const p of list){
-              const card = new BABYLON.GUI.Rectangle("card_"+p.id);
-              card.height = "176px";
-              card.thickness = 1;
-              card.cornerRadius = 18;
-              card.color = "rgba(255,255,255,0.16)";
-              card.background = (p.id === s.activeProjectId) ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0)";
-              card.paddingLeft = "18px";
-              card.paddingRight = "18px";
-              card.paddingTop = "16px";
-              card.paddingBottom = "16px";
-              card.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
-              card.isPointerBlocker = true;
-
-              const inner = new BABYLON.GUI.Grid();
-              inner.addColumnDefinition(1);
-              inner.addRowDefinition(0.58);
-              inner.addRowDefinition(0.42);
-              card.addControl(inner);
-
-              const t = new BABYLON.GUI.TextBlock("t_"+p.id, p.title);
-              t.fontFamily = "EB Garamond, serif";
-              t.fontSize = 54;
-              t.color = "#ffffff";
-              t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-              t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-              t.textWrapping = true;
-              inner.addControl(t, 0, 0);
-
-              const meta = new BABYLON.GUI.TextBlock("m_"+p.id, (p.date ? p.date + "  •  " : "") + (p.category||""));
-              meta.fontFamily = "Source Code Pro, monospace";
-              meta.fontSize = 30;
-              meta.color = "rgba(255,255,255,0.78)";
-              meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-              meta.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-              meta.textWrapping = true;
-              inner.addControl(meta, 1, 0);
-
-              // Hover + click
-              card.onPointerEnterObservable.add(() => {
-                if (p.id !== s.activeProjectId) card.background = "rgba(255,255,255,0.06)";
-              });
-              card.onPointerOutObservable.add(() => {
-                card.background = (p.id === s.activeProjectId) ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0)";
-              });
-              card.onPointerClickObservable.add(() => s.setActiveProject(p.id));
-
-              stack.addControl(card);
-
-              // Spacer
-              const spacer = new BABYLON.GUI.Rectangle("sp_"+p.id);
-              spacer.height = "14px";
-              spacer.thickness = 0;
-              spacer.background = "transparent";
-              stack.addControl(spacer);
-
-              s.refs.cardRefs.push(card);
-            }
-          };
-
-          s.refreshAll = function(){
-            s.refreshCategories();
-            s.refreshWall();
-            s.refreshViewer();
-          };
-
-          return s;
-        })());
-
-        // ---- Mesh / material (keep your pipeline intact) ----
-        const SCALE_UP = 1.18; // panel size boost without touching arc/orientation code
-        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
-        // Keep your non-mirrored text fix, but apply scale
-        mesh.scaling.x = -SCALE_UP;
-        mesh.scaling.y =  SCALE_UP;
-
-        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-        mat.diffuseColor  = new BABYLON.Color3(0.18,0.18,0.18);
-        mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
-        mat.specularColor = new BABYLON.Color3(0,0,0);
-        mat.alpha = 0.98;
-        mat.backFaceCulling = false;
-        mesh.material = mat;
-
-        // Higher GUI resolution to keep readability after scaling
-        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1400, 1900, false);
-
-        // Root frame (match desktop aesthetic)
-        const frame = new BABYLON.GUI.Rectangle(name+"_frame");
-        frame.width = 1;
-        frame.height = 1;
-        frame.thickness = 1;
-        frame.cornerRadius = 22;
-        frame.background = "rgba(15,15,15,0.78)";
-        frame.color = "rgba(255,255,255,0.16)";
-        frame.paddingTop = "18px";
-        frame.paddingBottom = "18px";
-        frame.paddingLeft = "18px";
-        frame.paddingRight = "18px";
-        adt.addControl(frame);
-
-        // Layout grid: header + body
-        const grid = new BABYLON.GUI.Grid(name+"_grid");
-        grid.addRowDefinition(0.18);  // header
-        grid.addRowDefinition(0.82);  // body
-        grid.addColumnDefinition(1);
-        frame.addControl(grid);
-
-        // Header
-        const header = new BABYLON.GUI.Rectangle(name+"_header");
-        header.thickness = 0;
-        header.background = "transparent";
-        header.paddingLeft = "6px";
-        header.paddingRight = "6px";
-        grid.addControl(header, 0, 0);
-
-        const headerGrid = new BABYLON.GUI.Grid(name+"_headerGrid");
-        headerGrid.addRowDefinition(0.42);
-        headerGrid.addRowDefinition(0.58);
-        headerGrid.addColumnDefinition(1);
-        header.addControl(headerGrid);
-
-        const kicker = new BABYLON.GUI.TextBlock(name+"_kicker", "JOFRE ARCHIVE");
-        kicker.fontFamily = "Source Code Pro, monospace";
-        kicker.fontSize = 30;
-        kicker.letterSpacing = "2px";
-        kicker.color = "rgba(255,255,255,0.70)";
-        kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        kicker.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-        headerGrid.addControl(kicker, 0, 0);
-
-        const h1 = new BABYLON.GUI.TextBlock(name+"_h1", title || "");
-        h1.fontFamily = "EB Garamond, serif";
-        h1.fontSize = 70;
-        h1.color = "#ffffff";
-        h1.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        h1.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        headerGrid.addControl(h1, 1, 0);
-
-        // Divider
-        const divider = new BABYLON.GUI.Rectangle(name+"_divider");
-        divider.height = "2px";
-        divider.thickness = 0;
-        divider.background = "rgba(255,255,255,0.12)";
-        divider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        header.addControl(divider);
-
-        // Body container
-        const body = new BABYLON.GUI.Rectangle(name+"_body");
-        body.thickness = 0;
-        body.background = "transparent";
-        body.paddingTop = "18px";
-        grid.addControl(body, 1, 0);
-
-        // ---- Panel implementations ----
-        if (name === "panelLeft") {
-          const stack = new BABYLON.GUI.StackPanel(name+"_cats");
-          stack.isVertical = true;
-          stack.spacing = 14;
-          body.addControl(stack);
-
-          store.refs.catButtons = [];
-
-          for (const cat of store.categories){
-            const pill = new BABYLON.GUI.Rectangle("cat_"+cat);
-            pill.height = "92px";
-            pill.thickness = 1;
-            pill.cornerRadius = 999;
-            pill.color = "rgba(255,255,255,0.16)";
-            pill.background = "rgba(255,255,255,0.06)";
-            pill.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
-            pill.isPointerBlocker = true;
-
-            const label = new BABYLON.GUI.TextBlock("cat_lbl_"+cat, cat.toUpperCase());
-            label.fontFamily = "Source Code Pro, monospace";
-            label.fontSize = 34;
-            label.color = "rgba(255,255,255,0.88)";
-            label.letterSpacing = "1px";
-            label.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-            label.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-            pill.addControl(label);
-
-            pill.__cat = cat;
-            pill.__label = label;
-
-            pill.onPointerEnterObservable.add(()=>{ if (cat !== store.activeCategory) pill.background = "rgba(255,255,255,0.08)"; });
-            pill.onPointerOutObservable.add(()=>{ pill.background = (cat===store.activeCategory) ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.06)"; });
-            pill.onPointerClickObservable.add(()=> store.setActiveCategory(cat));
-
-            stack.addControl(pill);
-            store.refs.catButtons.push(pill);
-          }
-
-          store.refreshCategories();
-        }
-
-        if (name === "panelMid") {
-          const scroll = new BABYLON.GUI.ScrollViewer(name+"_scroll");
-          scroll.thickness = 0;
-          scroll.barColor = "rgba(255,255,255,0.22)";
-          scroll.thumbColor = "rgba(255,255,255,0.38)";
-          scroll.background = "transparent";
-          scroll.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
-          scroll.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_STRETCH;
-          body.addControl(scroll);
-
-          const wallStack = new BABYLON.GUI.StackPanel(name+"_wall");
-          wallStack.isVertical = true;
-          wallStack.spacing = 0;
-          wallStack.paddingLeft = "2px";
-          wallStack.paddingRight = "8px";
-          scroll.addControl(wallStack);
-
-          store.refs.wallStack = wallStack;
-          store.refreshWall();
-        }
-
-        if (name === "panelRight") {
-          const vStack = new BABYLON.GUI.StackPanel(name+"_viewer");
-          vStack.isVertical = true;
-          vStack.spacing = 18;
-          body.addControl(vStack);
-
-          const t = new BABYLON.GUI.TextBlock(name+"_vtitle", "");
-          t.fontFamily = "EB Garamond, serif";
-          t.fontSize = 78;
-          t.color = "#ffffff";
-          t.textWrapping = true;
-          t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          vStack.addControl(t);
-
-          const d = new BABYLON.GUI.TextBlock(name+"_vdate", "");
-          d.fontFamily = "Source Code Pro, monospace";
-          d.fontSize = 34;
-          d.color = "rgba(255,255,255,0.72)";
-          d.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          vStack.addControl(d);
-
-          const p = new BABYLON.GUI.TextBlock(name+"_vtext", "");
-          p.fontFamily = "Source Code Pro, monospace";
-          p.fontSize = 36;
-          p.color = "rgba(255,255,255,0.90)";
-          p.textWrapping = true;
-          p.lineSpacing = "6px";
-          p.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-          p.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-          vStack.addControl(p);
-
-          store.refs.viewerTitle = t;
-          store.refs.viewerDate  = d;
-          store.refs.viewerText  = p;
-          store.refreshViewer();
-        }
-
-        // Keep everything coherent in case panels are created in any order
-        store.refreshAll();
-
-        return mesh;
-      }
-
-      const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
-      const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
-      const right = makeGuiPanel("panelRight", 1.85, 2.45, "Viewer");
-
-      function place(){
-        const R = 3.4;
-        const spread = 0.62;
-        function setArc(mesh, a, zBoost){
-          mesh.position.x = Math.sin(a) * R;
-          mesh.position.z = Math.cos(a) * R + zBoost;
-          mesh.position.y = 1.6;
-        }
-        setArc(left,  -spread, 1.9);
-        setArc(mid,    0,      2.25);
-        setArc(right,  spread, 1.9);
-      }
-      place();
-
-      scene.onBeforeRenderObservable.add(()=>{
-        [left,mid,right].forEach(p=>{
-          const dx = cam.position.x - p.position.x;
-          const dz = cam.position.z - p.position.z;
-          p.rotation.y = Math.atan2(dx, dz);
-        });
-      });
-
-      engine.runRenderLoop(()=> scene.render());
-      window.addEventListener("resize", ()=>{
-        engine.resize();
-        place();
-      }, {passive:true});
-
-      ready = true;
-      // If user clicked early, toggle now
-      if(pendingToggle){
-        pendingToggle = false;
-        await toggleGyro();
-      }else{
-        // restore OFF label if it was "…"
-        setState("OFF");
-      }
-
-    }catch(e){
-      console.error(e);
-      ready = false;
-      setState("ERR");
-    }
-  }
-
-  init();
-})();
+// Initialize
+if(isMobile()){
+  window.addEventListener('load', ()=>{
+    setTimeout(initVR, 100);
+  });
+}
 </script>
 
 </body>
