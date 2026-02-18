@@ -440,7 +440,7 @@ body::after{
 }
 #vrState{ opacity:.65; text-transform:uppercase; }
 
-@media (pointer:coarse) and (hover:none){
+@media (pointer:coarse) and (hover:none) and (max-width: 900px){
   /* Hide your desktop layout on real mobile only */
   body{ overflow:hidden; height:100vh; }
   #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
@@ -793,19 +793,10 @@ renderAll(false);
 <script>
 (function(){
   // Real-mobile gate (same logic as CSS)
-  const ua = navigator.userAgent || "";
-const tp = navigator.maxTouchPoints || 0;
-const uaMobile = /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
-const iPadMasq = /Macintosh/i.test(ua) && tp > 1;
-
-const coarse = window.matchMedia("(pointer: coarse)").matches;
-const noHover = window.matchMedia("(hover: none)").matches;
-
-// Avoid activating on desktop OS even if touch-capable (Surface etc.)
-const desktopOS = (/Windows NT/i.test(ua) || (/Mac OS X/i.test(ua) && !iPadMasq));
-
-// No screen-size logic. Must have touch + (coarse&noHover OR UA mobile OR iPad masquerade) and not desktop OS.
-const isMobile = (tp > 0) && (((coarse && noHover) || uaMobile || iPadMasq)) && !desktopOS;
+  const isMobile =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches &&
+    window.matchMedia("(max-width: 900px)").matches;
 
   if(!isMobile) return;
 
