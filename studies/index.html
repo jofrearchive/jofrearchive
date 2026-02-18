@@ -496,6 +496,11 @@ body.bab3d-on::after{ display:none !important; }
   display:block;
 }
 
+#babHud, #babHint{ display:none; }
+body.bab3d-on #babHud, body.bab3d-on #babHint{ display:flex; }
+body.bab3d-on #babHint{ display:block; }
+
+
 </style>
 </head>
 
@@ -840,12 +845,37 @@ renderAll(false);
       <span style="opacity:.65">UI3D</span>
     </div>
     <div style="display:flex; gap:8px; align-items:center;">
-      <input id="babSearch" type="search" placeholder="Search…" aria-label="Search" />
       <button type="button" id="babEnable">Enable motion</button>
       <button type="button" id="babExit">Exit</button>
     </div>
   </div>
   <div id="babHint">Move your phone • Tap buttons • Scroll lists</div>
+  
+  <div id="babStart" style="
+    position:absolute; inset:0; z-index:6500;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(900px 700px at 50% 40%, rgba(255,255,255,.06), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,.04), transparent 55%, rgba(0,0,0,.75)),
+      #0b0b0b;
+  ">
+    <button type="button" id="babStartBtn" style="
+      all:unset; cursor:pointer;
+      padding:14px 18px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.22);
+      background:rgba(15,15,15,.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #e8e2d6;
+      font-family: var(--mono);
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      font-size:12px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.65);
+    ">Enable VR</button>
+  </div>
+
   <canvas id="babylonCanvas"></canvas>
 </div>
 
@@ -871,13 +901,12 @@ renderAll(false);
   const hint = document.getElementById("babHint");
   const btnEnable = document.getElementById("babEnable");
   const btnExit = document.getElementById("babExit");
-  const search = document.getElementById("babSearch");
+  const startOverlay = document.getElementById("babStart");
+  const startBtn = document.getElementById("babStartBtn");
 
   // Activate
-  document.body.classList.add("bab3d-on");
-  root.setAttribute("aria-hidden","false");
-
-  // Sample data (replace with your real project data later)
+  // Activation happens after user taps Enable VR
+// Sample data (replace with your real project data later)
   const CATEGORIES = ["BioSystems","Landscape","Dystopic Pop Art","Cymatics","Public Art","Murals"];
   const PROJECTS = [
     {title:"Interspecies Archaeology", cat:"BioSystems", date:"2026-01-12", desc:"Mycelium-based sculptural research."},
@@ -894,355 +923,376 @@ renderAll(false);
     selected: null
   };
 
-  // Babylon engine/scene
-  const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
-  const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0,0,0,1);
+  let _inited = false;
 
-  // Lights
-  const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
-  hemi.intensity = 0.85;
+  function init3D(){
+    if(_inited) return;
+    _inited = true;
 
-  // Camera: use DeviceOrientationCamera when available (magic-window VR feel)
-  const cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.6, 0), scene);
-  cam.attachControl(canvas, true);
-  cam.setTarget(new BABYLON.Vector3(0, 1.6, 10));
-  cam.minZ = 0.05;
-  cam.speed = 0;
-  cam.angularSensibility = 2000;
+    document.body.classList.add("bab3d-on");
+    root.setAttribute("aria-hidden","false");
+    if(startOverlay) startOverlay.style.display = "none";
 
-  // Clamp pitch a bit for comfort
-  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+      // Babylon engine/scene
+      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0,0,0,1);
 
-  // Simple dome (dish feel)
-  const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.5}, scene);
-  dome.position = new BABYLON.Vector3(0, 0, 6);
-  dome.rotation = new BABYLON.Vector3(0, Math.PI, 0);
-  const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
-  domeMat.backFaceCulling = false;
-  domeMat.diffuseColor = new BABYLON.Color3(0.03,0.03,0.03);
-  domeMat.specularColor = new BABYLON.Color3(0,0,0);
-  dome.material = domeMat;
+      // Lights
+      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      hemi.intensity = 0.85;
 
-  // Panel meshes positioned on a concave arc (parabolic/antenna feel)
-  function makePanel(name, w, h){
-    const m = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
-    m.billboardMode = BABYLON.Mesh.BILLBOARDMODE_NONE; // we'll face camera manually (yaw)
-    const mat = new BABYLON.StandardMaterial(name+"Mat", scene);
-    mat.diffuseColor = new BABYLON.Color3(0.06,0.06,0.06);
-    mat.specularColor = new BABYLON.Color3(0,0,0);
-    mat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
-    mat.alpha = 0.92;
-    m.material = mat;
-    return m;
-  }
+      // Camera: use DeviceOrientationCamera when available (magic-window VR feel)
+      const cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.6, 0), scene);
+      cam.attachControl(canvas, true);
+      cam.setTarget(new BABYLON.Vector3(0, 1.6, 10));
+      cam.minZ = 0.05;
+      cam.speed = 0;
+      cam.angularSensibility = 2000;
 
-  const panelL = makePanel("panelL", 1.55, 2.1);
-  const panelM = makePanel("panelM", 1.95, 2.1);
-  const panelR = makePanel("panelR", 1.55, 2.1);
+      // Clamp pitch a bit for comfort
+      const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
-  function placePanels(){
-    const w = Math.min(window.innerWidth, window.innerHeight);
-    const R = (w < 420) ? 3.8 : (w < 520 ? 4.2 : 4.6);
-    const spread = (w < 420) ? 0.62 : 0.56; // radians (~35° / 32°)
+      // Simple dome (dish feel)
+      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.5}, scene);
+      dome.position = new BABYLON.Vector3(0, 0, 6);
+      dome.rotation = new BABYLON.Vector3(0, Math.PI, 0);
+      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+      domeMat.backFaceCulling = false;
+      domeMat.diffuseColor = new BABYLON.Color3(0.03,0.03,0.03);
+      domeMat.specularColor = new BABYLON.Color3(0,0,0);
+      dome.material = domeMat;
 
-    function setArc(mesh, a){
-      const x = Math.sin(a) * R;
-      const z = Math.cos(a) * R;
-      mesh.position.set(x, 1.6, z);
-    }
-    setArc(panelL, -spread);
-    setArc(panelM, 0);
-    setArc(panelR, spread);
-    // Pull the arc closer to the camera
-    panelL.position.z += 1.2;
-    panelM.position.z += 1.55;
-    panelR.position.z += 1.2;
-  }
-  placePanels();
+      // Panel meshes positioned on a concave arc (parabolic/antenna feel)
+      function makePanel(name, w, h){
+        const m = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
+        m.billboardMode = BABYLON.Mesh.BILLBOARDMODE_NONE; // we'll face camera manually (yaw)
+        const mat = new BABYLON.StandardMaterial(name+"Mat", scene);
+        mat.diffuseColor = new BABYLON.Color3(0.06,0.06,0.06);
+        mat.specularColor = new BABYLON.Color3(0,0,0);
+        mat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+        mat.alpha = 0.92;
+        m.material = mat;
+        return m;
+      }
 
-  // Make panels face camera (yaw-only) every frame
-  scene.onBeforeRenderObservable.add(()=>{
-    const cpos = cam.position;
-    [panelL, panelM, panelR].forEach(p=>{
-      const dx = cpos.x - p.position.x;
-      const dz = cpos.z - p.position.z;
-      const yaw = Math.atan2(dx, dz);
-      p.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(0, yaw, 0);
-    });
-    // Comfort clamp pitch
-    cam.rotation.x = clamp(cam.rotation.x, -0.35, 0.35);
-  });
+      const panelL = makePanel("panelL", 1.55, 2.1);
+      const panelM = makePanel("panelM", 1.95, 2.1);
+      const panelR = makePanel("panelR", 1.55, 2.1);
 
-  // GUI on meshes
-  function panelTexture(mesh){
-    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
-    return adt;
-  }
+      function placePanels(){
+        const w = Math.min(window.innerWidth, window.innerHeight);
+        const R = (w < 420) ? 3.8 : (w < 520 ? 4.2 : 4.6);
+        const spread = (w < 420) ? 0.62 : 0.56; // radians (~35° / 32°)
 
-  function makeGlassContainer(adt, title){
-    const root = new BABYLON.GUI.Rectangle();
-    root.width = 0.94;
-    root.height = 0.94;
-    root.thickness = 1;
-    root.color = "rgba(255,255,255,0.16)";
-    root.cornerRadius = 18;
-    root.background = "rgba(15,15,15,0.72)";
-    adt.addControl(root);
+        function setArc(mesh, a){
+          const x = Math.sin(a) * R;
+          const z = Math.cos(a) * R;
+          mesh.position.set(x, 1.6, z);
+        }
+        setArc(panelL, -spread);
+        setArc(panelM, 0);
+        setArc(panelR, spread);
+        // Pull the arc closer to the camera
+        panelL.position.z += 1.2;
+        panelM.position.z += 1.55;
+        panelR.position.z += 1.2;
+      }
+      placePanels();
 
-    const header = new BABYLON.GUI.TextBlock();
-    header.text = title;
-    header.height = "46px";
-    header.top = "-44%";
-    header.color = "#e8e2d6";
-    header.fontFamily = "monospace";
-    header.fontSize = 26;
-    header.letterSpacing = "4px";
-    header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-    root.addControl(header);
+      // Make panels face camera (yaw-only) every frame
+      scene.onBeforeRenderObservable.add(()=>{
+        const cpos = cam.position;
+        [panelL, panelM, panelR].forEach(p=>{
+          const dx = cpos.x - p.position.x;
+          const dz = cpos.z - p.position.z;
+          const yaw = Math.atan2(dx, dz);
+          p.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(0, yaw, 0);
+        });
+        // Comfort clamp pitch
+        cam.rotation.x = clamp(cam.rotation.x, -0.35, 0.35);
+      });
 
-    return root;
-  }
+      // GUI on meshes
+      function panelTexture(mesh){
+        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1400, false);
+        return adt;
+      }
 
-  // LEFT: Categories
-  const adtL = panelTexture(panelL);
-  const rootL = makeGlassContainer(adtL, "CATEGORIES");
+      function makeGlassContainer(adt, title){
+        const root = new BABYLON.GUI.Rectangle();
+        root.width = 0.94;
+        root.height = 0.94;
+        root.thickness = 1;
+        root.color = "rgba(255,255,255,0.16)";
+        root.cornerRadius = 18;
+        root.background = "rgba(15,15,15,0.82)";
+        adt.addControl(root);
 
-  const catStack = new BABYLON.GUI.StackPanel();
-  catStack.width = 0.88;
-  catStack.top = "40px";
-  catStack.isVertical = true;
-  catStack.spacing = 10;
-  rootL.addControl(catStack);
+        const header = new BABYLON.GUI.TextBlock();
+        header.text = title;
+        header.height = "46px";
+        header.top = "-44%";
+        header.color = "#e8e2d6";
+        header.fontFamily = "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        header.fontSize = 30;
+        header.letterSpacing = "4px";
+        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        root.addControl(header);
 
-  function catButton(label){
-    const b = BABYLON.GUI.Button.CreateSimpleButton("cat_"+label, label.toUpperCase());
-    b.height = "44px";
-    b.thickness = 1;
-    b.color = "rgba(255,255,255,0.16)";
-    b.cornerRadius = 14;
-    b.background = "rgba(255,255,255,0.03)";
-    b.fontFamily = "monospace";
-    b.fontSize = 20;
-    b.textBlock.color = "#e8e2d6";
-    b.onPointerUpObservable.add(()=>{
-      state.cat = label;
-      state.selected = null;
-      refreshProjects();
-      refreshViewer();
+        return root;
+      }
+
+      // LEFT: Categories
+      const adtL = panelTexture(panelL);
+      const rootL = makeGlassContainer(adtL, "CATEGORIES");
+
+      const catStack = new BABYLON.GUI.StackPanel();
+      catStack.width = 0.88;
+      catStack.top = "40px";
+      catStack.isVertical = true;
+      catStack.spacing = 10;
+      rootL.addControl(catStack);
+
+      function catButton(label){
+        const b = BABYLON.GUI.Button.CreateSimpleButton("cat_"+label, label.toUpperCase());
+        b.height = "44px";
+        b.thickness = 1;
+        b.color = "rgba(255,255,255,0.16)";
+        b.cornerRadius = 14;
+        b.background = "rgba(255,255,255,0.03)";
+        b.fontFamily = "monospace";
+        b.fontSize = 20;
+        b.textBlock.color = "#e8e2d6";
+        b.onPointerUpObservable.add(()=>{
+          state.cat = label;
+          state.selected = null;
+          refreshProjects();
+          refreshViewer();
+          highlightCats();
+        });
+        return b;
+      }
+
+      const catButtons = [];
+      catButtons.push(catButton("All"));
+      CATEGORIES.forEach(c=>catButtons.push(catButton(c)));
+      catButtons.forEach(b=>catStack.addControl(b));
+
+      function highlightCats(){
+        catButtons.forEach(b=>{
+          const active = (b.name === "cat_"+state.cat);
+          b.background = active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)";
+          b.thickness = active ? 1.5 : 1;
+        });
+      }
       highlightCats();
-    });
-    return b;
-  }
 
-  const catButtons = [];
-  catButtons.push(catButton("All"));
-  CATEGORIES.forEach(c=>catButtons.push(catButton(c)));
-  catButtons.forEach(b=>catStack.addControl(b));
+      // MIDDLE: Project Wall (scroll)
+      const adtM = panelTexture(panelM);
+      const rootM = makeGlassContainer(adtM, "PROJECT WALL");
 
-  function highlightCats(){
-    catButtons.forEach(b=>{
-      const active = (b.name === "cat_"+state.cat);
-      b.background = active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)";
-      b.thickness = active ? 1.5 : 1;
-    });
-  }
-  highlightCats();
+      const scroll = new BABYLON.GUI.ScrollViewer();
+      scroll.width = 0.90;
+      scroll.height = 0.80;
+      scroll.top = "60px";
+      scroll.thickness = 0;
+      scroll.barSize = 10;
+      scroll.color = "rgba(255,255,255,0.16)";
+      scroll.background = "rgba(0,0,0,0)";
+      rootM.addControl(scroll);
 
-  // MIDDLE: Project Wall (scroll)
-  const adtM = panelTexture(panelM);
-  const rootM = makeGlassContainer(adtM, "PROJECT WALL");
+      const projStack = new BABYLON.GUI.StackPanel();
+      projStack.width = 1.0;
+      projStack.isVertical = true;
+      projStack.spacing = 12;
+      scroll.addControl(projStack);
 
-  const scroll = new BABYLON.GUI.ScrollViewer();
-  scroll.width = 0.90;
-  scroll.height = 0.80;
-  scroll.top = "60px";
-  scroll.thickness = 0;
-  scroll.barSize = 10;
-  scroll.color = "rgba(255,255,255,0.16)";
-  scroll.background = "rgba(0,0,0,0)";
-  rootM.addControl(scroll);
+      function projectCard(p){
+        const r = new BABYLON.GUI.Rectangle();
+        r.width = 1.0;
+        r.height = "120px";
+        r.thickness = 1;
+        r.color = "rgba(255,255,255,0.14)";
+        r.cornerRadius = 16;
+        r.background = "rgba(255,255,255,0.02)";
 
-  const projStack = new BABYLON.GUI.StackPanel();
-  projStack.width = 1.0;
-  projStack.isVertical = true;
-  projStack.spacing = 12;
-  scroll.addControl(projStack);
+        const title = new BABYLON.GUI.TextBlock();
+        title.text = p.title;
+        title.color = "#e8e2d6";
+        title.fontFamily = "EB Garamond, serif";
+        title.fontSize = 38;
+        title.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        title.left = "20px";
+        title.top = "-18px";
+        r.addControl(title);
 
-  function projectCard(p){
-    const r = new BABYLON.GUI.Rectangle();
-    r.width = 1.0;
-    r.height = "120px";
-    r.thickness = 1;
-    r.color = "rgba(255,255,255,0.14)";
-    r.cornerRadius = 16;
-    r.background = "rgba(255,255,255,0.02)";
+        const meta = new BABYLON.GUI.TextBlock();
+        meta.text = (p.cat + "  •  " + p.date).toUpperCase();
+        meta.color = "rgba(232,226,214,0.72)";
+        meta.fontFamily = "Source Code Pro, ui-monospace, monospace";
+        meta.fontSize = 19;
+        meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        meta.left = "20px";
+        meta.top = "22px";
+        r.addControl(meta);
 
-    const title = new BABYLON.GUI.TextBlock();
-    title.text = p.title;
-    title.color = "#e8e2d6";
-    title.fontFamily = "serif";
-    title.fontSize = 34;
-    title.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    title.left = "20px";
-    title.top = "-18px";
-    r.addControl(title);
+        r.onPointerUpObservable.add(()=>{
+          state.selected = p;
+          refreshViewer();
+        });
 
-    const meta = new BABYLON.GUI.TextBlock();
-    meta.text = (p.cat + "  •  " + p.date).toUpperCase();
-    meta.color = "rgba(232,226,214,0.72)";
-    meta.fontFamily = "monospace";
-    meta.fontSize = 18;
-    meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    meta.left = "20px";
-    meta.top = "22px";
-    r.addControl(meta);
+        return r;
+      }
 
-    r.onPointerUpObservable.add(()=>{
-      state.selected = p;
-      refreshViewer();
-    });
+      function filteredProjects(){
+        const q = ""; // search disabled
+        return PROJECTS.filter(p=>{
+          const catOk = (state.cat === "All") || (p.cat === state.cat);
+          const qOk = !q || (p.title.toLowerCase().includes(q) || (p.desc||"").toLowerCase().includes(q));
+          return catOk && qOk;
+        }).sort((a,b)=> (a.date < b.date ? 1 : -1));
+      }
 
-    return r;
-  }
+      function refreshProjects(){
+        projStack.clearControls();
+        const list = filteredProjects();
+        if(list.length === 0){
+          const t = new BABYLON.GUI.TextBlock();
+          t.text = "NO RESULTS";
+          t.color = "rgba(232,226,214,0.72)";
+          t.fontFamily = "monospace";
+          t.fontSize = 22;
+          t.height = "60px";
+          projStack.addControl(t);
+          return;
+        }
+        list.forEach(p=>projStack.addControl(projectCard(p)));
+      }
+      refreshProjects();
 
-  function filteredProjects(){
-    const q = (state.q||"").trim().toLowerCase();
-    return PROJECTS.filter(p=>{
-      const catOk = (state.cat === "All") || (p.cat === state.cat);
-      const qOk = !q || (p.title.toLowerCase().includes(q) || (p.desc||"").toLowerCase().includes(q));
-      return catOk && qOk;
-    }).sort((a,b)=> (a.date < b.date ? 1 : -1));
-  }
+      // RIGHT: Viewer
+      const adtR = panelTexture(panelR);
+      const rootR = makeGlassContainer(adtR, "VIEWER");
 
-  function refreshProjects(){
-    projStack.clearControls();
-    const list = filteredProjects();
-    if(list.length === 0){
-      const t = new BABYLON.GUI.TextBlock();
-      t.text = "NO RESULTS";
-      t.color = "rgba(232,226,214,0.72)";
-      t.fontFamily = "monospace";
-      t.fontSize = 22;
-      t.height = "60px";
-      projStack.addControl(t);
-      return;
-    }
-    list.forEach(p=>projStack.addControl(projectCard(p)));
-  }
-  refreshProjects();
-
-  // RIGHT: Viewer
-  const adtR = panelTexture(panelR);
-  const rootR = makeGlassContainer(adtR, "VIEWER");
-
-  const viewTitle = new BABYLON.GUI.TextBlock();
-  viewTitle.text = "Select a project";
-  viewTitle.color = "#e8e2d6";
-  viewTitle.fontFamily = "serif";
-  viewTitle.fontSize = 34;
-  viewTitle.top = "40px";
-  viewTitle.textWrapping = true;
-  viewTitle.height = "120px";
-  rootR.addControl(viewTitle);
-
-  const viewMeta = new BABYLON.GUI.TextBlock();
-  viewMeta.text = "";
-  viewMeta.color = "rgba(232,226,214,0.72)";
-  viewMeta.fontFamily = "monospace";
-  viewMeta.fontSize = 18;
-  viewMeta.top = "130px";
-  viewMeta.height = "40px";
-  rootR.addControl(viewMeta);
-
-  const viewDesc = new BABYLON.GUI.TextBlock();
-  viewDesc.text = "Tap a card in Project Wall.";
-  viewDesc.color = "rgba(232,226,214,0.82)";
-  viewDesc.fontFamily = "serif";
-  viewDesc.fontSize = 26;
-  viewDesc.textWrapping = true;
-  viewDesc.top = "190px";
-  viewDesc.height = "520px";
-  rootR.addControl(viewDesc);
-
-  function refreshViewer(){
-    if(!state.selected){
+      const viewTitle = new BABYLON.GUI.TextBlock();
       viewTitle.text = "Select a project";
-      viewMeta.text = (state.cat === "All" ? "" : state.cat.toUpperCase());
+      viewTitle.color = "#e8e2d6";
+      viewTitle.fontFamily = "EB Garamond, serif";
+      viewTitle.fontSize = 38;
+      viewTitle.top = "40px";
+      viewTitle.textWrapping = true;
+      viewTitle.height = "120px";
+      rootR.addControl(viewTitle);
+
+      const viewMeta = new BABYLON.GUI.TextBlock();
+      viewMeta.text = "";
+      viewMeta.color = "rgba(232,226,214,0.72)";
+      viewMeta.fontFamily = "Source Code Pro, ui-monospace, monospace";
+      viewMeta.fontSize = 18;
+      viewMeta.top = "130px";
+      viewMeta.height = "40px";
+      rootR.addControl(viewMeta);
+
+      const viewDesc = new BABYLON.GUI.TextBlock();
       viewDesc.text = "Tap a card in Project Wall.";
-      return;
-    }
-    viewTitle.text = state.selected.title;
-    viewMeta.text = (state.selected.cat + "  •  " + state.selected.date).toUpperCase();
-    viewDesc.text = state.selected.desc || "";
-  }
-  refreshViewer();
+      viewDesc.color = "rgba(232,226,214,0.82)";
+      viewDesc.fontFamily = "EB Garamond, serif";
+      viewDesc.fontSize = 28;
+      viewDesc.textWrapping = true;
+      viewDesc.top = "190px";
+      viewDesc.height = "520px";
+      rootR.addControl(viewDesc);
 
-  // HUD search
-  search.addEventListener("input", ()=>{
-    state.q = search.value || "";
-    state.selected = null;
-    refreshProjects();
-    refreshViewer();
-  });
-
-  // Motion permission (iOS)
-  async function enableMotion(){
-    try{
-      if(typeof DeviceOrientationEvent !== "undefined" &&
-         typeof DeviceOrientationEvent.requestPermission === "function"){
-        const res = await DeviceOrientationEvent.requestPermission();
-        if(res !== "granted") throw new Error("permission");
+      function refreshViewer(){
+        if(!state.selected){
+          viewTitle.text = "Select a project";
+          viewMeta.text = (state.cat === "All" ? "" : state.cat.toUpperCase());
+          viewDesc.text = "Tap a card in Project Wall.";
+          return;
+        }
+        viewTitle.text = state.selected.title;
+        viewMeta.text = (state.selected.cat + "  •  " + state.selected.date).toUpperCase();
+        viewDesc.text = state.selected.desc || "";
       }
-      // Babylon: add device orientation input for camera
-      if(!cam.inputs.attached.deviceOrientation){
-        cam.inputs.addDeviceOrientation();
-      }
-      hud.setAttribute("data-on","1");
-      btnEnable.textContent = "On";
-      if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
-    }catch(e){
-      hud.setAttribute("data-on","0");
-      btnEnable.textContent = "Enable motion";
-      if(hint) hint.textContent = "iPhone: tap Enable motion • Otherwise drag to look";
-    }
-  }
-  btnEnable.addEventListener("click", enableMotion);
+      refreshViewer();
 
-  // Fallback drag to look (works always)
+  
+      // Motion permission (iOS)
+      async function enableMotion(){
+        try{
+          if(typeof DeviceOrientationEvent !== "undefined" &&
+             typeof DeviceOrientationEvent.requestPermission === "function"){
+            const res = await DeviceOrientationEvent.requestPermission();
+            if(res !== "granted") throw new Error("permission");
+          }
+          // Babylon: add device orientation input for camera
+          if(!cam.inputs.attached.deviceOrientation){
+            cam.inputs.addDeviceOrientation();
+          }
+          hud.setAttribute("data-on","1");
+          btnEnable.textContent = "On";
+          if(hint) setTimeout(()=>{ hint.style.opacity = "0"; }, 1800);
+        }catch(e){
+          hud.setAttribute("data-on","0");
+          btnEnable.textContent = "Enable motion";
+          if(hint) hint.textContent = "iPhone: tap Enable motion • Otherwise drag to look";
+        }
+      }
+      btnEnable.addEventListener("click", enableMotion);
+
+      // Fallback look: two-finger drag (never steals single-finger UI interaction)
   let dragging=false, x0=0,y0=0, yaw0=0,pitch0=0;
   const MAX_YAW = 0.75, MAX_PITCH = 0.35;
-  canvas.addEventListener("pointerdown", (e)=>{
-    // don't steal UI pointer events when hitting a GUI control; Babylon GUI handles those.
-    dragging = true;
-    x0 = e.clientX; y0 = e.clientY;
-    yaw0 = cam.rotation.y; pitch0 = cam.rotation.x;
-  });
-  window.addEventListener("pointermove", (e)=>{
+
+  canvas.addEventListener("touchstart", (e)=>{
+    if(e.touches && e.touches.length === 2){
+      dragging = true;
+      const t = e.touches[0];
+      x0 = t.clientX; y0 = t.clientY;
+      yaw0 = cam.rotation.y; pitch0 = cam.rotation.x;
+      e.preventDefault();
+    }
+  }, {passive:false});
+
+  canvas.addEventListener("touchmove", (e)=>{
     if(!dragging) return;
-    const dx = e.clientX - x0;
-    const dy = e.clientY - y0;
+    if(!(e.touches && e.touches.length === 2)) { dragging=false; return; }
+    const t = e.touches[0];
+    const dx = t.clientX - x0;
+    const dy = t.clientY - y0;
     const k = 0.003;
     cam.rotation.y = clamp(yaw0 + dx*k, -MAX_YAW, MAX_YAW);
     cam.rotation.x = clamp(pitch0 + dy*k, -MAX_PITCH, MAX_PITCH);
-  });
-  window.addEventListener("pointerup", ()=> dragging=false);
+    e.preventDefault();
+  }, {passive:false});
 
-  // Exit -> return to desktop layout
-  btnExit.addEventListener("click", ()=>{
-    document.body.classList.remove("bab3d-on");
-    root.setAttribute("aria-hidden","true");
-    engine.stopRenderLoop();
-    try{ engine.dispose(); }catch(_){}
-  });
+  canvas.addEventListener("touchend", ()=>{ dragging=false; }, {passive:true});
+  canvas.addEventListener("touchcancel", ()=>{ dragging=false; }, {passive:true});
 
-  window.addEventListener("resize", ()=>{
-    engine.resize();
-    placePanels();
-  }, {passive:true});
-  window.addEventListener("orientationchange", ()=>setTimeout(()=>{engine.resize(); placePanels();}, 250), {passive:true});
+      // Exit -> return to desktop layout
+      btnExit.addEventListener("click", ()=>{
+        document.body.classList.remove("bab3d-on");
+        root.setAttribute("aria-hidden","true");
+        engine.stopRenderLoop();
+        try{ engine.dispose(); }catch(_){}
+      });
 
-  engine.runRenderLoop(()=> scene.render());
+      window.addEventListener("resize", ()=>{
+        engine.resize();
+        placePanels();
+      }, {passive:true});
+      window.addEventListener("orientationchange", ()=>setTimeout(()=>{engine.resize(); placePanels();}, 250), {passive:true});
+
+      engine.runRenderLoop(()=> scene.render());
+  }
+
+  if(startBtn){
+    startBtn.addEventListener("click", ()=>{
+      init3D();
+    });
+  }
+
 })();
 </script>
 
