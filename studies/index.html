@@ -440,67 +440,62 @@ body::after{
 }
 #vrState{ opacity:.65; text-transform:uppercase; }
 
-#vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
+@media (pointer:coarse) and (hover:none) and (max-width: 900px){
+  /* Hide your desktop layout on real mobile only */
+  body{ overflow:hidden; height:100vh; }
+  #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
   #vrButton{ display:flex; }
   /* Hide everything else (desktop UI) */
   body > *:not(#vrCanvas):not(#vrButton){ display:none !important; }
 }
 
 
-/* ===== Mobile DOM-VR (Option A) =====
-   Uses CSS 3D transforms + DeviceOrientation.
-*/
+/* ===== Option A: DOM VR stage (CSS 3D) ===== */
 #vrStage{
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:6000;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.10) 0%, rgba(0,0,0,.55) 45%, rgba(0,0,0,.88) 100%);
-  pointer-events:none;
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: none;
+  pointer-events: none;
 }
-#vrStage.on{ display:block; pointer-events:auto; }
-.vrWorld{
+body.vr-on #vrStage{ display:block; pointer-events:auto; }
+body.vr-on .page{ visibility:hidden; } /* keep layout intact but hidden */
+#vrStage .vrFrame{
   position:absolute; inset:0;
-  display:flex; align-items:center; justify-content:center;
   perspective: 900px;
   perspective-origin: 50% 50%;
-  overflow:hidden;
+  transform-style: preserve-3d;
 }
-.vrRing{
-  position:relative;
-  width: 100vw;
-  height: 100vh;
-  transform-style:preserve-3d;
-  will-change: transform;
+#vrStage .vrRing{
+  position:absolute; left:50%; top:50%;
+  width: 100vw; height: 100vh;
+  transform-style: preserve-3d;
+  transform: translate3d(-50%,-50%,0);
 }
-.vrPanel{
-  position:absolute;
-  top:50%; left:50%;
-  transform-style:preserve-3d;
-  width: min(92vw, 980px);
-  max-height: 78vh;
-  transform-origin: center center;
-  pointer-events:auto;
+#vrStage .vrPanel{
+  position:absolute; left:50%; top:50%;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  width: min(92vw, 520px);
+  height: min(78vh, 760px);
+  overflow: hidden; /* internal scroll stays inside actual columns */
 }
-.vrPanel.categories{ width: min(72vw, 520px); }
-.vrPanel.viewer{ width: min(86vw, 720px); }
+#vrStage .vrPanel.categories{ width: min(78vw, 420px); }
+#vrStage .vrPanel.viewer{ width: min(92vw, 560px); }
+#vrStage .vrPanel > *{ pointer-events:auto; }
 
-/* show button on real mobile pointers */
-@media (pointer:coarse) and (hover:none){
-  #vrButton{ display:flex; }
-}
+/* Make scroll work on moved wall column */
+body.vr-on .wall{ max-height: 100%; height: 100%; }
+body.vr-on .wall .wallInner{ height: 100%; }
 
-/* Hide desktop when VR is on (mobile only) */
-body.vr-on .page,
-body.vr-on .siteHeader,
-body.vr-on #vitrine-bg,
-body.vr-on #glass{
-  display:none !important;
+/* Subtle vignette like original */
+#vrStage::before{
+  content:"";
+  position:absolute; inset:-20px;
+  pointer-events:none;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,.55) 100%);
 }
 
-/* Preserve internal scroll usability */
-body.vr-on .scrollY{ max-height: 66vh; }
-body.vr-on .wallScroll{ max-height: 66vh; }
 </style>
 </head>
 
@@ -834,43 +829,45 @@ setViewerEmpty();
 renderAll(false);
 </script>
 
+<canvas id="vrCanvas" aria-label="VR canvas"></canvas>
 
+
+<!-- ===== Option A DOM VR stage (no Babylon) ===== -->
 <div id="vrStage" aria-hidden="true">
-  <div class="vrWorld" aria-label="Mobile VR stage">
-    <div class="vrRing" id="vrRing">
-      <!-- Existing desktop columns will be moved here on VR ON -->
-    </div>
+  <div class="vrFrame">
+    <div class="vrRing" id="vrRing"></div>
   </div>
 </div>
 
-<div id="vrButton" aria-label="VR motion toggle" role="button" tabindex="0">
+<div id="vrButton" aria-label="VR motion toggle">
   <div id="vrLed" aria-hidden="true"></div>
   <div>VR</div>
   <div id="vrState">OFF</div>
 </div>
 
+
 <script>
 (function(){
+  const btn = document.getElementById("vrButton");
+  const led = document.getElementById("vrLed");
+  const stateText = document.getElementById("vrState");
+  const stage = document.getElementById("vrStage");
+  const ring = document.getElementById("vrRing");
+  if(!btn || !led || !stateText || !stage || !ring) return;
+
+  // real mobile gate (NO width)
   const isMobile = (
     (matchMedia("(pointer: coarse)").matches || matchMedia("(any-pointer: coarse)").matches) &&
     (matchMedia("(hover: none)").matches || matchMedia("(any-hover: none)").matches) &&
     (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
   );
 
-  const btn = document.getElementById("vrButton");
-  const led = document.getElementById("vrLed");
-  const stateText = document.getElementById("vrState");
-  const stage = document.getElementById("vrStage");
-  const ring = document.getElementById("vrRing");
-
-  if(!btn || !led || !stateText || !stage || !ring) return;
-
-  if(!isMobile){
-    btn.style.display = "none";
-    return;
+  function setLed(on){
+    led.style.background = on ? "rgba(120,255,140,.95)" : "rgba(200,200,200,.35)";
+    led.style.boxShadow  = on ? "0 0 10px rgba(120,255,140,.55)" : "0 0 0 rgba(0,0,0,0)";
+    stateText.textContent = on ? "ON" : "OFF";
   }
 
-  // Take existing desktop columns (exact same DOM = exact same design + existing JS)
   const elCats = document.querySelector('aside.panel[aria-label="Categories"]');
   const elWall = document.querySelector('section.wall[aria-label="Project wall"]');
   const elViewer = document.querySelector('aside.panel.viewerCol[aria-label="Viewer"]');
@@ -917,12 +914,8 @@ renderAll(false);
 
     yaw += (targetYaw - yaw) * 0.10;
     pitch += (targetPitch - pitch) * 0.10;
-  }
 
-  let raf = 0;
-  function tick(){
-    ring.style.transform = `rotateX(${(-pitch).toFixed(2)}deg) rotateY(${yaw.toFixed(2)}deg)`;
-    raf = requestAnimationFrame(tick);
+    ring.style.transform = `translate3d(-50%, -50%, 0px) rotateY(${-yaw}deg) rotateX(${pitch}deg)`;
   }
 
   async function requestMotionPermission(){
@@ -937,20 +930,14 @@ renderAll(false);
     }
   }
 
-  function setLed(on){
-    led.style.background = on ? "rgba(120,255,140,.95)" : "rgba(200,200,200,.35)";
-    led.style.boxShadow  = on ? "0 0 10px rgba(120,255,140,.55)" : "0 0 0 rgba(0,0,0,0)";
-    stateText.textContent = on ? "ON" : "OFF";
-  }
-
   function enterVR(){
     if(enabled) return;
     enabled = true;
     document.body.classList.add("vr-on");
-    stage.classList.add("on");
     stage.setAttribute("aria-hidden","false");
     setLed(true);
 
+    // move the real desktop columns into VR wrappers
     wrapCats.appendChild(elCats);
     wrapWall.appendChild(elWall);
     wrapViewer.appendChild(elViewer);
@@ -960,45 +947,298 @@ renderAll(false);
 
     setArc();
     window.addEventListener("deviceorientation", onOrient, {passive:true});
-    tick();
+    onOrient({beta:30,gamma:0});
   }
 
   function exitVR(){
     if(!enabled) return;
     enabled = false;
     document.body.classList.remove("vr-on");
-    stage.classList.remove("on");
     stage.setAttribute("aria-hidden","true");
     setLed(false);
 
-    cancelAnimationFrame(raf);
     window.removeEventListener("deviceorientation", onOrient);
 
+    // restore to original layout positions
     for(const s of slots){
       if(s.next) s.parent.insertBefore(s.el, s.next);
       else s.parent.appendChild(s.el);
     }
-    [wrapCats, wrapWall, wrapViewer].forEach(w=>{ if(w.parentNode) w.parentNode.removeChild(w); });
-    ring.style.transform = "";
+    // cleanup wrappers
+    wrapCats.remove(); wrapWall.remove(); wrapViewer.remove();
+    ring.style.transform = "translate3d(-50%,-50%,0)";
   }
 
-  // initial
-  setLed(false);
-
   async function toggle(){
+    // If not mobile, still allow preview (mouse), but no sensor.
     if(!enabled){
-      await requestMotionPermission();
+      if(isMobile){
+        const ok = await requestMotionPermission();
+        if(!ok){
+          // enter anyway (static), user can still interact
+          enterVR();
+          return;
+        }
+      }
       enterVR();
     }else{
       exitVR();
     }
   }
 
-  btn.addEventListener("click", toggle);
-  btn.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggle(); } });
+  // override any existing VR click handler
+  btn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopImmediatePropagation(); toggle(); }, true);
+  btn.addEventListener("keydown", (e)=>{ 
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); e.stopImmediatePropagation(); toggle(); }
+  }, true);
 
   window.addEventListener("resize", ()=>{ if(enabled) setArc(); }, {passive:true});
   window.addEventListener("orientationchange", ()=>{ if(enabled) setTimeout(setArc, 250); }, {passive:true});
+})();
+</script>
+
+<script>
+(function(){
+  // Real-mobile gate (same logic as CSS)
+  const isMobile =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches &&
+    window.matchMedia("(max-width: 900px)").matches;
+
+  if(!isMobile) return;
+
+  const canvas = document.getElementById("vrCanvas");
+  const led = document.getElementById("vrLed");
+  const stateText = document.getElementById("vrState");
+  const button = document.getElementById("vrButton");
+
+  // Robust state UI (works even if Babylon fails to load)
+  let cam = null;
+  let gyroOn = false;
+  let ready = false;
+  let pendingToggle = false;
+
+  function setState(label){
+    stateText.textContent = label;
+    if(label === "ON"){
+      led.classList.add("active");
+    }else{
+      led.classList.remove("active");
+    }
+  }
+  setState("OFF");
+
+  // Bind button immediately so it ALWAYS responds
+  button.addEventListener("click", async ()=>{
+    // If not ready yet, show feedback and toggle once ready
+    if(!ready){
+      pendingToggle = true;
+      setState("…");
+      return;
+    }
+    await toggleGyro();
+  });
+
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      const tag=document.createElement("script");
+      tag.src=src;
+      tag.async=true;
+      tag.onload=()=>res(src);
+      tag.onerror=()=>rej(new Error("failed to load: " + src));
+      document.head.appendChild(tag);
+    });
+  }
+
+  async function enableOrientationInput(){
+    if(!cam) return false;
+
+    // iOS permission
+    if(typeof DeviceOrientationEvent !== "undefined" &&
+       typeof DeviceOrientationEvent.requestPermission === "function"){
+      const r = await DeviceOrientationEvent.requestPermission();
+      if(r !== "granted") return false;
+    }
+
+    // Attach orientation input (Babylon will create the input instance internally)
+    try{
+      cam.inputs.addDeviceOrientation();
+      return true;
+    }catch(e){
+      // Fallback: some builds expose the input class
+      try{
+        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
+          cam.inputs.add(new BABYLON.DeviceOrientationCameraInput());
+          return true;
+        }
+      }catch(_){}
+    }
+    return false;
+  }
+
+  async function toggleGyro(){
+    if(!cam) { setState("ERR"); return; }
+
+    if(gyroOn){
+      // Turn OFF: remove the attached input if present
+      try{
+        const inp = cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation;
+        if(inp){
+          cam.inputs.remove(inp);
+        }
+      }catch(e){}
+      gyroOn = false;
+      setState("OFF");
+      return;
+    }
+
+    try{
+      const ok = await enableOrientationInput();
+      if(!ok){
+        setState("OFF");
+        return;
+      }
+      gyroOn = true;
+      setState("ON");
+    }catch(e){
+      console.error(e);
+      setState("ERR");
+    }
+  }
+
+  async function init(){
+    try{
+      // Load Babylon + GUI
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
+
+      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
+
+      cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
+      cam.setTarget(new BABYLON.Vector3(0,1.6,5));
+      cam.attachControl(canvas, true);
+      cam.speed = 0;
+
+      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      hemi.intensity = 1.05;
+      const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
+      pl.intensity = 0.55;
+
+      // Simple dish background so it's not "pure black"
+      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
+      dome.position = new BABYLON.Vector3(0,0,8);
+      dome.rotation.y = Math.PI;
+      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+      domeMat.backFaceCulling = false;
+      domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
+      domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+      domeMat.specularColor = new BABYLON.Color3(0,0,0);
+      dome.material = domeMat;
+
+      // Panels in a concave arc (parabolic feel) — visible Babylon GUI
+      function makeGuiPanel(name, w, h, title){
+        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
+        // Flip the mesh so text is not mirrored, without breaking GUI layout
+        mesh.scaling.x = -1;
+
+        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
+        mat.diffuseColor = new BABYLON.Color3(0.18,0.18,0.18);
+        mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
+        mat.specularColor = new BABYLON.Color3(0,0,0);
+        mat.alpha = 0.98;
+        mat.backFaceCulling = false;
+        mesh.material = mat;
+
+        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 900, 1200, false);
+        const frame = new BABYLON.GUI.Rectangle(name+"_frame");
+        frame.width = 0.92;
+        frame.height = 0.92;
+        frame.thickness = 1;
+        frame.cornerRadius = 28;
+        frame.color = "rgba(255,255,255,0.16)";
+        frame.background = "rgba(15,15,15,0.78)";
+        adt.addControl(frame);
+
+        const header = new BABYLON.GUI.TextBlock(name+"_hdr", title);
+        header.height = "70px";
+        header.top = "-42%";
+        header.color = "#e8e2d6";
+        header.fontFamily = "EB Garamond, serif";
+        header.fontSize = 42;
+        header.letterSpacing = "0px";
+        header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        header.paddingLeft = "34px";
+        frame.addControl(header);
+
+        const body = new BABYLON.GUI.TextBlock(name+"_body",
+          "Panels visible ✅\n\nNext step: connect real data (categories/projects) and add ScrollViewer + buttons.");
+        body.top = "6%";
+        body.color = "rgba(232,226,214,0.82)";
+        body.fontFamily = "Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+        body.fontSize = 20;
+        body.textWrapping = true;
+        body.lineSpacing = "10px";
+        body.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        body.paddingLeft = "34px";
+        body.paddingTop = "26px";
+        body.paddingRight = "34px";
+        frame.addControl(body);
+
+        return mesh;
+      }
+
+      const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
+      const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
+      const right = makeGuiPanel("panelRight", 1.85, 2.45, "Viewer");
+
+      function place(){
+        const R = 3.4;
+        const spread = 0.62;
+        function setArc(mesh, a, zBoost){
+          mesh.position.x = Math.sin(a) * R;
+          mesh.position.z = Math.cos(a) * R + zBoost;
+          mesh.position.y = 1.6;
+        }
+        setArc(left,  -spread, 1.9);
+        setArc(mid,    0,      2.25);
+        setArc(right,  spread, 1.9);
+      }
+      place();
+
+      scene.onBeforeRenderObservable.add(()=>{
+        [left,mid,right].forEach(p=>{
+          const dx = cam.position.x - p.position.x;
+          const dz = cam.position.z - p.position.z;
+          p.rotation.y = Math.atan2(dx, dz);
+        });
+      });
+
+      engine.runRenderLoop(()=> scene.render());
+      window.addEventListener("resize", ()=>{
+        engine.resize();
+        place();
+      }, {passive:true});
+
+      ready = true;
+      // If user clicked early, toggle now
+      if(pendingToggle){
+        pendingToggle = false;
+        await toggleGyro();
+      }else{
+        // restore OFF label if it was "…"
+        setState("OFF");
+      }
+
+    }catch(e){
+      console.error(e);
+      ready = false;
+      setState("ERR");
+    }
+  }
+
+  init();
 })();
 </script>
 
