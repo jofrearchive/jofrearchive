@@ -946,15 +946,23 @@ renderAll(false);
   mesh.material = mat;
 
     // Hi-res GUI texture (sharp text) WITHOUT changing visual sizes.
-  // We scale the *texture* (pixels), not the GUI layout.
+// IMPORTANT (iPhone/iOS): very large GUI textures can fail to allocate and will prevent VR from starting.
+// So we use an adaptive cap and modest supersampling.
   const dpr = (window.devicePixelRatio || 1);
-  const hi = Math.min(4096, Math.floor(2048 * Math.min(2.2, Math.max(1.4, dpr*1.4))));
+  const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+  const MAX_TEX = isiOS ? 2560 : 3072;        // safe caps (per panel)
+  const BASE    = isiOS ? 1536 : 2048;
   const aspect = w / Math.max(0.001, h);
-  const texW = Math.min(4096, Math.max(2048, Math.floor(hi * Math.max(0.75, Math.min(1.35, aspect)))));
-  const texH = Math.min(4096, Math.max(2048, Math.floor(texW / Math.max(0.001, aspect))));
+
+  // Choose texture size proportional to DPR but keep within caps
+  let texW = Math.floor(BASE * Math.min(1.6, Math.max(1.0, dpr)));
+  texW = Math.max(BASE, Math.min(MAX_TEX, texW));
+  let texH = Math.floor(texW / Math.max(0.001, aspect));
+  texH = Math.max(BASE, Math.min(MAX_TEX, texH));
+
   const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, texW, texH, false);
-  // Supersample GUI rendering for additional crispness (doesn't change sizes)
-  adt.renderScale = 1.75;
+  // Modest supersampling (crisper) without blowing GPU memory
+  adt.renderScale = isiOS ? 1.15 : 1.25;
 
   // ---------- Shared UI state (stored once) ----------
   if(!scene.metadata) scene.metadata = {};
