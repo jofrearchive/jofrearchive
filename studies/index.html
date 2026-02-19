@@ -932,6 +932,7 @@ renderAll(false);
 
       // Panels in a concave arc (parabolic feel) — visible Babylon GUI
       function makeGuiPanel(name, w, h, title){
+  try{
   // Only Babylon GUI work here. Desktop + engine + VR toggle untouched.
   const mesh = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, scene);
   // Fix mirrored text in VR without DOM/CSS tricks
@@ -950,8 +951,8 @@ renderAll(false);
 // So we use an adaptive cap and modest supersampling.
   const dpr = (window.devicePixelRatio || 1);
   const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
-  const MAX_TEX = isiOS ? 2560 : 3072;        // safe caps (per panel)
-  const BASE    = isiOS ? 1536 : 2048;
+  const MAX_TEX = isiOS ? 2048 : 3072;        // safe caps (per panel)
+  const BASE    = isiOS ? 1024 : 2048;
   const aspect = w / Math.max(0.001, h);
 
   // Choose texture size proportional to DPR but keep within caps
@@ -962,7 +963,7 @@ renderAll(false);
 
   const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, texW, texH, false);
   // Modest supersampling (crisper) without blowing GPU memory
-  adt.renderScale = isiOS ? 1.15 : 1.25;
+  adt.renderScale = isiOS ? 1.10 : 1.25;
 
   // ---------- Shared UI state (stored once) ----------
   if(!scene.metadata) scene.metadata = {};
@@ -1509,6 +1510,27 @@ rebuild();
   }
 
   return mesh;
+  }catch(e){
+    console.error('[makeGuiPanel] GUI error', e);
+    // Fallback minimal panel so VR can still start
+    try{
+      const _adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, 1024, 1024, false);
+      const r = new BABYLON.GUI.Rectangle(name+'_fallback');
+      r.thickness = 1;
+      r.color = "rgba(255,255,255,0.16)";
+      r.background = "rgba(15,15,15,0.78)";
+      _adt.addControl(r);
+      const t = new BABYLON.GUI.TextBlock();
+      t.text = (title || name) + " (GUI ERROR)";
+      t.color = "#e8e2d6";
+      t.fontFamily = "monospace";
+      t.fontSize = 28;
+      t.textWrapping = true;
+      r.addControl(t);
+    }catch(_e){ /* ignore */ }
+    return mesh;
+  }
+
 }
 
 
