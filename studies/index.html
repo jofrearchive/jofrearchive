@@ -1252,47 +1252,58 @@ renderAll(false);
     sTxt.paddingLeft = "18px";
     search.addControl(sTxt);
     stack.addControl(search);
+  // Categories as single vertical column of square buttons
+  frame.width = 0.78; // make the whole left panel visually narrower (no physical overlap)
+  stack.width = 0.86;
 
-    // Category capsules in 2-col grid
-    const cats = UI.categories.slice();
-    const btnGrid = new BABYLON.GUI.Grid(name+"_catGrid");
-    btnGrid.addColumnDefinition(0.5);
-    btnGrid.addColumnDefinition(0.5);
-    const rows = Math.ceil(cats.length/2);
-    for(let r=0;r<rows;r++) btnGrid.addRowDefinition(1/rows);
-    btnGrid.height = (rows*86 + (rows-1)*10) + "px";
-    btnGrid.paddingTop = "6px";
-    btnGrid.paddingLeft = "2px";
-    btnGrid.paddingRight = "2px";
-    btnGrid.isVertical = true;
-    stack.addControl(btnGrid);
+  const cats = UI.categories.slice();
+  const btnStack = new BABYLON.GUI.StackPanel(name+"_catStack");
+  btnStack.width = 1;
+  btnStack.isVertical = true;
+  btnStack.spacing = 14;
+  btnStack.paddingTop = "10px";
+  stack.addControl(btnStack);
 
-    const btnRefs = {};
-    for(let i=0;i<cats.length;i++){
-      const cat = cats[i];
-      const r = Math.floor(i/2);
-      const c = i%2;
-      const btn = capsuleButton(cat);
-      btn.width = "98%";
-      btn.height = "74px";
-      btn.background = (UI.activeCategory===cat) ? COLORS.pillOn : COLORS.pill;
-      btn.onPointerClickObservable.add(()=>{
-        UI.activeCategory = cat;
-        // update active styles + rebuild center
-        UI.activeProjectId = (UI.getFiltered()[0] || UI.projects[0]).id;
-        if(UI.panels.center && UI.panels.center.rebuild) UI.panels.center.rebuild();
-        if(UI.panels.right && UI.panels.right.render) UI.panels.right.render();
-        // refresh left button states
-        Object.keys(btnRefs).forEach(k=>{
-          btnRefs[k].background = (UI.activeCategory===k) ? COLORS.pillOn : COLORS.pill;
-        });
-        // update badge counts
-        badgeTxt.text = (UI.categories.length-1)+" ITEMS";
-      });
-      btnRefs[cat]=btn;
-      btnGrid.addControl(btn, r, c);
+  const btnRefs = {};
+  for(let i=0;i<cats.length;i++){
+    const cat = cats[i];
+
+    const btn = capsuleButton(cat);
+    // force square look
+    btn.width = "170px";
+    btn.height = "170px";
+    btn.cornerRadius = 10;
+    btn.thickness = 1;
+    btn.color = COLORS.border;
+    btn.background = (UI.activeCategory===cat) ? COLORS.pillOn : COLORS.pill;
+    btn.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+
+    // Center label, allow wrap if needed but keep one-per-button
+    if(btn.children && btn.children[0] && btn.children[0].text !== undefined){
+      const t = btn.children[0];
+      t.textWrapping = true;
+      t.resizeToFit = false;
+      t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+      t.paddingLeft = "10px";
+      t.paddingRight = "10px";
     }
+
+    btn.onPointerClickObservable.add(()=>{
+      UI.activeCategory = cat;
+      UI.activeProjectId = (UI.getFiltered()[0] || UI.projects[0]).id;
+      if(UI.panels.center && UI.panels.center.rebuild) UI.panels.center.rebuild();
+      if(UI.panels.right && UI.panels.right.render) UI.panels.right.render();
+      Object.keys(btnRefs).forEach(k=>{
+        btnRefs[k].background = (UI.activeCategory===k) ? COLORS.pillOn : COLORS.pill;
+      });
+      badgeTxt.text = (UI.categories.length-1)+" ITEMS";
+    });
+
+    btnRefs[cat]=btn;
+    btnStack.addControl(btn);
   }
+}
 
   function buildCenter(){
     // Clear body then rebuild (safe)
@@ -1312,129 +1323,58 @@ renderAll(false);
     scroll.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
     scroll.paddingTop = "26px";
     localBody.addControl(scroll);
+// Content container for column grid
+const content = new BABYLON.GUI.Container(name+"_content");
+content.width = 1;
+content.height = 1;
+scroll.addControl(content);
 
-    const listStack = new BABYLON.GUI.StackPanel(name+"_cards");
-    listStack.width = 1;
-    listStack.spacing = 18;
-    listStack.paddingBottom = "20px";
-    scroll.addControl(listStack);
+const COLS = 3;           // match desktop wall columns
+const CARD_H = 460;       // card height in px (desktop-like density)
+const GAP = 18;           // vertical gap
 
-    function makeCard(p){
-      const card = new BABYLON.GUI.Rectangle(name+"_card_"+p.id);
-      card.height = "420px";
-      card.thickness = 1;
-      card.color = COLORS.border;
-      card.cornerRadius = 10;
-      card.background = (UI.activeProjectId===p.id) ? COLORS.cardOn : COLORS.card;
+function makeWallGrid(list){
+  const rows = Math.max(1, Math.ceil(list.length / COLS));
+  const g = new BABYLON.GUI.Grid(name+"_wallGrid");
 
-      const g = new BABYLON.GUI.Grid();
-      g.addColumnDefinition(1);
-      g.addRowDefinition(0.46);
-      g.addRowDefinition(0.54);
-      card.addControl(g);
+  // 3 equal columns
+  for(let c=0;c<COLS;c++) g.addColumnDefinition(1/COLS);
 
-      // image
-      const img = new BABYLON.GUI.Rectangle();
-      img.thickness = 1;
-      img.color = "rgba(255,255,255,0.08)";
-      img.background = "rgba(0,0,0,0.22)";
-      img.cornerRadius = 8;
-      g.addControl(img,0,0);
+  // pixel rows to keep consistent card sizing
+  for(let r=0;r<rows;r++) g.addRowDefinition(CARD_H + (r===rows-1?0:GAP), true);
 
-      const imgUrl = makePngThumb(p);
-      if(imgUrl){
-        const im = new BABYLON.GUI.Image(name+"_img_"+p.id, imgUrl);
-        im.width = 1;
-        im.height = 1;
-        im.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM_TO_FILL;
-        // Slight soften to match aesthetic
-        im.alpha = 0.92;
-        img.addControl(im);
-      } else {
-        const imgTxt = new BABYLON.GUI.TextBlock();
-        imgTxt.text = (p.category||"").toUpperCase()+"  "+(p.year||"");
-        imgTxt.color = COLORS.inkDim;
-        imgTxt.fontFamily = COLORS.mono;
-        imgTxt.fontSize = 24;
-        imgTxt.letterSpacing = 2;
-        imgTxt.textWrapping = true;
-        imgTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        imgTxt.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-        imgTxt.paddingLeft="16px";
-        imgTxt.paddingTop="16px";
-        img.addControl(imgTxt);
-      }
+  g.width = 1;
+  g.height = (rows * (CARD_H + GAP)) + "px";
+  g.paddingLeft = "6px";
+  g.paddingRight = "6px";
+  g.paddingBottom = "18px";
+  return g;
+}
 
-      // content
-      const content = new BABYLON.GUI.Container();
-      content.paddingLeft="18px"; content.paddingRight="18px";
-      g.addControl(content,1,0);
+function rebuild(){
+  content.clearControls();
+  const list = UI.getFiltered();
+  badgeTxt.text = list.length+" / "+UI.projects.length;
 
-      const meta = new BABYLON.GUI.TextBlock();
-      meta.text = p.category.toUpperCase();
-      meta.color = COLORS.inkDim;
-      meta.fontFamily = COLORS.mono;
-      meta.fontSize = 20;
-      meta.letterSpacing = 2;
-      meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      meta.top = "10px";
-      content.addControl(meta);
+  const wallGrid = makeWallGrid(list);
+  content.addControl(wallGrid);
 
-      const year = new BABYLON.GUI.TextBlock();
-      year.text = p.year;
-      year.color = COLORS.inkDim;
-      year.fontFamily = COLORS.mono;
-      year.fontSize = 20;
-      year.letterSpacing = 2;
-      year.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-      year.top = "10px";
-      content.addControl(year);
+  for(let i=0;i<list.length;i++){
+    const p = list[i];
+    const r = Math.floor(i / COLS);
+    const c = i % COLS;
 
-      const t = new BABYLON.GUI.TextBlock();
-      t.text = p.title;
-      t.color = COLORS.ink;
-      t.fontFamily = COLORS.serif;
-      t.fontSize = 30;
-      t.textWrapping = true;
-      t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      t.top = "52px";
-      content.addControl(t);
+    const card = makeCard(p);
+    card.height = CARD_H + "px";
+    card.width = 0.97;
+    card.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    card.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
 
-      // tags row
-      const tagsRow = new BABYLON.GUI.StackPanel();
-      tagsRow.isVertical = false;
-      tagsRow.height = "56px";
-      tagsRow.top = "140px";
-      tagsRow.spacing = 10;
-      tagsRow.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      content.addControl(tagsRow);
+    wallGrid.addControl(card, r, c);
+  }
+}
 
-      (p.tags || []).slice(0,3).forEach(tag=>{
-        const pill = tagPill(tag);
-        pill.width = (tag.length>10 ? "220px" : "180px");
-        tagsRow.addControl(pill);
-      });
-
-      card.isPointerBlocker = true;
-      card.onPointerClickObservable.add(()=>{
-        UI.activeProjectId = p.id;
-        rebuild(); // update selection highlight
-        if(UI.panels.right && UI.panels.right.render) UI.panels.right.render();
-      });
-
-      return card;
-    }
-
-    function rebuild(){
-      listStack.clearControls();
-      const list = UI.getFiltered();
-      badgeTxt.text = list.length+" / "+UI.projects.length;
-      for(let i=0;i<list.length;i++){
-        listStack.addControl(makeCard(list[i]));
-      }
-    }
-
-    rebuild();
+rebuild();
     UI.panels.center = { frame, body:localBody, rebuild };
   }
 
