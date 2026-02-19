@@ -946,9 +946,12 @@ renderAll(false);
   mesh.material = mat;
 
   // Hi-res GUI texture (crisper text). Keep aspect similar to your layout.
-  const texW = Math.max(1600, Math.floor(2000 * (w / Math.max(0.01, h))));
-  const texH = Math.max(2200, Math.floor(texW * (h / Math.max(0.01, w))));
+  // Higher-resolution GUI texture for sharper text on mobile VR (kept inside makeGuiPanel)
+  const texW = Math.max(2400, Math.floor(3200 * (w / Math.max(0.01, h))));
+  const texH = Math.max(3200, Math.floor(texW * (h / Math.max(0.01, w))));
   const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, texW, texH, false);
+  // Extra supersampling without changing any engine/render-loop code
+  adt.renderScale = 1.25;
 
   // ---------- Shared UI state (stored once) ----------
   if(!scene.metadata) scene.metadata = {};
