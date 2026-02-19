@@ -932,6 +932,1661 @@ renderAll(false);
 
       // Panels in a concave arc (parabolic feel) — visible Babylon GUI
       function makeGuiPanel(name, w, h, title){
+  // NOTE: Do not touch engine/loader/toggle/desktop. GUI-only.
+  try{
+    // ---------- shared state ----------
+    const S = (window.__VR_STUDIES_STATE__ = window.__VR_STUDIES_STATE__ || {
+      activeCategory: "ALL",
+      activeProjectId: null,
+      // references
+      left:{}, mid:{}, right:{},
+      projects: null
+    });
+
+    // Mock projects (only if not already provided by the host file)
+    if(!S.projects){
+      S.projects = [
+        { id:"LAN-0001", category:"LANDSCAPE", year:"2025", place:"Mediterranean basin",
+          title:"LEAF-PATTERN CARTOGRAPHY STUDIES",
+          tags:["plants","pattern","territory"],
+          desc:[
+            "Landscape read as sediment: layers of presence",
+            "across territories.",
+            "Leaves as diagram: veins, flows, and memory"
+          ].join("\n"),
+          image:null
+        },
+        { id:"MUR-0001", category:"MURALS", year:"2025", place:"", title:"TRAJECTORY — WALLS AS COORDINATES",
+          tags:["wall","cartography","site"], desc:"", image:null
+        },
+        { id:"BIO-0001", category:"BIOSYSTEMS", year:"2024", place:"", title:"CELLULOSE SOLAR PANEL (SCREEN-PRINT TESTS)",
+          tags:["cellulose","serigraphy","solar"], desc:"", image:null
+        },
+        { id:"DYS-0001", category:"DYSTOPIC POP ART", year:"2024", place:"", title:"CARNIVAL OF PROGRESS (DYSTOPIC POP)",
+          tags:["carnival","critique","spectacle"], desc:"", image:null
+        },
+        { id:"CYM-0001", category:"CYMATICS", year:"2024", place:"", title:"CYMATICS STUDIES (FREQUENCY PATTERNS)",
+          tags:["frequency","pattern","sound"], desc:"", image:null
+        },
+        { id:"PUB-0001", category:"PUBLIC ART", year:"2024", place:"", title:"KONVENT — COMMUNITY AS INFRASTRUCTURE",
+          tags:["community","residency","territory"], desc:"", image:null
+        }
+      ];
+      S.activeProjectId = S.projects[0].id;
+    }
+
+    const projects = S.projects;
+
+    // ---------- helpers ----------
+    const isLeft  = (title || "").toLowerCase().includes("categories") || /left/i.test(name);
+    const isMid   = (title || "").toLowerCase().includes("project")    || /mid|center/i.test(name);
+    const isRight = (title || "").toLowerCase().includes("viewer")     || /right/i.test(name);
+
+    const BG   = "rgba(15,15,15,0.78)";
+    const BRD  = "rgba(255,255,255,0.16)";
+    const BRD2 = "rgba(255,255,255,0.10)";
+    const INK  = "#e8e2d6";
+    const DIM  = "rgba(232,226,214,0.72)";
+    const MONO = "'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    const SER  = "'EB Garamond', Georgia, serif";
+
+    function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+    function filtered(){
+      const cat = S.activeCategory;
+      if(cat==="ALL") return projects;
+      return projects.filter(p => p.category === cat);
+    }
+
+    function getActive(){
+      return projects.find(p => p.id === S.activeProjectId) || projects[0];
+    }
+
+    function setActiveProject(id){
+      S.activeProjectId = id;
+      // update viewer
+      if(S.right && S.right.title){
+        const p = getActive();
+        S.right.title.text = (p.title || "").toUpperCase();
+        S.right.catPill.text = (p.category || "").toUpperCase();
+        S.right.metaIdVal.text = p.id || "";
+        S.right.metaCatVal.text = (p.category || "");
+        S.right.metaYearVal.text = p.year || "";
+        S.right.metaPlaceVal.text = p.place || "";
+        S.right.metaTagsVal.text = (p.tags || []).join(", ");
+        S.right.desc.text = (p.desc || "").trim() || " ";
+      }
+      // update card highlighting
+      if(S.mid && S.mid.cards){
+        S.mid.cards.forEach(({id, card})=>{
+          card.background = (id===S.activeProjectId) ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0)";
+        });
+      }
+    }
+
+    function setActiveCategory(cat){
+      S.activeCategory = cat;
+      // update left buttons
+      if(S.left && S.left.btns){
+        S.left.btns.forEach(({cat:cc, btn})=>{
+          btn.background = (cc===S.activeCategory) ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0)";
+          btn.color = INK;
+        });
+      }
+      // rebuild grid in mid
+      if(S.mid && S.mid.rebuild){
+        S.mid.rebuild();
+      }
+      // keep active project valid
+      const list = filtered();
+      if(!list.some(p=>p.id===S.activeProjectId)){
+        S.activeProjectId = list[0] ? list[0].id : projects[0].id;
+      }
+      setActiveProject(S.activeProjectId);
+    }
+
+    function makeFrame(){
+      const frame = new BABYLON.GUI.Rectangle();
+      frame.thickness = 1;
+      frame.color = BRD;
+      frame.background = BG;
+      frame.cornerRadius = 6;
+      frame.clipChildren = true;
+      return frame;
+    }
+
+    function addGridOverlay(parent){
+      // Lightweight overlay: a few vertical + horizontal faint lines (NOT full grid, to keep perf safe).
+      const overlay = new BABYLON.GUI.Rectangle();
+      overlay.thickness = 0;
+      overlay.isHitTestVisible = false;
+      overlay.background = "rgba(0,0,0,0)";
+      parent.addControl(overlay);
+
+      const cols = 6, rows = 8;
+      for(let i=1;i<cols;i++){
+        const v = new BABYLON.GUI.Rectangle();
+        v.thickness = 0;
+        v.isHitTestVisible = false;
+        v.background = "rgba(255,255,255,0.03)";
+        v.width = "1px";
+        v.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        v.left = (i/cols*100) + "%";
+        overlay.addControl(v);
+      }
+      for(let j=1;j<rows;j++){
+        const hline = new BABYLON.GUI.Rectangle();
+        hline.thickness = 0;
+        hline.isHitTestVisible = false;
+        hline.background = "rgba(255,255,255,0.03)";
+        hline.height = "1px";
+        hline.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        hline.top = (j/rows*100) + "%";
+        overlay.addControl(hline);
+      }
+    }
+
+    function headerBlock(kicker, h1, rightBadgeText){
+      const box = new BABYLON.GUI.Rectangle();
+      box.thickness = 1;
+      box.color = BRD2;
+      box.background = "rgba(0,0,0,0.22)";
+      box.height = "110px";
+      box.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
+      box.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+
+      const g = new BABYLON.GUI.Grid();
+      g.addColumnDefinition(0.70);
+      g.addColumnDefinition(0.30);
+      g.addRowDefinition(0.45);
+      g.addRowDefinition(0.55);
+      box.addControl(g);
+
+      const t1 = new BABYLON.GUI.TextBlock();
+      t1.text = (kicker||"").toUpperCase();
+      t1.fontFamily = MONO;
+      t1.fontSize = 22;
+      t1.color = DIM;
+      t1.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      t1.paddingLeft = "18px";
+      t1.paddingTop = "10px";
+      g.addControl(t1,0,0);
+
+      const t2 = new BABYLON.GUI.TextBlock();
+      t2.text = (h1||"").toUpperCase();
+      t2.fontFamily = MONO;
+      t2.fontSize = 30;
+      t2.color = INK;
+      t2.letterSpacing = 0; // GUI doesn't support; keep clean
+      t2.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      t2.paddingLeft = "18px";
+      t2.paddingBottom = "10px";
+      g.addControl(t2,1,0);
+
+      const badge = new BABYLON.GUI.Rectangle();
+      badge.thickness = 1;
+      badge.color = BRD;
+      badge.background = "rgba(0,0,0,0.20)";
+      badge.cornerRadius = 6;
+      badge.height = "46px";
+      badge.width = "120px";
+      badge.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+      badge.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+      badge.paddingRight = "14px";
+      g.addControl(badge,1,1);
+
+      const btxt = new BABYLON.GUI.TextBlock();
+      btxt.text = (rightBadgeText||"").toUpperCase();
+      btxt.fontFamily = MONO;
+      btxt.fontSize = 20;
+      btxt.color = DIM;
+      badge.addControl(btxt);
+
+      return {box, badgeText:btxt};
+    }
+
+    function pill(text){
+      const r = new BABYLON.GUI.Rectangle();
+      r.thickness = 1;
+      r.color = BRD;
+      r.background = "rgba(0,0,0,0.25)";
+      r.cornerRadius = 999;
+      r.height = "32px";
+      r.width = "fit-content";
+      r.paddingLeft = "10px";
+      r.paddingRight = "10px";
+      r.paddingTop = "2px";
+      r.paddingBottom = "2px";
+      const tb = new BABYLON.GUI.TextBlock();
+      tb.text = (text||"").toUpperCase();
+      tb.fontFamily = MONO;
+      tb.fontSize = 18;
+      tb.color = DIM;
+      tb.paddingLeft = "10px";
+      tb.paddingRight = "10px";
+      r.addControl(tb);
+      r._tb = tb;
+      return r;
+    }
+
+    function squareCatButton(label){
+      const b = BABYLON.GUI.Button.CreateSimpleButton("cat_"+label, "");
+      b.width = "130px";
+      b.height = "130px";
+      b.thickness = 1;
+      b.cornerRadius = 8;
+      b.color = BRD;
+      b.background = "rgba(0,0,0,0)";
+      const t = new BABYLON.GUI.TextBlock();
+      t.text = label.toUpperCase();
+      t.fontFamily = MONO;
+      t.fontSize = 18;
+      t.color = INK;
+      t.textWrapping = true;
+      t.lineSpacing = "4px";
+      t.resizeToFit = true;
+      b.addControl(t);
+      b._tb = t;
+      return b;
+    }
+
+    function makeImagePlaceholder(hPx){
+      const box = new BABYLON.GUI.Rectangle();
+      box.thickness = 1;
+      box.color = BRD2;
+      box.background = "rgba(0,0,0,0.35)";
+      box.height = hPx;
+      box.clipChildren = true;
+
+      // faint horizontal lines
+      const lines = new BABYLON.GUI.StackPanel();
+      lines.isVertical = true;
+      lines.isHitTestVisible = false;
+      lines.paddingTop = "14px";
+      lines.spacing = 10;
+      box.addControl(lines);
+
+      for(let i=0;i<5;i++){
+        const l = new BABYLON.GUI.Rectangle();
+        l.thickness = 0;
+        l.background = "rgba(255,255,255,0.04)";
+        l.height = "2px";
+        l.width = (70 + (i*6)) + "%";
+        l.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        l.left = "14px";
+        lines.addControl(l);
+      }
+      return box;
+    }
+
+    function makeCard(p){
+      const card = new BABYLON.GUI.Rectangle();
+      card.thickness = 1;
+      card.color = BRD;
+      card.background = (p.id===S.activeProjectId) ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0)";
+      card.cornerRadius = 6;
+      card.height = "480px";
+      card.paddingLeft = "14px";
+      card.paddingRight = "14px";
+      card.paddingTop = "14px";
+      card.paddingBottom = "14px";
+      card.clipChildren = true;
+
+      const st = new BABYLON.GUI.StackPanel();
+      st.isVertical = true;
+      st.spacing = 10;
+      card.addControl(st);
+
+      // image area
+      const imgBox = makeImagePlaceholder("210px");
+      st.addControl(imgBox);
+
+      // meta row (category | year)
+      const meta = new BABYLON.GUI.Grid();
+      meta.addColumnDefinition(0.70);
+      meta.addColumnDefinition(0.30);
+      meta.height = "34px";
+      st.addControl(meta);
+
+      const cat = new BABYLON.GUI.TextBlock();
+      cat.text = (p.category||"").toUpperCase();
+      cat.fontFamily = MONO;
+      cat.fontSize = 18;
+      cat.color = DIM;
+      cat.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      meta.addControl(cat,0,0);
+
+      const yr = new BABYLON.GUI.TextBlock();
+      yr.text = (p.year||"");
+      yr.fontFamily = MONO;
+      yr.fontSize = 18;
+      yr.color = DIM;
+      yr.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+      meta.addControl(yr,0,1);
+
+      // title
+      const ttl = new BABYLON.GUI.TextBlock();
+      ttl.text = (p.title||"").replace(/\s+/g," ").trim();
+      ttl.fontFamily = SER;
+      ttl.fontSize = 30;
+      ttl.color = INK;
+      ttl.textWrapping = true;
+      ttl.height = "94px";
+      ttl.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      st.addControl(ttl);
+
+      // tags
+      const tagRow = new BABYLON.GUI.StackPanel();
+      tagRow.isVertical = false;
+      tagRow.height = "40px";
+      tagRow.spacing = 10;
+      tagRow.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      st.addControl(tagRow);
+
+      (p.tags||[]).slice(0,3).forEach(t=>{
+        const pl = pill(t);
+        pl.height = "34px";
+        tagRow.addControl(pl);
+      });
+
+      card.onPointerClickObservable.add(()=>{
+        setActiveProject(p.id);
+      });
+
+      return card;
+    }
+
+    // ---------- mesh + ADT ----------
+    // Keep physical sizing from caller (avoid overlap). Only increase GUI pixel density.
+    const panel = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, scene);
+    panel.isPickable = true;
+
+    // Fix mirrored text in VR (matches your prior working setup)
+    panel.scaling.x = -1;
+
+    const dpr = (window.devicePixelRatio || 1);
+    const aspect = w / h;
+    // Safe caps for iOS + mobile GPUs
+    const baseW = clamp(Math.round(1600 * dpr), 1400, 2560);
+    const texW  = clamp(Math.round(baseW), 1400, 2560);
+    const texH  = clamp(Math.round(texW / aspect), 1600, 3000);
+
+    const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(panel, texW, texH, false);
+    adt.renderScale = clamp(1.25, 1.0, 1.6); // crisp, but safe
+
+    const frame = makeFrame();
+    frame.paddingLeft = "18px";
+    frame.paddingRight = "18px";
+    frame.paddingTop = "18px";
+    frame.paddingBottom = "18px";
+    adt.addControl(frame);
+    addGridOverlay(frame);
+
+    // ---------- PANEL CONTENT ----------
+    if(isLeft){
+      // Narrower inner column, as requested earlier, but layout-like content.
+      const root = new BABYLON.GUI.StackPanel();
+      root.isVertical = true;
+      root.spacing = 14;
+      frame.addControl(root);
+
+      const cats = ["ALL","BIOSYSTEMS","LANDSCAPE","DYSTOPIC POP ART","CYMATICS","PUBLIC ART","MURALS"];
+      const head = headerBlock("STUDIES / NAVIGATION", "CATEGORIES", (cats.length-1) + " ITEMS");
+      root.addControl(head.box);
+
+      // Search (visual only to match layout)
+      const search = new BABYLON.GUI.Rectangle();
+      search.thickness = 1;
+      search.color = BRD;
+      search.background = "rgba(0,0,0,0.18)";
+      search.height = "56px";
+      search.cornerRadius = 6;
+      root.addControl(search);
+
+      const sTxt = new BABYLON.GUI.TextBlock();
+      sTxt.text = "SEARCH  (TITLE, TAG, YEAR)";
+      sTxt.fontFamily = MONO;
+      sTxt.fontSize = 18;
+      sTxt.color = "rgba(232,226,214,0.45)";
+      sTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      sTxt.paddingLeft = "14px";
+      search.addControl(sTxt);
+
+      // Buttons grid (square)
+      const btnGrid = new BABYLON.GUI.Grid();
+      btnGrid.addColumnDefinition(0.5);
+      btnGrid.addColumnDefinition(0.5);
+      btnGrid.addRowDefinition(0.2);
+      btnGrid.addRowDefinition(0.2);
+      btnGrid.addRowDefinition(0.2);
+      btnGrid.addRowDefinition(0.2);
+      btnGrid.addRowDefinition(0.2);
+      btnGrid.height = "740px";
+      root.addControl(btnGrid);
+
+      const btns = [];
+      const placements = [
+        ["ALL",0,0], ["BIOSYSTEMS",0,1],
+        ["LANDSCAPE",1,0], ["DYSTOPIC POP ART",2,0],
+        ["CYMATICS",3,0], ["PUBLIC ART",3,1],
+        ["MURALS",4,0]
+      ];
+
+      placements.forEach(([c,r,cc])=>{
+        btnGrid.addRowDefinition(0.2);
+        const b = squareCatButton(c);
+        b.onPointerClickObservable.add(()=> setActiveCategory(c));
+        btnGrid.addControl(b, r, cc);
+        btns.push({cat:c, btn:b});
+      });
+
+      S.left.btns = btns;
+      // initialize active style
+      setActiveCategory(S.activeCategory);
+
+    } else if(isMid){
+      const root = new BABYLON.GUI.StackPanel();
+      root.isVertical = true;
+      root.spacing = 14;
+      frame.addControl(root);
+
+      const head = headerBlock(" ", "PROJECT WALL", (filtered().length) + " / " + projects.length);
+      // right side controls (SORT + RESET) like layout
+      const bar = head.box; // already has badge; add buttons in the top row area by overlay
+      const overlay = new BABYLON.GUI.Rectangle();
+      overlay.thickness = 0;
+      overlay.background = "rgba(0,0,0,0)";
+      overlay.height = "110px";
+      overlay.isHitTestVisible = false;
+      root.addControl(bar);
+
+      // Add sort/reset buttons as real buttons but minimal function (mock)
+      const sortBtn = BABYLON.GUI.Button.CreateSimpleButton("sortBtn","SORT: NEWEST");
+      sortBtn.width = "170px"; sortBtn.height="46px";
+      sortBtn.thickness=1; sortBtn.cornerRadius=6;
+      sortBtn.color=BRD; sortBtn.background="rgba(0,0,0,0.20)";
+      sortBtn.fontFamily = MONO; sortBtn.fontSize=18; sortBtn.color=INK;
+      sortBtn.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      sortBtn.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+      sortBtn.left = "80px";
+      sortBtn.top = "-56px";
+      // no-op for now
+      root.addControl(sortBtn);
+
+      const resetBtn = BABYLON.GUI.Button.CreateSimpleButton("resetBtn","RESET");
+      resetBtn.width = "110px"; resetBtn.height="46px";
+      resetBtn.thickness=1; resetBtn.cornerRadius=6;
+      resetBtn.color=BRD; resetBtn.background="rgba(0,0,0,0.20)";
+      resetBtn.fontFamily = MONO; resetBtn.fontSize=18; resetBtn.color=INK;
+      resetBtn.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+      resetBtn.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+      resetBtn.left = "230px";
+      resetBtn.top = "-56px";
+      resetBtn.onPointerClickObservable.add(()=>{
+        setActiveCategory("ALL");
+      });
+      root.addControl(resetBtn);
+
+      // Scroll area with 3-column grid
+      const scroll = new BABYLON.GUI.ScrollViewer();
+      scroll.thickness = 0;
+      scroll.barColor = "rgba(255,255,255,0.12)";
+      scroll.thumbLength = 0.25;
+      scroll.wheelPrecision = 0.01;
+      scroll.height = "100%";
+      root.addControl(scroll);
+
+      const gridWrap = new BABYLON.GUI.Grid();
+      gridWrap.addColumnDefinition(0.3333);
+      gridWrap.addColumnDefinition(0.3333);
+      gridWrap.addColumnDefinition(0.3333);
+      gridWrap.paddingTop = "10px";
+      gridWrap.paddingBottom = "20px";
+      gridWrap.paddingLeft = "6px";
+      gridWrap.paddingRight = "6px";
+      scroll.addControl(gridWrap);
+
+      const cards = [];
+
+      function rebuild(){
+        // clear
+        gridWrap.children.slice().forEach(ch=> gridWrap.removeControl(ch));
+        gridWrap.rowDefinitions = [];
+        const list = filtered();
+        head.badgeText.text = (list.length + " / " + projects.length);
+        const cols = 3;
+        const rows = Math.ceil(list.length / cols);
+        for(let r=0;r<rows;r++){
+          gridWrap.addRowDefinition(1/rows, true);
+        }
+
+        for(let i=0;i<list.length;i++){
+          const p = list[i];
+          const r = Math.floor(i/cols);
+          const c = i%cols;
+          const card = makeCard(p);
+          card.paddingLeft = "10px";
+          card.paddingRight = "10px";
+          card.paddingTop = "10px";
+          card.paddingBottom = "10px";
+          gridWrap.addControl(card, r, c);
+          cards.push({id:p.id, card});
+        }
+        S.mid.cards = cards;
+        setActiveProject(S.activeProjectId);
+      }
+
+      S.mid.rebuild = rebuild;
+      rebuild();
+
+    } else if(isRight){
+      const root = new BABYLON.GUI.StackPanel();
+      root.isVertical = true;
+      root.spacing = 14;
+      frame.addControl(root);
+
+      const head = headerBlock("RETRIEVAL / VIEWER", "VIEWER", "");
+      root.addControl(head.box);
+
+      // title
+      const t = new BABYLON.GUI.TextBlock();
+      t.text = (getActive().title || "").toUpperCase();
+      t.fontFamily = SER;
+      t.fontSize = 38;
+      t.color = INK;
+      t.textWrapping = true;
+      t.height = "96px";
+      t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      t.paddingLeft = "6px";
+      root.addControl(t);
+
+      // category pill
+      const catP = pill(getActive().category || "");
+      catP.height = "36px";
+      catP.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      root.addControl(catP);
+
+      // big placeholder lines
+      const big = makeImagePlaceholder("220px");
+      root.addControl(big);
+
+      // meta table
+      const meta = new BABYLON.GUI.Grid();
+      meta.addColumnDefinition(0.35);
+      meta.addColumnDefinition(0.65);
+      ["ID","CATEGORY","YEAR","PLACE","TAGS"].forEach(()=> meta.addRowDefinition(0.12));
+      meta.height = "220px";
+      root.addControl(meta);
+
+      function metaRow(r, key, val){
+        const k = new BABYLON.GUI.TextBlock();
+        k.text = key;
+        k.fontFamily = MONO;
+        k.fontSize = 18;
+        k.color = DIM;
+        k.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        meta.addControl(k, r, 0);
+
+        const v = new BABYLON.GUI.TextBlock();
+        v.text = val || "";
+        v.fontFamily = MONO;
+        v.fontSize = 18;
+        v.color = INK;
+        v.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        meta.addControl(v, r, 1);
+        return v;
+      }
+
+      const p0 = getActive();
+      const metaIdVal    = metaRow(0, "ID", p0.id);
+      const metaCatVal   = metaRow(1, "CATEGORY", p0.category);
+      const metaYearVal  = metaRow(2, "YEAR", p0.year);
+      const metaPlaceVal = metaRow(3, "PLACE", p0.place || "");
+      const metaTagsVal  = metaRow(4, "TAGS", (p0.tags||[]).join(", "));
+
+      // description
+      const desc = new BABYLON.GUI.TextBlock();
+      desc.text = (p0.desc || "").trim() || " ";
+      desc.fontFamily = MONO;
+      desc.fontSize = 18;
+      desc.color = INK;
+      desc.textWrapping = true;
+      desc.height = "190px";
+      desc.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      root.addControl(desc);
+
+      // copy button (mock)
+      const copy = BABYLON.GUI.Button.CreateSimpleButton("copyBtn","COPY");
+      copy.width = "120px"; copy.height="46px";
+      copy.thickness=1; copy.cornerRadius=6;
+      copy.color=BRD; copy.background="rgba(0,0,0,0.20)";
+      copy.fontFamily = MONO; copy.fontSize=18; copy.color=INK;
+      copy.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      copy.onPointerClickObservable.add(()=>{
+        // no clipboard in VR canvas reliably; keep as visual affordance.
+      });
+      root.addControl(copy);
+
+      S.right = { title:t, catPill:catP._tb, metaIdVal, metaCatVal, metaYearVal, metaPlaceVal, metaTagsVal, desc };
+      // ensure viewer reflects current
+      setActiveProject(S.activeProjectId);
+    }
+
+    return panel;
+  }catch(err){
+    // Never break VR init. Create minimal safe panel.
+    try{
+      const panel = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, scene);
+      panel.scaling.x = -1;
+      const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(panel, 1024, 1024, false);
+      const r = new BABYLON.GUI.Rectangle();
+      r.thickness = 1;
+      r.color = "rgba(255,255,255,0.18)";
+      r.background = "rgba(15,15,15,0.78)";
+      adt.addControl(r);
+      const t = new BABYLON.GUI.TextBlock();
+      t.text = "GUI ERROR";
+      t.color = "#ff6666";
+      t.fontFamily = "monospace";
+      t.fontSize = 42;
+      r.addControl(t);
+      return panel;
+    }catch(_){
+      return null;
+    }
+  }
+}
+
+
+      const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
+      const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
+      const right = makeGuiPanel("panelRight", 1.85, 2.45, "Viewer");
+
+      function place(){
+        const R = 3.4;
+        const spread = 0.62;
+        function setArc(mesh, a, zBoost){
+          mesh.position.x = Math.sin(a) * R;
+          mesh.position.z = Math.cos(a) * R + zBoost;
+          mesh.position.y = 1.6;
+        }
+        setArc(left,  -spread, 1.9);
+        setArc(mid,    0,      2.25);
+        setArc(right,  spread, 1.9);
+      }
+      place();
+
+      scene.onBeforeRenderObservable.add(()=>{
+        [left,mid,right].forEach(p=>{
+          const dx = cam.position.x - p.position.x;
+          const dz = cam.position.z - p.position.z;
+          p.rotation.y = Math.atan2(dx, dz);
+        });
+      });
+
+      engine.runRenderLoop(()=> scene.render());
+      window.addEventListener("resize", ()=>{
+        engine.resize();
+        place();
+      }, {passive:true});
+
+      ready = true;
+      // If user clicked early, toggle now
+      if(pendingToggle){
+        pendingToggle = false;
+        await toggleGyro();
+      }else{
+        // restore OFF label if it was "…"
+        setState("OFF");
+      }
+
+    }catch(e){
+      console.error(e);
+      ready = false;
+      setState("ERR");
+    }
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Studies — Project Wall</title>
+
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --muted:rgba(232,226,214,.72);
+  --line:rgba(232,226,214,.16);
+  --line2:rgba(232,226,214,.12);
+  --mono:"Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --serif:"EB Garamond", serif;
+  --shadow:0 40px 90px rgba(0,0,0,.72);
+}
+*{box-sizing:border-box}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--serif);
+  overflow:hidden; /* fixed columns */
+}
+
+/* Vitrine background */
+#vitrine-bg{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06), transparent 58%),
+    radial-gradient(900px 700px at 70% 30%, rgba(255,255,255,.04), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.03), transparent 55%, rgba(0,0,0,.42)),
+    #0b0b0b;
+}
+#vitrine-bg::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.010) 0px, rgba(255,255,255,.010) 1px, transparent 2px, transparent 5px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.007) 0px, rgba(255,255,255,.007) 1px, transparent 2px, transparent 9px);
+  opacity:.18; mix-blend-mode:overlay;
+}
+#glass{
+  position:fixed; inset:0; z-index:1; pointer-events:none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.08), transparent 25%),
+    radial-gradient(900px 650px at 60% 25%, rgba(255,255,255,.06), transparent 55%);
+  opacity:.22; mix-blend-mode:screen;
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(circle at 50% 45%, transparent 40%, rgba(0,0,0,.88) 100%);
+  opacity:.55;
+}
+
+/* Header */
+.siteHeader{
+  position:fixed; top:0; left:0; right:0;
+  height: calc(96px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  display:flex; align-items:center; justify-content:center;
+  z-index: 1000;
+  pointer-events:none;
+}
+.siteHeader a{pointer-events:auto; text-decoration:none}
+.siteHeader img{height:56px; width:auto; display:block; opacity:.92}
+.siteHeader img:hover{opacity:1}
+
+/* Fixed viewport layout */
+.page{
+  position:relative;
+  z-index:10;
+  height:100vh;
+  padding: calc(110px + env(safe-area-inset-top)) clamp(10px, 2.2vw, 22px) clamp(10px, 2.2vw, 22px);
+}
+.wrap{
+  width:min(1320px, 100%);
+  height: calc(100vh - (110px + env(safe-area-inset-top)) - clamp(10px, 2.2vw, 22px));
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 260px 1fr 420px;
+  gap:14px;
+  align-items:stretch;
+}
+
+/* Panels */
+.panel{
+  border:1px solid var(--line2);
+  background: linear-gradient(180deg, rgba(10,10,10,.86), rgba(0,0,0,.46));
+  box-shadow: var(--shadow);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.panel::before{
+  content:"";
+  position:absolute; inset:10px;
+  pointer-events:none;
+  background:
+    linear-gradient(var(--line),var(--line)) left top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right top / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) left bottom / 1px 22px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 22px 1px no-repeat,
+    linear-gradient(var(--line),var(--line)) right bottom / 1px 22px no-repeat;
+  opacity:.85;
+  z-index:0;
+}
+.panelHeader{
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.92);
+  position:relative;
+  z-index:2;
+}
+.kicker{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.18em;
+  font-size:11px;
+  opacity:.68;
+  margin-bottom:6px;
+}
+.titleRow{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap}
+.h1{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:16px;
+}
+.pill{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+.panelBody{
+  padding:14px 16px 16px;
+  position:relative;
+  z-index:2;
+  min-height:0;
+  flex:1;
+}
+.hr{height:1px;background:rgba(232,226,214,.12);margin:12px 0}
+
+/* Controls */
+.input{
+  width:100%;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  color:var(--ink);
+  padding:10px 10px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.10em;
+  font-size:11px;
+  outline:none;
+}
+.row{display:flex; gap:10px; flex-wrap:wrap}
+.btn{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  color:var(--ink);
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(232,226,214,.22);
+  padding:10px 12px;
+  cursor:pointer;
+  opacity:.92;
+  transition:all .2s ease;
+}
+.btn:hover{opacity:1;background:rgba(255,255,255,.05)}
+.btn.active{
+  background: rgba(255,255,255,.08);
+  border-color: rgba(232,226,214,.40);
+}
+.smallHint{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.62;
+}
+
+/* Internal scrolls */
+.scrollY{overflow:auto; scrollbar-width:none;}
+.scrollY::-webkit-scrollbar{width:0;height:0}
+
+/* Wall column */
+.wall{
+  border:1px solid rgba(232,226,214,.12);
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 22px),
+    radial-gradient(900px 650px at 50% 30%, rgba(232,226,214,.075), transparent 58%),
+    rgba(0,0,0,.18);
+  position:relative;
+  box-shadow: var(--shadow);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.wallTop{
+  display:flex; justify-content:space-between; align-items:center;
+  gap:12px; flex-wrap:wrap;
+  padding:16px 16px 14px;
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(10,10,10,.72);
+  position:relative;
+  z-index:2;
+}
+.wallTitle{
+  margin:0;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:500;
+  font-size:14px;
+}
+.counter{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  opacity:.72;
+}
+.wallScroll{
+  flex:1;
+  min-height:0;
+  overflow:auto; /* only scrolling area for projects */
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.wallScroll::-webkit-scrollbar{width:0;height:0}
+.wallGrid{
+  padding:14px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+
+/* Cards */
+.card{
+  border:1px solid rgba(232,226,214,.14);
+  background: rgba(0,0,0,.22);
+  overflow:hidden;
+  cursor:pointer;
+  position:relative;
+  transform: translateZ(0);
+}
+.card::before{
+  content:"";
+  position:absolute; inset:-2px;
+  pointer-events:none;
+  background: radial-gradient(520px 240px at 30% 0%, rgba(255,255,255,.10), transparent 60%);
+  opacity:0;
+  transition: opacity .18s ease;
+}
+.card:hover{ border-color: rgba(232,226,214,.26); background: rgba(255,255,255,.03); }
+.card:hover::before{ opacity:.85; }
+.thumb{
+  aspect-ratio: 4 / 3;
+  width:100%;
+  background: rgba(255,255,255,.03);
+  position:relative;
+  overflow:hidden;
+  border-bottom:1px solid rgba(232,226,214,.10);
+}
+.thumb img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  filter: saturate(.95) contrast(1.05);
+  opacity:.92;
+}
+.thumb .scan{
+  position:absolute; inset:0; pointer-events:none;
+  background: linear-gradient(180deg, transparent 0%, rgba(232,226,214,.22) 50%, transparent 100%);
+  opacity:.10;
+  transform: translateY(-60%);
+  animation: scan 5.2s linear infinite;
+  mix-blend-mode: screen;
+}
+@keyframes scan{0%{transform:translateY(-70%)}100%{transform:translateY(80%)}}
+.cardBody{padding:12px 12px 11px; position:relative; z-index:2}
+.metaLine{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-size:10px;
+  opacity:.78;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.cardTitle{
+  margin:8px 0 8px;
+  font-size:16px;
+  line-height:1.25;
+  opacity:.96;
+}
+.tags{display:flex; gap:8px; flex-wrap:wrap}
+.tag{
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:10px;
+  padding:6px 8px;
+  border:1px solid rgba(232,226,214,.13);
+  background: rgba(255,255,255,.03);
+  opacity:.9;
+}
+
+/* Viewer */
+.viewerMedia{
+  border-bottom:1px solid rgba(232,226,214,.12);
+  background: rgba(0,0,0,.22);
+  aspect-ratio: 4 / 3;
+  position:relative;
+  overflow:hidden;
+}
+.viewerMedia img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92;filter:saturate(.95) contrast(1.05);}
+.viewerMedia .grid{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(232,226,214,.06) 0px, rgba(232,226,214,.06) 1px, transparent 2px, transparent 18px),
+    repeating-linear-gradient(90deg, rgba(232,226,214,.05) 0px, rgba(232,226,214,.05) 1px, transparent 2px, transparent 18px);
+  opacity:.20; mix-blend-mode:overlay;
+}
+.viewerContent{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:14px 16px 16px;
+  scrollbar-width:none;
+  position:relative;
+  z-index:2;
+}
+.viewerContent::-webkit-scrollbar{width:0;height:0;}
+.kv{
+  display:flex; justify-content:space-between; gap:10px;
+  padding:6px 0;
+  border-top:1px dashed rgba(232,226,214,.12);
+}
+.kv:first-of-type{border-top:0;padding-top:0;}
+.k{font-family:var(--mono);text-transform:uppercase;letter-spacing:.10em;font-size:10px;opacity:.65;}
+.v{font-family:var(--mono);letter-spacing:.08em;font-size:10px;opacity:.92;text-align:right;}
+.excerpt{
+  margin:12px 0 0;
+  font-family:var(--mono);
+  font-size:12.5px;
+  line-height:1.7;
+  letter-spacing:.05em;
+  white-space:pre-wrap;
+  opacity:.92;
+  text-shadow: 0 0 10px rgba(232,226,214,.08), 0 0 2px rgba(232,226,214,.08);
+}
+.viewerFooter{
+  border-top:1px solid rgba(232,226,214,.12);
+  padding:12px 16px;
+  background: rgba(10,10,10,.92);
+  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  position:relative;
+  z-index:2;
+}
+.link{
+  color:var(--ink);
+  text-decoration:none;
+  border:1px solid rgba(232,226,214,.22);
+  background: rgba(255,255,255,.03);
+  padding:10px 12px;
+  font-family:var(--mono);
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  font-size:11px;
+  opacity:.92;
+}
+.link:hover{opacity:1;background:rgba(255,255,255,.05);}
+
+/* Responsive */
+@media (max-width: 1100px){ .wrap{grid-template-columns: 260px 1fr} .viewerCol{display:none} }
+@media (max-width: 860px){ .wrap{grid-template-columns:1fr} .wallGrid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+@media (max-width: 520px){ .siteHeader{height:calc(84px + env(safe-area-inset-top))} .siteHeader img{height:44px} .wallGrid{grid-template-columns:1fr} }
+
+/* ===========================
+   MOBILE VR (Babylon.js) — desktop unchanged
+   activates only on: (pointer: coarse) AND (hover: none) AND max-width 900px
+=========================== */
+
+#vrCanvas{ display:none; width:100vw; height:100vh; touch-action:none; }
+#vrButton{
+  position:fixed;
+  bottom:22px;
+  left:50%;
+  transform:translateX(-50%);
+  display:none;
+  align-items:center;
+  gap:10px;
+  padding:10px 18px;
+  border-radius:40px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(15,15,15,.75);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  font-family: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size:12px;
+  letter-spacing:.18em;
+  cursor:pointer;
+  transition:.2s;
+  user-select:none;
+  z-index:7000;
+}
+#vrButton:active{ transform:translateX(-50%) scale(.96); }
+
+#vrLed{
+  width:9px; height:9px; border-radius:50%;
+  background:rgba(255,255,255,.35);
+  box-shadow:0 0 0 0 rgba(120,255,180,0);
+  transition:.25s;
+}
+#vrLed.active{
+  background:#78ffb4;
+  box-shadow:0 0 10px rgba(120,255,180,.8);
+}
+#vrState{ opacity:.65; text-transform:uppercase; }
+
+@media (pointer:coarse) and (hover:none) and (max-width: 900px){
+  /* Hide your desktop layout on real mobile only */
+  body{ overflow:hidden; height:100vh; }
+  #vrCanvas{ display:block; position:fixed; inset:0; z-index:6000; }
+  #vrButton{ display:flex; }
+  /* Hide everything else (desktop UI) */
+  body > *:not(#vrCanvas):not(#vrButton){ display:none !important; }
+}
+
+</style>
+</head>
+
+<body>
+<header class="siteHeader" role="banner" aria-label="Primary">
+  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
+    <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
+  </a>
+</header>
+
+<div id="vitrine-bg" aria-hidden="true"></div>
+<div id="glass" aria-hidden="true"></div>
+
+<div class="page">
+  <div class="wrap">
+
+    <!-- LEFT: categories + filters -->
+    <aside class="panel" aria-label="Categories">
+      <div class="panelHeader">
+        <div class="kicker">studies / navigation</div>
+        <div class="titleRow">
+          <h2 class="h1">CATEGORIES</h2>
+          <div class="pill" id="pillCount">— items</div>
+        </div>
+      </div>
+      <div class="panelBody scrollY">
+        <input class="input" id="q" type="search" placeholder="Search (title, tag, year) …" autocomplete="off">
+        <div class="hr"></div>
+        <div class="row" id="catRow"></div>
+</div>
+    </aside>
+
+    <!-- CENTER: wall (scroll inside) -->
+    <section class="wall" aria-label="Project wall">
+      <div class="wallTop">
+        <h3 class="wallTitle">PROJECT WALL</h3>
+        
+        <div class="row">
+          <button class="btn" id="btnSort">Sort: newest</button>
+          <button class="btn" id="btnReset">Reset</button>
+        </div>
+
+        <div class="counter"><span id="shown">0</span> / <span id="total">0</span></div>
+      </div>
+      <div class="wallScroll">
+        <div class="wallGrid" id="grid"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: viewer -->
+    <aside class="panel viewerCol" aria-label="Viewer">
+      <div class="panelHeader">
+        <div class="kicker">retrieval / viewer</div>
+        <div class="titleRow">
+          <h2 class="h1" id="vTitle">SELECT A PROJECT</h2>
+          <div class="pill" id="vCat">—</div>
+        </div>
+      </div>
+
+      <div class="viewerMedia">
+        <img id="vImg" alt="" src="" style="display:none">
+        <div class="grid" aria-hidden="true"></div>
+      </div>
+
+      <div class="viewerContent">
+        <div id="vMeta"></div>
+        <div class="hr"></div>
+        <div class="excerpt" id="vText">Use the wall to open an entry.</div>
+      </div>
+
+      <div class="viewerFooter">
+        <a class="link" id="vLink" href="#" target="_self" style="display:none">Open</a>
+        <button class="btn" id="vCopy" disabled>Copy</button>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<script>
+const CATEGORIES = ['All', 'BioSystems', 'Landscape', 'Dystopic Pop Art', 'Cymatics', 'Public Art', 'Murals'];
+
+const PROJECTS = [
+  {
+    id:"BIO-0001",
+    title:"Cellulose solar panel (screen-print tests)",
+    year:2024,
+    place:"India / Spain",
+    category:"BioSystems",
+    tags:["cellulose","serigraphy","solar"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EBIOSYSTEMS%20/%20MATERIAL%20TEST%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Translucent cellulose substrate + conductive layers (N/P).\nFlexible, transparent panel logic.",
+    link:"#"
+  },
+  {
+    id:"LAN-0001",
+    title:"Leaf-pattern cartography studies",
+    year:2025,
+    place:"Mediterranean basin",
+    category:"Landscape",
+    tags:["plants","pattern","territory"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ELANDSCAPE%20/%20LEAF%20CARTOGRAPHY%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Landscape read as sediment: layers of presence across territories.\nLeaves as diagram: veins, flows, and memory lines.",
+    link:"#"
+  },
+  {
+    id:"DPA-0001",
+    title:"Carnival of progress (dystopic pop)",
+    year:2024,
+    place:"—",
+    category:"Dystopic Pop Art",
+    tags:["carnival","critique","spectacle"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EDYSTOPIC%20POP%20/%20CARNIVAL%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Modern society as a carnival: colorful attractions and lights, lacking depth.\nSeduction + collapse.",
+    link:"#"
+  },
+  {
+    id:"CYM-0001",
+    title:"Cymatics studies (frequency patterns)",
+    year:2024,
+    place:"—",
+    category:"Cymatics",
+    tags:["frequency","pattern","sound"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3ECYMATICS%20/%20FREQUENCY%20PATTERNS%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"Cymatic diagrams as visual proof of vibration.\nSignal becomes geometry.",
+    link:"#"
+  },
+  {
+    id:"PUB-0001",
+    title:"Konvent — community as infrastructure",
+    year:2024,
+    place:"Catalonia",
+    category:"Public Art",
+    tags:["community","residency","territory"],
+    thumb:"https://inside.jofrearchive.com/konvent.gif",
+    images:["https://inside.jofrearchive.com/konvent.gif","http://inside.jofrearchive.com/assets/images/konvent-landscape.gif"],
+    excerpt:"Konvent as a living institution: a territory-based community that produces culture through autonomy.\nConstraints, self-organization, and the material conditions of freedom.",
+    link:"#"
+  },
+  {
+    id:"MUR-0001",
+    title:"Trajectory — walls as coordinates",
+    year:2025,
+    place:"Spain → India → Morocco → Norway",
+    category:"Murals",
+    tags:["wall","cartography","site"],
+    thumb:'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22800%22%20height%3D%22600%22%3E%0A%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%230a0a0a%22/%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23e8e2d6%22%20stroke-opacity%3D%22.22%22%3E%0A%3Cpath%20d%3D%22M80%20140%20H720%22/%3E%3Cpath%20d%3D%22M80%20200%20H620%22/%3E%3Cpath%20d%3D%22M80%20260%20H700%22/%3E%3Cpath%20d%3D%22M80%20320%20H560%22/%3E%3Cpath%20d%3D%22M80%20380%20H680%22/%3E%0A%3C/g%3E%0A%3Ctext%20x%3D%2280%22%20y%3D%22520%22%20fill%3D%22%23e8e2d6%22%20fill-opacity%3D%22.78%22%20font-family%3D%22monospace%22%20font-size%3D%2220%22%3EMURALS%20/%20TRAJECTORY%3C/text%3E%0A%3C/svg%3E',
+    images:[],
+    excerpt:"From 2012 to 2025, the trajectory can be read not as chronology, but as sediment.\nThe mural as imprint and encounter.",
+    link:"#"
+  }
+];
+
+let state = { category:"All", q:"", newestFirst:true, openId:null };
+
+const catRow = document.getElementById("catRow");
+const qEl = document.getElementById("q");
+const grid = document.getElementById("grid");
+const shownEl = document.getElementById("shown");
+const totalEl = document.getElementById("total");
+const pillCount = document.getElementById("pillCount");
+const btnSort = document.getElementById("btnSort");
+const btnReset = document.getElementById("btnReset");
+
+const vTitle = document.getElementById("vTitle");
+const vCat = document.getElementById("vCat");
+const vImg = document.getElementById("vImg");
+const vMeta = document.getElementById("vMeta");
+const vText = document.getElementById("vText");
+const vLink = document.getElementById("vLink");
+const vCopy = document.getElementById("vCopy");
+
+function norm(s){ return String(s||"").toLowerCase().trim(); }
+function escapeHtml(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function filtered(){
+  let items = [...PROJECTS];
+  if(state.category !== "All") items = items.filter(p => p.category === state.category);
+  if(state.q){
+    const q = norm(state.q);
+    items = items.filter(p => norm([p.id,p.title,p.year,p.place,p.category,(p.tags||[]).join(" "),p.excerpt].join(" ")).includes(q));
+  }
+  items.sort((a,b)=> state.newestFirst ? (b.year - a.year) : (a.year - b.year));
+  return items;
+}
+
+function renderCategories(){
+  catRow.innerHTML = "";
+  CATEGORIES.forEach(c=>{
+    const b = document.createElement("button");
+    b.type="button";
+    b.className = "btn" + (c === state.category ? " active" : "");
+    b.textContent = c;
+    b.addEventListener("click", ()=>{ state.category = c; state.openId=null; renderAll(false); });
+    catRow.appendChild(b);
+  });
+}
+
+function kvRow(k,v){ return `<div class="kv"><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`; }
+
+function setViewerEmpty(){
+  vTitle.textContent = "SELECT A PROJECT";
+  vCat.textContent = "—";
+  vText.textContent = "Use the wall to open an entry.";
+  vMeta.innerHTML = "";
+  vImg.style.display = "none";
+  vImg.src = "";
+  vLink.style.display = "none";
+  vCopy.disabled = true;
+}
+
+function fillViewer(p){
+  vTitle.textContent = p.title.toUpperCase();
+  vCat.textContent = (p.category || "—").toUpperCase();
+  vMeta.innerHTML =
+    kvRow("ID", p.id) +
+    kvRow("CATEGORY", p.category) +
+    kvRow("YEAR", String(p.year)) +
+    kvRow("PLACE", p.place || "—") +
+    kvRow("TAGS", (p.tags||[]).join(", ") || "—");
+  vText.textContent = p.excerpt || "—";
+  const imgSrc = (p.images && p.images.length) ? p.images[0] : p.thumb;
+  if(imgSrc){
+    vImg.style.display = "block";
+    vImg.src = imgSrc;
+    vImg.alt = p.title;
+  } else {
+    vImg.style.display = "none";
+    vImg.src = "";
+  }
+  if(p.link && p.link !== "#"){ vLink.style.display = "inline-block"; vLink.href = p.link; }
+  else { vLink.style.display = "none"; }
+  vCopy.disabled = false;
+}
+
+function openProject(id){
+  const p = PROJECTS.find(x=>x.id===id);
+  if(!p) return;
+  state.openId = id;
+  fillViewer(p);
+}
+
+function renderWall(keepSelection){
+  const items = filtered();
+  totalEl.textContent = PROJECTS.length;
+  shownEl.textContent = items.length;
+  pillCount.textContent = PROJECTS.length + " items";
+
+  grid.innerHTML = "";
+  items.forEach(p=>{
+    const el = document.createElement("div");
+    el.className = "card";
+    el.tabIndex = 0;
+    el.setAttribute("role","button");
+    el.innerHTML = `
+      <div class="thumb">
+        <img src="${escapeHtml(p.thumb)}" alt="${escapeHtml(p.title)}" loading="lazy"/>
+        <div class="scan" aria-hidden="true"></div>
+      </div>
+      <div class="cardBody">
+        <div class="metaLine"><span>${escapeHtml(p.category)}</span><span>${escapeHtml(p.year)}</span></div>
+        <div class="cardTitle">${escapeHtml(p.title)}</div>
+        <div class="tags">${(p.tags||[]).slice(0,3).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+      </div>
+    `;
+    el.addEventListener("click", ()=> openProject(p.id));
+    el.addEventListener("keydown",(e)=>{
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openProject(p.id); }
+    });
+    grid.appendChild(el);
+  });
+
+  if(items.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "smallHint";
+    empty.style.padding = "14px";
+    empty.textContent = "No matches.";
+    grid.appendChild(empty);
+    state.openId = null;
+    setViewerEmpty();
+    return;
+  }
+
+  if(keepSelection && state.openId && items.find(x=>x.id===state.openId)) return;
+  openProject(items[0].id);
+}
+
+qEl.addEventListener("input",(e)=>{
+  state.q = e.target.value;
+  state.openId = null;
+  renderAll(false);
+});
+btnSort.addEventListener("click", ()=>{
+  state.newestFirst = !state.newestFirst;
+  btnSort.textContent = "Sort: " + (state.newestFirst ? "newest" : "oldest");
+  state.openId = null;
+  renderAll(false);
+});
+btnReset.addEventListener("click", ()=>{
+  state.category = "All";
+  state.q = "";
+  state.newestFirst = true;
+  state.openId = null;
+  qEl.value = "";
+  btnSort.textContent = "Sort: newest";
+  renderAll(false);
+  setViewerEmpty();
+});
+
+async function copyPayload(){
+  const p = PROJECTS.find(x=>x.id===state.openId);
+  if(!p) return false;
+  const payload = `${p.title}\n${p.id} · ${p.category} · ${p.year} · ${p.place}\nTags: ${(p.tags||[]).join(", ")}\n\n${p.excerpt}`;
+  try{ await navigator.clipboard.writeText(payload); return true; }
+  catch(_){ return false; }
+}
+vCopy.addEventListener("click", async ()=>{
+  const ok = await copyPayload();
+  vCopy.textContent = ok ? "Copied" : "Blocked";
+  setTimeout(()=> vCopy.textContent = "Copy", 900);
+});
+
+function renderAll(keepSelection){ renderCategories(); renderWall(keepSelection); }
+setViewerEmpty();
+renderAll(false);
+</script>
+
+<canvas id="vrCanvas" aria-label="VR canvas"></canvas>
+
+<div id="vrButton" aria-label="VR motion toggle">
+  <div id="vrLed" aria-hidden="true"></div>
+  <div>VR</div>
+  <div id="vrState">OFF</div>
+</div>
+
+<script>
+(function(){
+  // Real-mobile gate (same logic as CSS)
+  const isMobile =
+    window.matchMedia("(pointer: coarse)").matches &&
+    window.matchMedia("(hover: none)").matches &&
+    window.matchMedia("(max-width: 900px)").matches;
+
+  if(!isMobile) return;
+
+  const canvas = document.getElementById("vrCanvas");
+  const led = document.getElementById("vrLed");
+  const stateText = document.getElementById("vrState");
+  const button = document.getElementById("vrButton");
+
+  // Robust state UI (works even if Babylon fails to load)
+  let cam = null;
+  let gyroOn = false;
+  let ready = false;
+  let pendingToggle = false;
+
+  function setState(label){
+    stateText.textContent = label;
+    if(label === "ON"){
+      led.classList.add("active");
+    }else{
+      led.classList.remove("active");
+    }
+  }
+  setState("OFF");
+
+  // Bind button immediately so it ALWAYS responds
+  button.addEventListener("click", async ()=>{
+    // If not ready yet, show feedback and toggle once ready
+    if(!ready){
+      pendingToggle = true;
+      setState("…");
+      return;
+    }
+    await toggleGyro();
+  });
+
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      const tag=document.createElement("script");
+      tag.src=src;
+      tag.async=true;
+      tag.onload=()=>res(src);
+      tag.onerror=()=>rej(new Error("failed to load: " + src));
+      document.head.appendChild(tag);
+    });
+  }
+
+  async function enableOrientationInput(){
+    if(!cam) return false;
+
+    // iOS permission
+    if(typeof DeviceOrientationEvent !== "undefined" &&
+       typeof DeviceOrientationEvent.requestPermission === "function"){
+      const r = await DeviceOrientationEvent.requestPermission();
+      if(r !== "granted") return false;
+    }
+
+    // Attach orientation input (Babylon will create the input instance internally)
+    try{
+      cam.inputs.addDeviceOrientation();
+      return true;
+    }catch(e){
+      // Fallback: some builds expose the input class
+      try{
+        if(BABYLON && BABYLON.DeviceOrientationCameraInput){
+          cam.inputs.add(new BABYLON.DeviceOrientationCameraInput());
+          return true;
+        }
+      }catch(_){}
+    }
+    return false;
+  }
+
+  async function toggleGyro(){
+    if(!cam) { setState("ERR"); return; }
+
+    if(gyroOn){
+      // Turn OFF: remove the attached input if present
+      try{
+        const inp = cam.inputs && cam.inputs.attached && cam.inputs.attached.deviceOrientation;
+        if(inp){
+          cam.inputs.remove(inp);
+        }
+      }catch(e){}
+      gyroOn = false;
+      setState("OFF");
+      return;
+    }
+
+    try{
+      const ok = await enableOrientationInput();
+      if(!ok){
+        setState("OFF");
+        return;
+      }
+      gyroOn = true;
+      setState("ON");
+    }catch(e){
+      console.error(e);
+      setState("ERR");
+    }
+  }
+
+  async function init(){
+    try{
+      // Load Babylon + GUI
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs@7.15.0/babylon.js");
+      await loadScript("https://cdn.jsdelivr.net/npm/babylonjs-gui@7.15.0/babylon.gui.min.js");
+
+      const engine = new BABYLON.Engine(canvas, true, {preserveDrawingBuffer:true, stencil:true});
+      const scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
+
+      cam = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
+      cam.setTarget(new BABYLON.Vector3(0,1.6,5));
+      cam.attachControl(canvas, true);
+      cam.speed = 0;
+
+      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      hemi.intensity = 1.05;
+      const pl = new BABYLON.PointLight("pl", new BABYLON.Vector3(0, 2.2, 2.0), scene);
+      pl.intensity = 0.55;
+
+      // Simple dish background so it's not "pure black"
+      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 30, segments: 48, slice: 0.55}, scene);
+      dome.position = new BABYLON.Vector3(0,0,8);
+      dome.rotation.y = Math.PI;
+      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
+      domeMat.backFaceCulling = false;
+      domeMat.diffuseColor = new BABYLON.Color3(0.05,0.05,0.05);
+      domeMat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
+      domeMat.specularColor = new BABYLON.Color3(0,0,0);
+      dome.material = domeMat;
+
+      // Panels in a concave arc (parabolic feel) — visible Babylon GUI
+      function makeGuiPanel(name, w, h, title){
   // IMPORTANT: Only GUI logic here. Do NOT touch engine, loader, render loop, toggle, or desktop layout.
   // This function must NEVER throw; if it throws, VR init fails and the button shows "VR ERR".
   try{
