@@ -932,594 +932,661 @@ renderAll(false);
 
       // Panels in a concave arc (parabolic feel) — visible Babylon GUI
       function makeGuiPanel(name, w, h, title){
-  // NOTE: Per your constraints, everything stays inside this function.
-  // Shared state across the 3 GUI panels (kept minimal + stable)
-  const STORE_KEY = "__JA_VR_GUI_STORE__";
-  const S = (window[STORE_KEY] ||= (function(){
-    const s = {};
+        // IMPORTANT: Only GUI work happens here. Do not touch engine/loop/toggle/placement.
+        // Shared state lives on scene.metadata.vrStudiesUI (safe, no external deps).
+        if(!scene.metadata) scene.metadata = {};
+        const S = scene.metadata.vrStudiesUI || (scene.metadata.vrStudiesUI = {
+          inited:false,
+          activeCategory:"ALL",
+          activeProjectId:null,
+          categories:["ALL","BIOSYSTEMS","LANDSCAPE","DYSTOPIC POP ART","CYMATICS","PUBLIC ART","MURALS"],
+          projects:[
+            {id:"LAN-0001", category:"LANDSCAPE", year:"2025", place:"Mediterranean basin", title:"Leaf-pattern cartography studies", tags:["plants","pattern","territory"], excerpt:"Landscape read as sediment: layers of presence across territories.
+Leaves as diagram: veins, flows, and memory."},
+            {id:"MUR-0001", category:"MURALS", year:"2025", place:"—", title:"Trajectory — walls as coordinates", tags:["wall","cartography","site"], excerpt:"Walls as measurement surfaces.
+Murals as coordinates across a moving territory."},
+            {id:"BIO-0007", category:"BIOSYSTEMS", year:"2024", place:"—", title:"Cellulose solar panel (screen-print tests)", tags:["cellulose","serigraphy","solar"], excerpt:"Printed layers as functional skin.
+Tests toward flexible translucent photovoltaics."},
+            {id:"DYS-0003", category:"DYSTOPIC POP ART", year:"2024", place:"—", title:"Carnival of progress (dystopic pop)", tags:["carnival","critique","spectacle"], excerpt:"A bright system that hides emptiness.
+A carnival of attractions without depth."},
+            {id:"CYM-0002", category:"CYMATICS", year:"2024", place:"—", title:"Cymatics studies (frequency patterns)", tags:["frequency","pattern","sound"], excerpt:"Material as recorder of vibration.
+Patterns emerging from sustained tones."},
+            {id:"PUB-0004", category:"PUBLIC ART", year:"2024", place:"Konvent", title:"Konvent — community as infrastructure", tags:["community","residency","territory"], excerpt:"Community as a living operating system.
+Infrastructure as relationship."}
+          ],
+          ui:{},
+          needsSync:false
+        });
 
-    // --- Mock data (swap later with real data) ---
-    s.projects = [
-      {
-        id:"lan-0001",
-        title:"Leaf-pattern cartography studies",
-        date:"2025",
-        category:"Landscape",
-        place:"Mediterranean basin",
-        tags:["plants","pattern","territory"],
-        text:[
-          "Landscape read as sediment: layers of presence across territories.",
-          "Leaves as diagram: veins, flows, and memory.",
-          "A study of cartographic language through botanical structure."
-        ].join("
+        const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+        const pickFontSerif="EB Garamond, serif";
+        const pickFontMono="Source Code Pro, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
 
-")
-      },
-      {
-        id:"bio-0002",
-        title:"Cellulose solar panel (screen-print tests)",
-        date:"2024",
-        category:"BioSystems",
-        place:"Studio",
-        tags:["cellulose","serigraphy","solar"],
-        text:[
-          "Flexible, translucent solar prototypes inspired by leaf venation.",
-          "Layered conductive inks; experiments with N/P stacks and diffusion.",
-          "A biomimetic approach to energy surfaces."
-        ].join("
+        // Keep aspect; do NOT widen panels (prevents overlap on fixed arc).
+        const mesh = BABYLON.MeshBuilder.CreatePlane(name, {
+          width: w,
+          height: h * 1.12,
+          sideOrientation: BABYLON.Mesh.DOUBLESIDE
+        }, scene);
 
-")
-      },
-      {
-        id:"mur-0003",
-        title:"Trajectory — walls as coordinates",
-        date:"2025",
-        category:"Murals",
-        place:"Site-specific",
-        tags:["wall","cartography","site"],
-        text:[
-          "A wall treated as coordinate system: walking lines become mapping.",
-          "Urban surfaces as memory devices, inscriptions, and routes."
-        ].join("
+        // Fix mirrored text in VR panels
+        mesh.scaling.x = -1;
 
-")
-      },
-      {
-        id:"dys-0004",
-        title:"Carnival of progress (dystopic pop)",
-        date:"2024",
-        category:"Dystopic Pop Art",
-        place:"—",
-        tags:["carnival","critique","spectacle"],
-        text:[
-          "Modern society staged as a carnival of attractions.",
-          "Lights and color as distraction; depth collapses into surface."
-        ].join("
+        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
+        mat.diffuseColor = new BABYLON.Color3(0.10,0.10,0.10);
+        mat.emissiveColor = new BABYLON.Color3(0.06,0.06,0.06);
+        mat.specularColor = new BABYLON.Color3(0,0,0);
+        mat.alpha = 0.98;
+        mat.backFaceCulling = false;
+        mesh.material = mat;
 
-")
-      },
-      {
-        id:"cym-0005",
-        title:"Cymatics studies (frequency patterns)",
-        date:"2024",
-        category:"Cymatics",
-        place:"Lab / field",
-        tags:["pattern","sound","frequency"],
-        text:[
-          "When vibration becomes geometry.",
-          "Cymatic traces as visible evidence of invisible order."
-        ].join("
+        // Higher GUI resolution (balanced for mobile GPU)
+        const pxW = clamp(Math.round(1000 * (w/1.85) * 2000/1000), 1800, 2800);
+        const pxH = clamp(Math.round(2400 * (h/2.45) * 1.12), 2400, 3200);
+        const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, pxW, pxH, false);
 
-")
-      },
-      {
-        id:"pub-0006",
-        title:"Konvent — community as infrastructure",
-        date:"2024",
-        category:"Public Art",
-        place:"Konvent",
-        tags:["community","residency","territory"],
-        text:[
-          "Community understood as a living infrastructure.",
-          "A residency as an interface for shared production and care."
-        ].join("
+        // ---------- Style tokens (match desktop layout) ----------
+        const C_BG = "rgba(15,15,15,0.78)";
+        const C_BORDER = "rgba(255,255,255,0.16)";
+        const C_INK = "#e8e2d6";
+        const C_MUTED = "rgba(232,226,214,0.72)";
+        const C_SOFT = "rgba(232,226,214,0.14)";
+        const C_SOFT2 = "rgba(232,226,214,0.10)";
+        const C_GLASS = "rgba(0,0,0,0.22)";
 
-")
-      }
-    ];
+        // Root frame
+        const root = new BABYLON.GUI.Rectangle(name+"_root");
+        root.thickness = 1;
+        root.cornerRadius = 26;
+        root.color = C_BORDER;
+        root.background = C_BG;
+        root.width = 0.94;
+        root.height = 0.94;
+        adt.addControl(root);
 
-    s.categories = ["All","BioSystems","Landscape","Dystopic Pop Art","Cymatics","Public Art","Murals"];
-    s.activeCategory = "All";
-    s.activeProjectId = s.projects[0]?.id || null;
+        // Subtle grid overlay
+        const grid = new BABYLON.GUI.Rectangle(name+"_grid");
+        grid.thickness = 0;
+        grid.background = "transparent";
+        root.addControl(grid);
+        // Use a textblock with light characters as a cheap overlay? (skip; keep performant)
 
-    // References (filled by panels)
-    s.refs = {
-      catButtons: [],
-      catCount: null,
-      wallStack: null,
-      wallCount: null,
-      cardRefs: [],
-      viewerTitle: null,
-      viewerMeta: null,
-      viewerText: null
-    };
+        // Layout container
+        const col = new BABYLON.GUI.StackPanel(name+"_col");
+        col.isVertical = true;
+        col.width = 1;
+        col.height = 1;
+        col.paddingLeft = "22px";
+        col.paddingRight = "22px";
+        col.paddingTop = "18px";
+        col.paddingBottom = "18px";
+        col.spacing = 12;
+        root.addControl(col);
 
-    s.filtered = function(){
-      if (s.activeCategory === "All") return s.projects;
-      return s.projects.filter(p => p.category === s.activeCategory);
-    };
+        // Header block: kicker + title + optional counters
+        const headerBox = new BABYLON.GUI.Rectangle(name+"_hdrBox");
+        headerBox.thickness = 1;
+        headerBox.cornerRadius = 14;
+        headerBox.color = C_SOFT;
+        headerBox.background = "rgba(10,10,10,0.55)";
+        headerBox.height = "170px";
+        headerBox.width = 1;
+        col.addControl(headerBox);
 
-    s.activeProject = function(){
-      return s.projects.find(p => p.id === s.activeProjectId) || s.projects[0] || null;
-    };
+        const headerGrid = new BABYLON.GUI.Grid();
+        headerGrid.addColumnDefinition(0.72);
+        headerGrid.addColumnDefinition(0.28);
+        headerGrid.addRowDefinition(0.45);
+        headerGrid.addRowDefinition(0.55);
+        headerGrid.paddingLeft = "18px";
+        headerGrid.paddingRight = "18px";
+        headerGrid.paddingTop = "16px";
+        headerGrid.paddingBottom = "16px";
+        headerBox.addControl(headerGrid);
 
-    s.setCategory = function(cat){
-      s.activeCategory = cat;
-      const list = s.filtered();
-      if (!list.some(p => p.id === s.activeProjectId)) s.activeProjectId = list[0]?.id || s.projects[0]?.id || null;
-      s.refresh();
-    };
+        const kicker = new BABYLON.GUI.TextBlock(name+"_kicker");
+        kicker.text = (title.toUpperCase()==="CATEGORIES") ? "STUDIES / NAVIGATION" :
+                      (title.toUpperCase()==="PROJECT WALL") ? "STUDIES / WALL" :
+                      "RETRIEVAL / VIEWER";
+        kicker.color = C_MUTED;
+        kicker.fontFamily = pickFontMono;
+        kicker.fontSize = 34;
+        kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        kicker.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        kicker.letterSpacing = "6px";
+        headerGrid.addControl(kicker, 0, 0);
 
-    s.setProject = function(pid){
-      s.activeProjectId = pid;
-      s.refresh();
-    };
+        const h1 = new BABYLON.GUI.TextBlock(name+"_h1");
+        h1.text = title.toUpperCase();
+        h1.color = C_INK;
+        h1.fontFamily = pickFontMono;
+        h1.fontSize = 48;
+        h1.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        h1.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        h1.letterSpacing = "8px";
+        headerGrid.addControl(h1, 1, 0);
 
-    // --- Refresh UI ---
-    s.refreshCategories = function(){
-      const list = s.filtered();
-      if (s.refs.catCount) s.refs.catCount.text = String(s.categories.length - 1) + " ITEMS";
-      for (const b of s.refs.catButtons){
-        const on = (b.__cat === s.activeCategory);
-        b.background = on ? "rgba(232,226,214,0.10)" : "rgba(0,0,0,0)";
-        b.color = on ? "rgba(232,226,214,0.28)" : "rgba(232,226,214,0.16)";
-        if (b.__label){
-          b.__label.color = on ? "rgba(232,226,214,1)" : "rgba(232,226,214,0.90)";
+        const badge = new BABYLON.GUI.Rectangle(name+"_badge");
+        badge.thickness = 1;
+        badge.cornerRadius = 12;
+        badge.color = C_SOFT;
+        badge.background = "rgba(0,0,0,0.22)";
+        badge.height = "64px";
+        badge.width = 0.95;
+        badge.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        badge.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        headerGrid.addControl(badge, 0, 1);
+
+        const badgeTxt = new BABYLON.GUI.TextBlock(name+"_badgeTxt");
+        badgeTxt.color = C_INK;
+        badgeTxt.fontFamily = pickFontMono;
+        badgeTxt.fontSize = 30;
+        badgeTxt.letterSpacing = "4px";
+        badgeTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        badge.addControl(badgeTxt);
+
+        // Content area container
+        const contentFrame = new BABYLON.GUI.Rectangle(name+"_content");
+        contentFrame.thickness = 1;
+        contentFrame.cornerRadius = 16;
+        contentFrame.color = C_SOFT2;
+        contentFrame.background = "rgba(0,0,0,0.18)";
+        contentFrame.width = 1;
+        contentFrame.height = 1;
+        col.addControl(contentFrame);
+
+        // --- helpers ---
+        const setActiveProject=(p)=>{
+          S.activeProjectId = p.id;
+          S.needsSync = true;
+          syncAll();
+        };
+
+        const getFiltered=()=>{
+          const cat = S.activeCategory;
+          const list = (cat==="ALL") ? S.projects : S.projects.filter(p=>p.category===cat);
+          return list;
+        };
+
+        const ensureActive=()=>{
+          if(!S.activeProjectId){
+            const list = getFiltered();
+            S.activeProjectId = (list[0] && list[0].id) || (S.projects[0] && S.projects[0].id) || null;
+          }
+        };
+
+        const getActive=()=>{
+          ensureActive();
+          return S.projects.find(p=>p.id===S.activeProjectId) || S.projects[0];
+        };
+
+        const clearChildren=(ctl)=>{
+          const kids = ctl.children ? ctl.children.slice() : [];
+          for(const k of kids){ ctl.removeControl(k); }
+        };
+
+        // ============ PANEL: CATEGORIES ============
+        if(title.toUpperCase()==="CATEGORIES"){
+          // Stack in content
+          const stack = new BABYLON.GUI.StackPanel(name+"_cats");
+          stack.isVertical = true;
+          stack.width = 1;
+          stack.height = 1;
+          stack.paddingLeft = "18px";
+          stack.paddingRight = "18px";
+          stack.paddingTop = "18px";
+          stack.spacing = 12;
+          contentFrame.addControl(stack);
+
+          // Search box (visual only)
+          const search = new BABYLON.GUI.Rectangle(name+"_search");
+          search.height = "86px";
+          search.thickness = 1;
+          search.cornerRadius = 14;
+          search.color = C_SOFT;
+          search.background = C_GLASS;
+          stack.addControl(search);
+
+          const searchTxt = new BABYLON.GUI.TextBlock(name+"_searchTxt");
+          searchTxt.text = "SEARCH (TITLE, TAG, YEAR)";
+          searchTxt.color = "rgba(232,226,214,0.48)";
+          searchTxt.fontFamily = pickFontMono;
+          searchTxt.fontSize = 30;
+          searchTxt.letterSpacing = "5px";
+          searchTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          searchTxt.paddingLeft = "18px";
+          search.addControl(searchTxt);
+
+          // Buttons grid (2 columns like desktop pills)
+          const btnGrid = new BABYLON.GUI.Grid();
+          btnGrid.addColumnDefinition(0.5);
+          btnGrid.addColumnDefinition(0.5);
+          // rows dynamic
+          stack.addControl(btnGrid);
+
+          const btnRefs = [];
+          const makePill=(label)=>{
+            const b = BABYLON.GUI.Button.CreateSimpleButton(name+"_pill_"+label, label);
+            b.height = "86px";
+            b.thickness = 1;
+            b.cornerRadius = 16;
+            b.color = C_SOFT;
+            b.background = "rgba(0,0,0,0.18)";
+            b.fontFamily = pickFontMono;
+            b.fontSize = 32;
+            b.textBlock.letterSpacing = "6px";
+            b.textBlock.color = C_INK;
+            b.paddingLeft = "0px";
+            b.onPointerClickObservable.add(()=>{
+              S.activeCategory = label;
+              // reset active project to first of filtered list
+              S.activeProjectId = null;
+              S.needsSync = true;
+              syncAll();
+            });
+            btnRefs.push(b);
+            return b;
+          };
+
+          // Build grid rows
+          const cats = S.categories;
+          const rows = Math.ceil(cats.length/2);
+          for(let r=0;r<rows;r++) btnGrid.addRowDefinition(1/rows);
+          for(let i=0;i<cats.length;i++){
+            const r = Math.floor(i/2);
+            const c = i%2;
+            const pill = makePill(cats[i]);
+            btnGrid.addControl(pill, r, c);
+            pill.paddingRight = (c===0)?"8px":"0px";
+            pill.paddingLeft = (c===1)?"8px":"0px";
+          }
+
+          S.ui.categories = {badgeTxt, btnRefs};
+          badgeTxt.text = (cats.length-1) + " ITEMS";
         }
+
+        // ============ PANEL: PROJECT WALL ============
+        if(title.toUpperCase()==="PROJECT WALL"){
+          // Header badge shows count like "6 / 6"
+          const wrap = new BABYLON.GUI.StackPanel(name+"_wallWrap");
+          wrap.isVertical = true;
+          wrap.width = 1;
+          wrap.height = 1;
+          wrap.paddingLeft = "14px";
+          wrap.paddingRight = "14px";
+          wrap.paddingTop = "14px";
+          wrap.paddingBottom = "14px";
+          wrap.spacing = 10;
+          contentFrame.addControl(wrap);
+
+          const topRow = new BABYLON.GUI.Grid();
+          topRow.addColumnDefinition(0.55);
+          topRow.addColumnDefinition(0.45);
+          topRow.addRowDefinition(1);
+          topRow.height = "78px";
+          wrap.addControl(topRow);
+
+          const sortBox = new BABYLON.GUI.Rectangle(name+"_sort");
+          sortBox.thickness = 1;
+          sortBox.cornerRadius = 14;
+          sortBox.color = C_SOFT;
+          sortBox.background = "rgba(0,0,0,0.22)";
+          topRow.addControl(sortBox,0,0);
+          const sortTxt = new BABYLON.GUI.TextBlock(name+"_sortTxt");
+          sortTxt.text = "SORT: NEWEST";
+          sortTxt.color = C_INK;
+          sortTxt.fontFamily = pickFontMono;
+          sortTxt.fontSize = 30;
+          sortTxt.letterSpacing = "6px";
+          sortTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+          sortBox.addControl(sortTxt);
+
+          const resetBox = new BABYLON.GUI.Rectangle(name+"_reset");
+          resetBox.thickness = 1;
+          resetBox.cornerRadius = 14;
+          resetBox.color = C_SOFT;
+          resetBox.background = "rgba(0,0,0,0.22)";
+          topRow.addControl(resetBox,0,1);
+          const resetBtn = BABYLON.GUI.Button.CreateSimpleButton(name+"_resetBtn","RESET");
+          resetBtn.thickness = 0;
+          resetBtn.color = "transparent";
+          resetBtn.background = "transparent";
+          resetBtn.fontFamily = pickFontMono;
+          resetBtn.fontSize = 30;
+          resetBtn.textBlock.color = C_INK;
+          resetBtn.textBlock.letterSpacing = "6px";
+          resetBtn.onPointerClickObservable.add(()=>{
+            S.activeCategory = "ALL";
+            S.activeProjectId = null;
+            S.needsSync = true;
+            syncAll();
+          });
+          resetBox.addControl(resetBtn);
+
+          const scroll = new BABYLON.GUI.ScrollViewer(name+"_scroll");
+          scroll.thickness = 0;
+          scroll.barSize = 10;
+          scroll.wheelPrecision = 0.02;
+          scroll.background = "transparent";
+          scroll.height = 1;
+          wrap.addControl(scroll);
+
+          const grid = new BABYLON.GUI.Grid(name+"_grid");
+          grid.addColumnDefinition(0.333);
+          grid.addColumnDefinition(0.333);
+          grid.addColumnDefinition(0.334);
+          // rows created on sync
+          scroll.addControl(grid);
+
+          const buildCards = ()=>{
+            clearChildren(grid);
+            const list = getFiltered();
+            const cols = 3;
+            const rows = Math.ceil(list.length/cols) || 1;
+            // reset row defs
+            grid.rowDefinitions = [];
+            for(let r=0;r<rows;r++) grid.addRowDefinition(1/rows);
+
+            // badge: "n / total"
+            badgeTxt.text = list.length + " / " + S.projects.length;
+
+            for(let i=0;i<list.length;i++){
+              const p = list[i];
+              const r = Math.floor(i/cols);
+              const c = i%cols;
+
+              const card = new BABYLON.GUI.Rectangle(name+"_card_"+p.id);
+              card.thickness = 1;
+              card.cornerRadius = 14;
+              card.color = "rgba(232,226,214,0.14)";
+              card.background = (p.id===S.activeProjectId) ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.22)";
+              card.paddingLeft = "10px";
+              card.paddingRight = "10px";
+              card.paddingTop = "10px";
+              card.paddingBottom = "10px";
+
+              // clickable
+              card.isPointerBlocker = true;
+              card.onPointerClickObservable.add(()=> setActiveProject(p));
+
+              const cardCol = new BABYLON.GUI.StackPanel(name+"_cardCol_"+p.id);
+              cardCol.isVertical = true;
+              cardCol.spacing = 10;
+              card.addControl(cardCol);
+
+              // thumb placeholder
+              const thumb = new BABYLON.GUI.Rectangle(name+"_thumb_"+p.id);
+              thumb.height = "230px";
+              thumb.thickness = 1;
+              thumb.cornerRadius = 12;
+              thumb.color = "rgba(232,226,214,0.10)";
+              thumb.background = "rgba(255,255,255,0.03)";
+              cardCol.addControl(thumb);
+
+              // meta line
+              const meta = new BABYLON.GUI.Grid(name+"_meta_"+p.id);
+              meta.addColumnDefinition(0.65);
+              meta.addColumnDefinition(0.35);
+              meta.addRowDefinition(1);
+              meta.height = "44px";
+              cardCol.addControl(meta);
+
+              const cat = new BABYLON.GUI.TextBlock(name+"_cat_"+p.id);
+              cat.text = p.category;
+              cat.color = C_MUTED;
+              cat.fontFamily = pickFontMono;
+              cat.fontSize = 26;
+              cat.letterSpacing = "5px";
+              cat.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+              meta.addControl(cat,0,0);
+
+              const yr = new BABYLON.GUI.TextBlock(name+"_yr_"+p.id);
+              yr.text = p.year;
+              yr.color = C_MUTED;
+              yr.fontFamily = pickFontMono;
+              yr.fontSize = 26;
+              yr.letterSpacing = "5px";
+              yr.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+              meta.addControl(yr,0,1);
+
+              // title
+              const t = new BABYLON.GUI.TextBlock(name+"_t_"+p.id);
+              t.text = p.title;
+              t.color = C_INK;
+              t.fontFamily = pickFontSerif;
+              t.fontSize = 38;
+              t.textWrapping = true;
+              t.lineSpacing = "8px";
+              t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+              cardCol.addControl(t);
+
+              // tags
+              const tagRow = new BABYLON.GUI.StackPanel(name+"_tags_"+p.id);
+              tagRow.isVertical = false;
+              tagRow.height = "54px";
+              tagRow.spacing = 10;
+              cardCol.addControl(tagRow);
+
+              (p.tags||[]).slice(0,3).forEach(tag=>{
+                const pill = new BABYLON.GUI.Rectangle(name+"_tag_"+p.id+"_"+tag);
+                pill.thickness = 1;
+                pill.cornerRadius = 14;
+                pill.color = "rgba(232,226,214,0.13)";
+                pill.background = "rgba(255,255,255,0.03)";
+                pill.height = "46px";
+                pill.width = "220px";
+                const tt = new BABYLON.GUI.TextBlock();
+                tt.text = tag.toUpperCase();
+                tt.color = C_MUTED;
+                tt.fontFamily = pickFontMono;
+                tt.fontSize = 22;
+                tt.letterSpacing = "5px";
+                pill.addControl(tt);
+                tagRow.addControl(pill);
+              });
+
+              grid.addControl(card, r, c);
+              card.paddingRight = (c<2)?"8px":"0px";
+              card.paddingLeft  = (c>0)?"8px":"0px";
+              card.paddingBottom= "8px";
+            }
+          };
+
+          S.ui.wall = {badgeTxt, buildCards};
+          // initial
+          buildCards();
+        }
+
+        // ============ PANEL: VIEWER ============
+        if(title.toUpperCase()==="VIEWER"){
+          const wrap = new BABYLON.GUI.StackPanel(name+"_viewWrap");
+          wrap.isVertical = true;
+          wrap.width = 1;
+          wrap.height = 1;
+          wrap.paddingLeft = "16px";
+          wrap.paddingRight = "16px";
+          wrap.paddingTop = "16px";
+          wrap.paddingBottom = "16px";
+          wrap.spacing = 12;
+          contentFrame.addControl(wrap);
+
+          const p = getActive();
+
+          const titleBlock = new BABYLON.GUI.TextBlock(name+"_vTitle");
+          titleBlock.text = (p.title||"").toUpperCase();
+          titleBlock.color = C_INK;
+          titleBlock.fontFamily = pickFontSerif;
+          titleBlock.fontSize = 44;
+          titleBlock.textWrapping = true;
+          titleBlock.lineSpacing = "6px";
+          titleBlock.height = "150px";
+          titleBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          wrap.addControl(titleBlock);
+
+          const badgeCat = new BABYLON.GUI.Rectangle(name+"_vBadge");
+          badgeCat.thickness = 1;
+          badgeCat.cornerRadius = 14;
+          badgeCat.color = C_SOFT;
+          badgeCat.background = "rgba(0,0,0,0.22)";
+          badgeCat.height = "58px";
+          badgeCat.width = "320px";
+          badgeCat.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          wrap.addControl(badgeCat);
+
+          const badgeCatTxt = new BABYLON.GUI.TextBlock();
+          badgeCatTxt.text = p.category;
+          badgeCatTxt.color = C_MUTED;
+          badgeCatTxt.fontFamily = pickFontMono;
+          badgeCatTxt.fontSize = 24;
+          badgeCatTxt.letterSpacing = "6px";
+          badgeCat.addControl(badgeCatTxt);
+
+          const metaBox = new BABYLON.GUI.Rectangle(name+"_metaBox");
+          metaBox.thickness = 1;
+          metaBox.cornerRadius = 16;
+          metaBox.color = "rgba(232,226,214,0.12)";
+          metaBox.background = "rgba(0,0,0,0.18)";
+          metaBox.height = "420px";
+          metaBox.width = 1;
+          wrap.addControl(metaBox);
+
+          const metaStack = new BABYLON.GUI.StackPanel();
+          metaStack.isVertical = true;
+          metaStack.spacing = 4;
+          metaStack.paddingLeft = "16px";
+          metaStack.paddingRight = "16px";
+          metaStack.paddingTop = "14px";
+          metaBox.addControl(metaStack);
+
+          const kv=(k,v)=>{
+            const row = new BABYLON.GUI.Grid();
+            row.addColumnDefinition(0.38);
+            row.addColumnDefinition(0.62);
+            row.addRowDefinition(1);
+            row.height = "58px";
+            const kk = new BABYLON.GUI.TextBlock();
+            kk.text = k;
+            kk.color = "rgba(232,226,214,0.55)";
+            kk.fontFamily = pickFontMono;
+            kk.fontSize = 22;
+            kk.letterSpacing = "6px";
+            kk.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+            const vv = new BABYLON.GUI.TextBlock();
+            vv.text = v;
+            vv.color = C_INK;
+            vv.fontFamily = pickFontMono;
+            vv.fontSize = 22;
+            vv.letterSpacing = "4px";
+            vv.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+            row.addControl(kk,0,0);
+            row.addControl(vv,0,1);
+            metaStack.addControl(row);
+          };
+          kv("ID", p.id);
+          kv("CATEGORY", p.category);
+          kv("YEAR", p.year);
+          kv("PLACE", p.place||"—");
+          kv("TAGS", (p.tags||[]).join(", "));
+
+          const excerptBox = new BABYLON.GUI.Rectangle(name+"_excerpt");
+          excerptBox.thickness = 1;
+          excerptBox.cornerRadius = 16;
+          excerptBox.color = "rgba(232,226,214,0.12)";
+          excerptBox.background = "rgba(0,0,0,0.18)";
+          excerptBox.height = 1;
+          excerptBox.width = 1;
+          wrap.addControl(excerptBox);
+
+          const excerptScroll = new BABYLON.GUI.ScrollViewer();
+          excerptScroll.thickness = 0;
+          excerptScroll.barSize = 10;
+          excerptScroll.wheelPrecision = 0.02;
+          excerptScroll.height = 1;
+          excerptBox.addControl(excerptScroll);
+
+          const excerpt = new BABYLON.GUI.TextBlock();
+          excerpt.text = p.excerpt || "";
+          excerpt.color = C_INK;
+          excerpt.fontFamily = pickFontMono;
+          excerpt.fontSize = 26;
+          excerpt.textWrapping = true;
+          excerpt.lineSpacing = "10px";
+          excerpt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          excerpt.paddingLeft = "16px";
+          excerpt.paddingRight = "16px";
+          excerpt.paddingTop = "14px";
+          excerpt.paddingBottom = "14px";
+          excerptScroll.addControl(excerpt);
+
+          S.ui.viewer = {badgeTxt, titleBlock, badgeCatTxt, metaStack, excerpt};
+          badgeTxt.text = "";
+        }
+
+        // ---------- sync across panels (called when state changes) ----------
+        function syncAll(){
+          try{
+            ensureActive();
+            // update category pills
+            if(S.ui.categories){
+              const {btnRefs} = S.ui.categories;
+              for(const b of btnRefs){
+                const lab = b.textBlock.text;
+                const on = (lab===S.activeCategory);
+                b.background = on ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.18)";
+                b.color = on ? "rgba(232,226,214,0.24)" : C_SOFT;
+              }
+            }
+            // rebuild wall cards
+            if(S.ui.wall && S.ui.wall.buildCards){
+              S.ui.wall.buildCards();
+            }
+            // update viewer
+            if(S.ui.viewer){
+              const p = getActive();
+              S.ui.viewer.titleBlock.text = (p.title||"").toUpperCase();
+              S.ui.viewer.badgeCatTxt.text = p.category;
+              // rebuild metaStack rows by clearing and re-adding (safe)
+              clearChildren(S.ui.viewer.metaStack);
+              const kv=(k,v)=>{
+                const row = new BABYLON.GUI.Grid();
+                row.addColumnDefinition(0.38);
+                row.addColumnDefinition(0.62);
+                row.addRowDefinition(1);
+                row.height = "58px";
+                const kk = new BABYLON.GUI.TextBlock();
+                kk.text = k;
+                kk.color = "rgba(232,226,214,0.55)";
+                kk.fontFamily = pickFontMono;
+                kk.fontSize = 22;
+                kk.letterSpacing = "6px";
+                kk.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+                const vv = new BABYLON.GUI.TextBlock();
+                vv.text = v;
+                vv.color = C_INK;
+                vv.fontFamily = pickFontMono;
+                vv.fontSize = 22;
+                vv.letterSpacing = "4px";
+                vv.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+                row.addControl(kk,0,0);
+                row.addControl(vv,0,1);
+                S.ui.viewer.metaStack.addControl(row);
+              };
+              kv("ID", p.id);
+              kv("CATEGORY", p.category);
+              kv("YEAR", p.year);
+              kv("PLACE", p.place||"—");
+              kv("TAGS", (p.tags||[]).join(", "));
+              S.ui.viewer.excerpt.text = p.excerpt || "";
+            }
+          }catch(e){ console.error("syncAll error", e); }
+        }
+
+        // First-time init sync
+        if(!S.inited){ S.inited = true; S.needsSync = true; }
+        if(S.needsSync){ S.needsSync = false; syncAll(); }
+
+        return mesh;
       }
-    };
-
-    s.refreshWall = function(){
-      const stack = s.refs.wallStack;
-      if (!stack) return;
-
-      // Clear
-      while (stack.children.length) stack.removeControl(stack.children[0]);
-      s.refs.cardRefs = [];
-
-      const list = s.filtered();
-      if (s.refs.wallCount) s.refs.wallCount.text = String(list.length) + " / " + String(s.projects.length);
-
-      for (const p of list){
-        // Card container
-        const card = new BABYLON.GUI.Rectangle("card_"+p.id);
-        card.height = "420px";
-        card.thickness = 1;
-        card.cornerRadius = 10;
-        card.color = "rgba(232,226,214,0.16)";
-        card.background = (p.id === s.activeProjectId) ? "rgba(232,226,214,0.06)" : "rgba(0,0,0,0)";
-        card.paddingLeft = "22px";
-        card.paddingRight = "22px";
-        card.paddingTop = "22px";
-        card.paddingBottom = "22px";
-        card.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_STRETCH;
-        card.isPointerBlocker = true;
-
-        const g = new BABYLON.GUI.Grid();
-        g.addColumnDefinition(1);
-        g.addRowDefinition(0.48); // image area
-        g.addRowDefinition(0.10); // meta row
-        g.addRowDefinition(0.28); // title
-        g.addRowDefinition(0.14); // tags
-        card.addControl(g);
-
-        // Image placeholder (layout-like)
-        const img = new BABYLON.GUI.Rectangle("img_"+p.id);
-        img.thickness = 1;
-        img.cornerRadius = 6;
-        img.color = "rgba(232,226,214,0.12)";
-        img.background = "rgba(0,0,0,0)";
-        g.addControl(img, 0, 0);
-
-        const imgLines = new BABYLON.GUI.TextBlock("imgLines_"+p.id, " ");
-        imgLines.fontFamily = "\"Source Code Pro\", monospace";
-        imgLines.fontSize = 26;
-        imgLines.color = "rgba(232,226,214,0.18)";
-        imgLines.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        imgLines.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-        imgLines.paddingLeft = "14px";
-        imgLines.paddingBottom = "12px";
-        imgLines.text = (p.category || "").toUpperCase() + " / " + (p.id || "").toUpperCase();
-        img.addControl(imgLines);
-
-        // Meta row: category + year
-        const metaRow = new BABYLON.GUI.Grid();
-        metaRow.addColumnDefinition(0.68);
-        metaRow.addColumnDefinition(0.32);
-        metaRow.addRowDefinition(1);
-        g.addControl(metaRow, 1, 0);
-
-        const cat = new BABYLON.GUI.TextBlock("cat_"+p.id, (p.category||"").toUpperCase());
-        cat.fontFamily = "\"Source Code Pro\", monospace";
-        cat.fontSize = 28;
-        cat.color = "rgba(232,226,214,0.78)";
-        cat.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        metaRow.addControl(cat, 0, 0);
-
-        const yr = new BABYLON.GUI.TextBlock("yr_"+p.id, String(p.date||"").toUpperCase());
-        yr.fontFamily = "\"Source Code Pro\", monospace";
-        yr.fontSize = 28;
-        yr.color = "rgba(232,226,214,0.78)";
-        yr.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-        metaRow.addControl(yr, 0, 1);
-
-        // Title
-        const t = new BABYLON.GUI.TextBlock("t_"+p.id, p.title || "");
-        t.fontFamily = "\"EB Garamond\", serif";
-        t.fontSize = 64;
-        t.color = "rgba(232,226,214,1)";
-        t.textWrapping = true;
-        t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-        g.addControl(t, 2, 0);
-
-        // Tags (capsules)
-        const tagsWrap = new BABYLON.GUI.StackPanel("tags_"+p.id);
-        tagsWrap.isVertical = false;
-        tagsWrap.height = "64px";
-        tagsWrap.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        tagsWrap.spacing = 10;
-        g.addControl(tagsWrap, 3, 0);
-
-        (p.tags || []).slice(0,3).forEach(tag=>{
-          const pill = new BABYLON.GUI.Rectangle("pill_"+p.id+"_"+tag);
-          pill.height = "54px";
-          pill.width = "200px";
-          pill.thickness = 1;
-          pill.cornerRadius = 27;
-          pill.color = "rgba(232,226,214,0.16)";
-          pill.background = "rgba(232,226,214,0.04)";
-          const tx = new BABYLON.GUI.TextBlock();
-          tx.text = String(tag).toUpperCase();
-          tx.fontFamily = "\"Source Code Pro\", monospace";
-          tx.fontSize = 24;
-          tx.color = "rgba(232,226,214,0.88)";
-          pill.addControl(tx);
-          tagsWrap.addControl(pill);
-        });
-
-        // Interaction
-        card.onPointerEnterObservable.add(() => {
-          if (p.id !== s.activeProjectId) card.background = "rgba(232,226,214,0.04)";
-        });
-        card.onPointerOutObservable.add(() => {
-          card.background = (p.id === s.activeProjectId) ? "rgba(232,226,214,0.06)" : "rgba(0,0,0,0)";
-        });
-        card.onPointerClickObservable.add(() => s.setProject(p.id));
-
-        stack.addControl(card);
-
-        const spacer = new BABYLON.GUI.Rectangle("sp_"+p.id);
-        spacer.height = "22px";
-        spacer.thickness = 0;
-        spacer.background = "transparent";
-        stack.addControl(spacer);
-
-        s.refs.cardRefs.push(card);
-      }
-    };
-
-    s.refreshViewer = function(){
-      const p = s.activeProject();
-      if (!p) return;
-
-      if (s.refs.viewerTitle) s.refs.viewerTitle.text = (p.title || "").toUpperCase();
-      if (s.refs.viewerMeta){
-        const rows = [
-          ["ID", p.id || ""],
-          ["CATEGORY", p.category || ""],
-          ["YEAR", p.date || ""],
-          ["PLACE", p.place || ""],
-          ["TAGS", (p.tags||[]).join(", ")]
-        ];
-        s.refs.viewerMeta.text = rows.map(r => (r[0].padEnd(9," ") + "  " + r[1])).join("
-");
-      }
-      if (s.refs.viewerText) s.refs.viewerText.text = p.text || "";
-    };
-
-    s.refresh = function(){
-      s.refreshCategories();
-      s.refreshWall();
-      s.refreshViewer();
-    };
-
-    return s;
-  })());
-
-  // --- Aesthetic constants (match your desktop layout) ---
-  const COL_BG   = "rgba(15,15,15,0.78)";
-  const COL_LINE = "rgba(232,226,214,0.16)";
-  const COL_LINE2= "rgba(232,226,214,0.12)";
-  const COL_TXT  = "rgba(232,226,214,1)";
-  const COL_MUTED= "rgba(232,226,214,0.72)";
-
-  // --- Panel size: increase mostly height to avoid overlap in your fixed arc ---
-  const isMid = (name === "panelMid");
-  const widthMul  = isMid ? 1.00 : 1.02;
-  const heightMul = 1.12;
-
-  const mesh = BABYLON.MeshBuilder.CreatePlane(
-    name,
-    { width: w * widthMul, height: h * heightMul, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
-    scene
-  );
-
-  // Fix mirrored GUI on planes (keep your original approach)
-  mesh.scaling.x = -1;
-
-  const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-  mat.diffuseColor  = new BABYLON.Color3(0.18,0.18,0.18);
-  mat.emissiveColor = new BABYLON.Color3(0.10,0.10,0.10);
-  mat.specularColor = new BABYLON.Color3(0,0,0);
-  mat.alpha = 0.98;
-  mat.backFaceCulling = false;
-  mesh.material = mat;
-
-  // --- Higher GUI resolution (adaptive to aspect) ---
-  const aspect = (w * widthMul) / (h * heightMul);
-  const pxH = isMid ? 2600 : 2800;
-  let pxW = Math.round(pxH * aspect);
-  pxW = Math.max(1900, Math.min(3200, pxW));
-  const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, pxW, pxH, false);
-
-  // ---- Root frame ----
-  const frame = new BABYLON.GUI.Rectangle(name+"_frame");
-  frame.width = 1;
-  frame.height = 1;
-  frame.thickness = 1;
-  frame.cornerRadius = 12;
-  frame.background = COL_BG;
-  frame.color = COL_LINE;
-  frame.paddingTop = "18px";
-  frame.paddingBottom = "18px";
-  frame.paddingLeft = "18px";
-  frame.paddingRight = "18px";
-  adt.addControl(frame);
-
-  // Grid: header + body
-  const grid = new BABYLON.GUI.Grid(name+"_grid");
-  grid.addRowDefinition(0.16);
-  grid.addRowDefinition(0.84);
-  grid.addColumnDefinition(1);
-  frame.addControl(grid);
-
-  // Header container
-  const header = new BABYLON.GUI.Rectangle(name+"_header");
-  header.thickness = 0;
-  header.background = "transparent";
-  grid.addControl(header, 0, 0);
-
-  const headerGrid = new BABYLON.GUI.Grid(name+"_headerGrid");
-  headerGrid.addColumnDefinition(0.72);
-  headerGrid.addColumnDefinition(0.28);
-  headerGrid.addRowDefinition(0.45);
-  headerGrid.addRowDefinition(0.55);
-  header.addControl(headerGrid);
-
-  const kicker = new BABYLON.GUI.TextBlock(name+"_kicker",
-    (name==="panelLeft" ? "STUDIES / NAVIGATION" : name==="panelMid" ? "STUDIES / WALL" : "RETRIEVAL / VIEWER")
-  );
-  kicker.fontFamily = "\"Source Code Pro\", monospace";
-  kicker.fontSize = 28;
-  kicker.color = COL_MUTED;
-  kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-  kicker.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-  headerGrid.addControl(kicker, 0, 0);
-
-  const hTitle = new BABYLON.GUI.TextBlock(name+"_title",
-    (name==="panelLeft" ? "CATEGORIES" : name==="panelMid" ? "PROJECT WALL" : "VIEWER")
-  );
-  hTitle.fontFamily = "\"Source Code Pro\", monospace";
-  hTitle.fontSize = 44;
-  hTitle.color = COL_TXT;
-  hTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-  hTitle.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-  headerGrid.addControl(hTitle, 1, 0);
-
-  // Right badge (counts)
-  const badge = new BABYLON.GUI.Rectangle(name+"_badge");
-  badge.thickness = 1;
-  badge.cornerRadius = 18;
-  badge.color = COL_LINE;
-  badge.background = "rgba(232,226,214,0.04)";
-  badge.width = "240px";
-  badge.height = "56px";
-  badge.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-  badge.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-  headerGrid.addControl(badge, 1, 1);
-
-  const badgeText = new BABYLON.GUI.TextBlock(name+"_badgeText", "");
-  badgeText.fontFamily = "\"Source Code Pro\", monospace";
-  badgeText.fontSize = 26;
-  badgeText.color = COL_MUTED;
-  badge.addControl(badgeText);
-
-  if (name === "panelLeft") S.refs.catCount = badgeText;
-  if (name === "panelMid")  S.refs.wallCount = badgeText;
-  if (name === "panelRight") badgeText.text = ""; // viewer doesn't need a count
-
-  // Header divider line
-  const divider = new BABYLON.GUI.Rectangle(name+"_divider");
-  divider.height = "2px";
-  divider.thickness = 0;
-  divider.background = COL_LINE2;
-  divider.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-  header.addControl(divider);
-
-  // Body container
-  const body = new BABYLON.GUI.Rectangle(name+"_body");
-  body.thickness = 0;
-  body.background = "transparent";
-  body.paddingTop = "14px";
-  grid.addControl(body, 1, 0);
-
-  // ----- LEFT: Categories -----
-  if (name === "panelLeft"){
-    const stack = new BABYLON.GUI.StackPanel("cat_stack");
-    stack.spacing = 14;
-    stack.paddingTop = "10px";
-    stack.paddingLeft = "6px";
-    stack.paddingRight = "6px";
-    body.addControl(stack);
-
-    // Search placeholder (visual only, no keyboard)
-    const search = new BABYLON.GUI.Rectangle("cat_search");
-    search.height = "92px";
-    search.thickness = 1;
-    search.cornerRadius = 10;
-    search.color = COL_LINE;
-    search.background = "rgba(0,0,0,0)";
-    search.isPointerBlocker = true;
-    stack.addControl(search);
-
-    const searchText = new BABYLON.GUI.TextBlock("cat_search_t", "SEARCH  (TITLE, TAG, YEAR)");
-    searchText.fontFamily = "\"Source Code Pro\", monospace";
-    searchText.fontSize = 24;
-    searchText.color = "rgba(232,226,214,0.48)";
-    searchText.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    searchText.paddingLeft = "16px";
-    search.addControl(searchText);
-
-    // Buttons grid-like wrap (two columns feel)
-    const btnGrid = new BABYLON.GUI.Grid("cat_btn_grid");
-    btnGrid.addColumnDefinition(0.5);
-    btnGrid.addColumnDefinition(0.5);
-    // 4 rows will be enough for mock
-    for(let i=0;i<4;i++) btnGrid.addRowDefinition(0.25);
-    btnGrid.height = "520px";
-    stack.addControl(btnGrid);
-
-    // Create capsule buttons
-    S.refs.catButtons = [];
-    const cats = S.categories;
-    const placements = [];
-    // Fill row-major
-    for(let i=0;i<cats.length;i++){
-      placements.push([Math.floor(i/2), i%2, cats[i]]);
-    }
-
-    placements.forEach(([r,c,catName])=>{
-      if (r >= 4) return;
-      const btn = new BABYLON.GUI.Rectangle("cat_"+catName);
-      btn.height = "92px";
-      btn.thickness = 1;
-      btn.cornerRadius = 46;
-      btn.color = COL_LINE;
-      btn.background = "rgba(0,0,0,0)";
-      btn.isPointerBlocker = true;
-
-      const lab = new BABYLON.GUI.TextBlock("cat_lab_"+catName, String(catName).toUpperCase());
-      lab.fontFamily = "\"Source Code Pro\", monospace";
-      lab.fontSize = 26;
-      lab.color = COL_TXT;
-      lab.textWrapping = false;
-      btn.addControl(lab);
-
-      btn.__cat = catName;
-      btn.__label = lab;
-
-      btn.onPointerEnterObservable.add(()=>{ if (btn.__cat !== S.activeCategory) btn.background="rgba(232,226,214,0.03)"; });
-      btn.onPointerOutObservable.add(()=>{ if (btn.__cat !== S.activeCategory) btn.background="rgba(0,0,0,0)"; });
-      btn.onPointerClickObservable.add(()=> S.setCategory(btn.__cat));
-
-      btnGrid.addControl(btn, r, c);
-      S.refs.catButtons.push(btn);
-    });
-
-    // Init badge count
-    if (S.refs.catCount) S.refs.catCount.text = String(S.categories.length - 1) + " ITEMS";
-  }
-
-  // ----- MID: Project Wall -----
-  if (name === "panelMid"){
-    const sv = new BABYLON.GUI.ScrollViewer("wall_sv");
-    sv.thickness = 0;
-    sv.barSize = 12;
-    sv.thumbHeight = 0.2;
-    sv.color = "rgba(232,226,214,0.20)";
-    sv.background = "transparent";
-    sv.isPointerBlocker = true;
-    body.addControl(sv);
-
-    const wallStack = new BABYLON.GUI.StackPanel("wall_stack");
-    wallStack.spacing = 0;
-    wallStack.paddingLeft = "6px";
-    wallStack.paddingRight = "6px";
-    wallStack.paddingTop = "10px";
-    sv.addControl(wallStack);
-
-    S.refs.wallStack = wallStack;
-  }
-
-  // ----- RIGHT: Viewer -----
-  if (name === "panelRight"){
-    const v = new BABYLON.GUI.StackPanel("viewer_stack");
-    v.spacing = 16;
-    v.paddingLeft = "10px";
-    v.paddingRight = "10px";
-    v.paddingTop = "10px";
-    body.addControl(v);
-
-    // Title block
-    const t = new BABYLON.GUI.TextBlock("viewer_title", "");
-    t.fontFamily = "\"EB Garamond\", serif";
-    t.fontSize = 70;
-    t.color = COL_TXT;
-    t.textWrapping = true;
-    t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    v.addControl(t);
-    S.refs.viewerTitle = t;
-
-    // Meta table (monospace)
-    const metaBox = new BABYLON.GUI.Rectangle("viewer_meta_box");
-    metaBox.thickness = 1;
-    metaBox.cornerRadius = 10;
-    metaBox.color = COL_LINE;
-    metaBox.background = "rgba(0,0,0,0)";
-    metaBox.paddingTop = "16px";
-    metaBox.paddingBottom = "16px";
-    metaBox.paddingLeft = "18px";
-    metaBox.paddingRight = "18px";
-    v.addControl(metaBox);
-
-    const meta = new BABYLON.GUI.TextBlock("viewer_meta", "");
-    meta.fontFamily = "\"Source Code Pro\", monospace";
-    meta.fontSize = 28;
-    meta.color = COL_MUTED;
-    meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    meta.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-    meta.textWrapping = true;
-    metaBox.addControl(meta);
-    S.refs.viewerMeta = meta;
-
-    // Description text
-    const desc = new BABYLON.GUI.TextBlock("viewer_text", "");
-    desc.fontFamily = "\"Source Code Pro\", monospace";
-    desc.fontSize = 30;
-    desc.color = COL_TXT;
-    desc.textWrapping = true;
-    desc.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    v.addControl(desc);
-    S.refs.viewerText = desc;
-  }
-
-  // First-time panel builds trigger a refresh once all refs exist
-  // (safe to call repeatedly)
-  S.refresh();
-
-  return mesh;
-}
 
       const left  = makeGuiPanel("panelLeft",  1.85, 2.45, "Categories");
       const mid   = makeGuiPanel("panelMid",   2.45, 2.45, "Project Wall");
