@@ -945,13 +945,16 @@ renderAll(false);
   mat.backFaceCulling = false;
   mesh.material = mat;
 
-  // Hi-res GUI texture (crisper text). Keep aspect similar to your layout.
-  // Higher-resolution GUI texture for sharper text on mobile VR (kept inside makeGuiPanel)
-  const texW = Math.max(2400, Math.floor(3200 * (w / Math.max(0.01, h))));
-  const texH = Math.max(3200, Math.floor(texW * (h / Math.max(0.01, w))));
+    // Hi-res GUI texture (sharp text) WITHOUT changing visual sizes.
+  // We scale the *texture* (pixels), not the GUI layout.
+  const dpr = (window.devicePixelRatio || 1);
+  const hi = Math.min(4096, Math.floor(2048 * Math.min(2.2, Math.max(1.4, dpr*1.4))));
+  const aspect = w / Math.max(0.001, h);
+  const texW = Math.min(4096, Math.max(2048, Math.floor(hi * Math.max(0.75, Math.min(1.35, aspect)))));
+  const texH = Math.min(4096, Math.max(2048, Math.floor(texW / Math.max(0.001, aspect))));
   const adt = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(mesh, texW, texH, false);
-  // Extra supersampling without changing any engine/render-loop code
-  adt.renderScale = 1.25;
+  // Supersample GUI rendering for additional crispness (doesn't change sizes)
+  adt.renderScale = 1.75;
 
   // ---------- Shared UI state (stored once) ----------
   if(!scene.metadata) scene.metadata = {};
@@ -1084,7 +1087,7 @@ renderAll(false);
   kicker.text = (name==="left" ? "STUDIES / NAVIGATION" : name==="center" ? "PROJECT WALL" : "RETRIEVAL / VIEWER");
   kicker.color = COLORS.inkDim;
   kicker.fontFamily = COLORS.mono;
-  kicker.fontSize = 30;
+  kicker.fontSize = 24;
   kicker.letterSpacing = 2;
   kicker.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
   kicker.paddingLeft = "28px";
@@ -1095,7 +1098,7 @@ renderAll(false);
   hTitle.text = (name==="left" ? "CATEGORIES" : name==="center" ? "PROJECT WALL" : "VIEWER");
   hTitle.color = COLORS.ink;
   hTitle.fontFamily = COLORS.mono;
-  hTitle.fontSize = 40;
+  hTitle.fontSize = 34;
   hTitle.letterSpacing = 3;
   hTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
   hTitle.paddingLeft = "28px";
@@ -1117,7 +1120,7 @@ renderAll(false);
   badgeTxt.text = (name==="left" ? (UI.categories.length-1)+" ITEMS" : (UI.getFiltered().length+" / "+UI.projects.length));
   badgeTxt.color = COLORS.inkDim;
   badgeTxt.fontFamily = COLORS.mono;
-  badgeTxt.fontSize = 28;
+  badgeTxt.fontSize = 20;
   badgeTxt.letterSpacing = 2;
   badge.addControl(badgeTxt);
 
@@ -1137,7 +1140,7 @@ renderAll(false);
     btn.color = COLORS.border;
     btn.background = COLORS.pill;
     btn.fontFamily = COLORS.mono;
-    btn.fontSize = 28;
+    btn.fontSize = 24;
     btn.letterSpacing = 2;
     btn.paddingLeft = "10px";
     btn.paddingRight = "10px";
@@ -1156,7 +1159,7 @@ renderAll(false);
     t.text = text.toUpperCase();
     t.color = COLORS.inkDim;
     t.fontFamily = COLORS.mono;
-    t.fontSize = 22;
+    t.fontSize = 20;
     t.letterSpacing = 2;
     r.addControl(t);
     return r;
@@ -1185,7 +1188,7 @@ renderAll(false);
     sTxt.text = "SEARCH (TITLE, TAG, YEAR)";
     sTxt.color = "rgba(232,226,214,0.40)";
     sTxt.fontFamily = COLORS.mono;
-    sTxt.fontSize = 24;
+    sTxt.fontSize = 20;
     sTxt.letterSpacing = 2;
     sTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     sTxt.paddingLeft = "18px";
@@ -1285,7 +1288,7 @@ renderAll(false);
       imgTxt.text = (p.category.toUpperCase()+" / "+p.id);
       imgTxt.color = "rgba(232,226,214,0.35)";
       imgTxt.fontFamily = COLORS.mono;
-      imgTxt.fontSize = 22;
+      imgTxt.fontSize = 20;
       imgTxt.letterSpacing = 2;
       imgTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       imgTxt.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
@@ -1302,7 +1305,7 @@ renderAll(false);
       meta.text = p.category.toUpperCase();
       meta.color = COLORS.inkDim;
       meta.fontFamily = COLORS.mono;
-      meta.fontSize = 24;
+      meta.fontSize = 20;
       meta.letterSpacing = 2;
       meta.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       meta.top = "10px";
@@ -1312,7 +1315,7 @@ renderAll(false);
       year.text = p.year;
       year.color = COLORS.inkDim;
       year.fontFamily = COLORS.mono;
-      year.fontSize = 24;
+      year.fontSize = 20;
       year.letterSpacing = 2;
       year.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
       year.top = "10px";
@@ -1322,7 +1325,7 @@ renderAll(false);
       t.text = p.title;
       t.color = COLORS.ink;
       t.fontFamily = COLORS.serif;
-      t.fontSize = 44;
+      t.fontSize = 30;
       t.textWrapping = true;
       t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       t.top = "52px";
@@ -1380,7 +1383,7 @@ renderAll(false);
     const titleBlock = new BABYLON.GUI.TextBlock(name+"_vTitle");
     titleBlock.color = COLORS.ink;
     titleBlock.fontFamily = COLORS.serif;
-    titleBlock.fontSize = 56;
+    titleBlock.fontSize = 44;
     titleBlock.textWrapping = true;
     titleBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     container.addControl(titleBlock);
@@ -1399,7 +1402,7 @@ renderAll(false);
     const catTxt = new BABYLON.GUI.TextBlock();
     catTxt.color = COLORS.inkDim;
     catTxt.fontFamily = COLORS.mono;
-    catTxt.fontSize = 24;
+    catTxt.fontSize = 20;
     catTxt.letterSpacing = 2;
     catPill.addControl(catTxt);
 
@@ -1424,7 +1427,7 @@ renderAll(false);
       kk.text = k;
       kk.color = "rgba(232,226,214,0.55)";
       kk.fontFamily = COLORS.mono;
-      kk.fontSize = 22;
+      kk.fontSize = 18;
       kk.letterSpacing = 2;
       kk.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       kk.paddingLeft = "16px";
@@ -1434,7 +1437,7 @@ renderAll(false);
       vv.text = v;
       vv.color = COLORS.ink;
       vv.fontFamily = COLORS.mono;
-      vv.fontSize = 22;
+      vv.fontSize = 18;
       vv.letterSpacing = 1;
       vv.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
       vv.paddingRight = "16px";
@@ -1452,7 +1455,7 @@ renderAll(false);
     textBlock.top = "440px";
     textBlock.color = COLORS.ink;
     textBlock.fontFamily = COLORS.mono;
-    textBlock.fontSize = 28;
+    textBlock.fontSize = 22;
     textBlock.lineSpacing = "8px";
     textBlock.textWrapping = true;
     textBlock.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -1475,9 +1478,14 @@ renderAll(false);
   }
 
   // ---------- Assemble per panel ----------
-  if(name === "left"){
+    // Panel routing: original HTML calls makeGuiPanel("panelLeft"/"panelMid"/"panelRight", ..., "Categories"/...)
+  const key = ((title||"") + " " + (name||"")).toLowerCase();
+  const isLeft   = key.includes("categories") || key.includes("left");
+  const isCenter = key.includes("project") || key.includes("wall") || key.includes("mid") || key.includes("center");
+
+  if(isLeft){
     buildLeft();
-  } else if(name === "center"){
+  } else if(isCenter){
     buildCenter();
   } else {
     buildRight();
