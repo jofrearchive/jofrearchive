@@ -1031,6 +1031,64 @@ renderAll(false);
     cardOn: "rgba(255,255,255,0.06)"
   };
 
+  // --- Thumbnail helper: returns a PNG dataURL so it works reliably in iOS canvas (Babylon GUI).
+  // If you later provide real image URLs (https), set p.image and we will use it.
+  function makePngThumb(p){
+    try{
+      if(p && typeof p.image === "string" && p.image.startsWith("http")) return p.image;
+      // Some data sets use SVG data URIs; iOS Safari often fails to draw SVG into canvas via <img>.
+      // Convert to a small raster placeholder instead.
+      const W=768, H=576;
+      const c=document.createElement("canvas"); c.width=W; c.height=H;
+      const g=c.getContext("2d");
+      // background
+      g.fillStyle="#0a0a0a"; g.fillRect(0,0,W,H);
+      // subtle grid
+      g.globalAlpha=0.22;
+      g.strokeStyle="#e8e2d6";
+      for(let x=0;x<=W;x+=48){ g.beginPath(); g.moveTo(x,0); g.lineTo(x,H); g.stroke(); }
+      for(let y=0;y<=H;y+=48){ g.beginPath(); g.moveTo(0,y); g.lineTo(W,y); g.stroke(); }
+      g.globalAlpha=1.0;
+      // vignette
+      const grad=g.createRadialGradient(W*0.35,H*0.1,10,W*0.35,H*0.1,Math.max(W,H));
+      grad.addColorStop(0,"rgba(255,255,255,0.10)");
+      grad.addColorStop(1,"rgba(0,0,0,0.0)");
+      g.fillStyle=grad; g.fillRect(0,0,W,H);
+
+      // text
+      const cat=(p.category||"PROJECT").toUpperCase();
+      const yr=String(p.year||"");
+      const title=(p.title||"Untitled");
+      g.fillStyle="rgba(232,226,214,0.85)";
+      g.font="600 22px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+      g.fillText(cat + (yr?("  "+yr):""), 28, 44);
+
+      g.fillStyle="rgba(232,226,214,0.92)";
+      g.font="600 34px Georgia, 'Times New Roman', serif";
+      // wrap simple
+      const maxW=W-56;
+      const words=title.split(/\s+/);
+      let line="", y=110;
+      for(const w of words){
+        const test=line? (line+" "+w):w;
+        if(g.measureText(test).width>maxW){ g.fillText(line,28,y); line=w; y+=42; }
+        else line=test;
+        if(y>H-40) break;
+      }
+      if(line && y<=H-40) g.fillText(line,28,y);
+
+      // bottom label
+      g.fillStyle="rgba(232,226,214,0.65)";
+      g.font="500 18px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
+      g.fillText("INSIDE / STUDIES", 28, H-28);
+
+      return c.toDataURL("image/png");
+    }catch(e){
+      return "";
+    }
+  }
+
+
   // ---------- Root frame ----------
   const frame = new BABYLON.GUI.Rectangle(name+"_frame");
   frame.width = 0.94;
@@ -1275,26 +1333,37 @@ renderAll(false);
       g.addRowDefinition(0.54);
       card.addControl(g);
 
-      // image placeholder
+      // image
       const img = new BABYLON.GUI.Rectangle();
       img.thickness = 1;
       img.color = "rgba(255,255,255,0.08)";
       img.background = "rgba(0,0,0,0.22)";
       img.cornerRadius = 8;
-      img.paddingLeft="14px"; img.paddingRight="14px"; img.paddingTop="14px"; img.paddingBottom="14px";
       g.addControl(img,0,0);
 
-      const imgTxt = new BABYLON.GUI.TextBlock();
-      imgTxt.text = (p.category.toUpperCase()+" / "+p.id);
-      imgTxt.color = "rgba(232,226,214,0.35)";
-      imgTxt.fontFamily = COLORS.mono;
-      imgTxt.fontSize = 20;
-      imgTxt.letterSpacing = 2;
-      imgTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      imgTxt.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-      imgTxt.paddingLeft = "12px";
-      imgTxt.paddingBottom = "10px";
-      img.addControl(imgTxt);
+      const imgUrl = makePngThumb(p);
+      if(imgUrl){
+        const im = new BABYLON.GUI.Image(name+"_img_"+p.id, imgUrl);
+        im.width = 1;
+        im.height = 1;
+        im.stretch = BABYLON.GUI.Image.STRETCH_UNIFORM_TO_FILL;
+        // Slight soften to match aesthetic
+        im.alpha = 0.92;
+        img.addControl(im);
+      } else {
+        const imgTxt = new BABYLON.GUI.TextBlock();
+        imgTxt.text = (p.category||"").toUpperCase()+"  "+(p.year||"");
+        imgTxt.color = COLORS.inkDim;
+        imgTxt.fontFamily = COLORS.mono;
+        imgTxt.fontSize = 24;
+        imgTxt.letterSpacing = 2;
+        imgTxt.textWrapping = true;
+        imgTxt.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        imgTxt.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        imgTxt.paddingLeft="16px";
+        imgTxt.paddingTop="16px";
+        img.addControl(imgTxt);
+      }
 
       // content
       const content = new BABYLON.GUI.Container();
