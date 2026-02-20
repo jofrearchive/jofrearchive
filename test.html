@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Point Cloud Test</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #0b0b0b;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+  }
+  #status {
+    position: fixed;
+    top: 90px;
+    left: 14px;
+    padding: 8px 12px;
+    font: 12px ui-monospace, monospace;
+    background: rgba(0,0,0,.6);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 12px;
+    color: #e8e2d6;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<div id="status">Loading…</div>
+
+<script type="module">
+import * as THREE from "./assets/js/three.module.js";
+import { OrbitControls } from "./assets/js/OrbitControls.js";
+
+const status = document.getElementById("status");
+status.textContent = "THREE + OrbitControls OK";
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b0b0b);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 0, 5);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Test geometry (solo para comprobar que se ve algo)
+const geometry = new THREE.SphereGeometry(1, 64, 64);
+const material = new THREE.PointsMaterial({
+  size: 0.02,
+  color: 0xffffff
+});
+const points = new THREE.Points(geometry, material);
+scene.add(points);
+
+// Resize
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animate
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
