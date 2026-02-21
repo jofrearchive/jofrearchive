@@ -421,7 +421,7 @@ function requestMotionPermissionIfNeeded(){
       const clickTarget = enableMotionBtn || motionGate;
       if (!clickTarget){
         window.__JA_onMotionGranted = null;
-                resolve(false);
+                 __DBG.perm = "error"; __DBG.note = "permission request failed"; dbgRender(); resolve(false);
         return;
       }
 
@@ -438,13 +438,13 @@ function requestMotionPermissionIfNeeded(){
 try{ if (granted && typeof window.__JA_onMotionGranted === "function") window.__JA_onMotionGranted(); }catch(e){}
 // clear hook
 window.__JA_onMotionGranted = null;
-resolve(granted);
+ __DBG.perm = granted ? "granted" : "denied"; dbgRender(); resolve(granted);
         }catch(err){
           if (motionGate){
             motionGate.style.display = 'none';
             motionGate.setAttribute('aria-hidden','true');
           }
-          resolve(false);
+           __DBG.perm = "error"; __DBG.note = "permission request failed"; dbgRender(); resolve(false);
         }
       };
     });
@@ -461,7 +461,46 @@ async function requestGyroPermission(){
     const ua = navigator.userAgent || "";
     const tp = navigator.maxTouchPoints || 0;
     return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/(Macintosh)/i.test(ua) && tp > 1);
+
+// --- DEBUG HUD (mobile) ---
+const debugHud = document.getElementById("debugHud");
+const __DBG = {
+  mobile: false,
+  https: (location.protocol === "https:" || location.hostname === "localhost"),
+  inIframe: (window.top !== window),
+  perm: "unknown",
+  events: 0,
+  last: {a:null,b:null,g:null,abs:null},
+  note: ""
+};
+
+function dbgRender(){
+  if (!debugHud) return;
+  if (!__DBG.mobile) return;
+  debugHud.style.display = "block";
+  debugHud.textContent =
+    "JA VR DEBUG\n" +
+    "mobile: " + __DBG.mobile + "\n" +
+    "https: " + __DBG.https + "\n" +
+    "inIframe: " + __DBG.inIframe + "\n" +
+    "permission: " + __DBG.perm + "\n" +
+    "deviceorientation events: " + __DBG.events + "\n" +
+    "alpha: " + (__DBG.last.a ?? "-") + "  beta: " + (__DBG.last.b ?? "-") + "  gamma: " + (__DBG.last.g ?? "-") + "\n" +
+    (__DBG.note ? ("note: " + __DBG.note + "\n") : "");
+}
+
+// raw deviceorientation listener to verify sensor data actually arrives
+window.addEventListener("deviceorientation", (e)=>{
+  __DBG.events++;
+  __DBG.last.a = (e.alpha!=null ? e.alpha.toFixed(1) : null);
+  __DBG.last.b = (e.beta!=null ? e.beta.toFixed(1) : null);
+  __DBG.last.g = (e.gamma!=null ? e.gamma.toFixed(1) : null);
+  __DBG.last.abs = e.absolute;
+}, true);
   }
+
+  __DBG.mobile = isMobile();
+  dbgRender();
 
   const canvas = document.getElementById("renderCanvas");
   const engine = new BABYLON.Engine(canvas, true);
@@ -527,7 +566,7 @@ if (isMobile() && motionBtn){
   };
 
   const ok = await requestGyroPermission();
-  if (!ok) return;
+  if (!ok){ __DBG.note="permission not granted"; dbgRender(); return; } __DBG.note="gyro input added (waiting for events)"; dbgRender();
       motionEnabled = true;
       motionBtn.classList.add("active");
       const label = motionBtn.querySelector(".vrLabel");
@@ -542,7 +581,7 @@ if (isMobile() && motionBtn){
       motionEnabled = false;
       motionBtn.classList.remove("active");
       const label = motionBtn.querySelector(".vrLabel");
-      if (label) label.textContent = "VR OFF";
+      if (label) label.textContent = "VR OFF"; __DBG.note="gyro input removed"; dbgRender();
     }
   });
 }
@@ -658,6 +697,22 @@ if (isMobile() && motionBtn){
   window.addEventListener("resize", () => engine.resize());
 })();
 </script>
+
+
+<!-- Debug HUD (remove later) -->
+<div id="debugHud" style="
+  position:fixed; left:12px; top:12px; z-index:99999;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size:11px; letter-spacing:.06em;
+  color: rgba(232,226,214,.9);
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.14);
+  padding:10px 12px;
+  backdrop-filter: blur(8px);
+  max-width: min(520px, calc(100% - 24px));
+  white-space: pre-wrap;
+  display:none;
+"></div>
 
 </body>
 </html>
