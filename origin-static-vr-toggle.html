@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JOFRE ARCHIVE — Cloister Point Cloud</title>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Source+Code+Pro:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0b0b0b;
+      --ivory: #e8e2d6;
+      --led-green: #4ade80;
+    }
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background: var(--bg-deep); }
+    #renderCanvas { width:100%; height:100%; touch-action:none; filter: contrast(110%) brightness(90%); }
+
+    /* Gate */
+    #gate {
+      position:absolute; inset:0;
+      background: radial-gradient(circle at center, rgba(11,11,11,0.8) 0%, var(--bg-deep) 100%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:10; color:var(--ivory); text-align:center;
+    }
+    .bab3d-on #gate{ display:none; }
+
+    h1 {
+      font-family:'EB Garamond', serif;
+      font-weight: normal;
+      letter-spacing: .2em;
+      opacity:.9;
+      margin: 0 0 40px 0;
+    }
+
+    #startVR {
+      background: rgba(0,0,0,.6);
+      border: 1px solid rgba(232,226,214,.2);
+      color: var(--ivory);
+      font-family:'Source Code Pro', monospace;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      padding: 12px 30px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap: 15px;
+      transition: all .3s ease;
+    }
+    #startVR:hover { border-color: rgba(232,226,214,.5); background: rgba(0,0,0,.8); }
+    #led { width:8px; height:8px; background:#222; border-radius:50%; box-shadow: 0 0 0px var(--led-green); transition:.3s; }
+    #startVR:hover #led { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
+
+    
+/* ===== PANEL ===== */
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, 92vw);
+  background: rgba(10,10,10,.65);
+  border:1px solid rgba(255,255,255,.18);
+  padding: 32px !important; /* Padding restaurado a 32px */
+  backdrop-filter: blur(8px);
+  z-index:8;
+  opacity:0;
+  transition: opacity 1.0s ease;
+  display:none;
+}
+#panel.show{ opacity:1; }
+
+#panel #title{
+  font-family:'EB Garamond', serif;
+  font-size: 28px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  margin: 0 0 10px 0;
+}
+#panel #submeta{
+  font-family:'Source Code Pro', monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity:.65;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  color: var(--ivory);
+}
+#panel .tabs{
+  display:flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+#panel .tabLink{
+  flex: 1 1 0;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: var(--ivory);
+  font-family: 'Source Code Pro', monospace;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+#panel .tabLink:hover, #panel .tabLink.active{
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.36);
+  opacity: 1;
+}
+
+#dynamicDescription{ display:none; }
+
+/* gate vs system */
+body.bab3d-ready #panel{ display:none; }
+body.bab3d-on #gate{ display:none; }
+body.bab3d-on #panel{ display:block; }
+
+/* ===== LOADER ===== */
+#loader {
+  position:fixed; inset:0;
+  background: var(--bg-deep);
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+           max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+}
+#loader[aria-hidden="true"]{ display:none; }
+.loaderBox {
+  width:min(760px, 92vw);
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(10,10,10,.60);
+  padding: clamp(18px, 4vw, 34px);
+}
+.loaderTitle {
+  font-family:'EB Garamond', serif;
+  font-size: clamp(16px, 2.6vw, 22px);
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  opacity:.92;
+  margin-bottom: 12px;
+  color: var(--ivory);
+}
+.typeLine {
+  font-family: 'Source Code Pro', monospace;
+  font-size: clamp(12px, 2vw, 14px);
+  letter-spacing: .08em;
+  opacity:.78;
+  line-height:1.65;
+  white-space: pre-wrap;
+  min-height: 5.2em;
+  color: var(--ivory);
+}
+.barWrap {
+  margin-top: 18px;
+  height: 10px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.03);
+}
+.bar {
+  height:100%;
+  width:0%;
+  background: rgba(232,226,214,.58);
+  transition: width .08s linear;
+}
+.percentRow {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-top: 12px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 12px;
+  letter-spacing: .14em;
+  opacity:.65;
+  text-transform: uppercase;
+  color: var(--ivory);
+}
+.fadeOut {
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 1.1s ease;
+}
+
+/* ===== VR TOGGLE (mobile) ===== */
+#vrToggle{
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 12;
+  display: none; /* enabled via JS on mobile */
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.55);
+  color: var(--ivory);
+  font-family:'Source Code Pro', monospace;
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+#vrToggle:hover{ border-color: rgba(255,255,255,.30); background: rgba(0,0,0,.70); }
+
+#vrToggle .vrLed{
+  width: 18px;
+  height: 6px;
+  border-radius: 2px;
+  background: #444; /* OFF = grey */
+  transition: .25s ease;
+}
+#vrToggle.vrOn .vrLed{
+  background: var(--led-green);
+  box-shadow: 0 0 12px rgba(74,222,128,.55);
+}
+#vrToggle.vrOn .vrText{ color: var(--led-green); }
+
+/* show only on mobile */
+@media (min-width: 768px){
+  #vrToggle{ display:none !important; }
+}
+
+/* Mobile adjustments */
+@media (max-width: 520px){
+  #panel{
+    padding: 14px 14px 8px !important;
+  }
+}
+
+</style>
+</head>
+<body class="bab3d-ready">
+
+<script>
+(function(){
+  try{
+    if (localStorage.getItem("JA_INIT_DONE_v1")==="1") {
+      document.body.classList.remove("bab3d-ready");
+      document.body.classList.add("bab3d-on");
+    }
+  }catch(e){}
+})();
+</script>
+
+  <div id="gate">
+    <h1>EXPERIMENTAL ARCHIVE</h1>
+    <button id="startVR">
+      <div id="led"></div>
+      <span>Initialize System</span>
+    </button>
+  </div>
+
+  <div id="loader" aria-hidden="true">
+    <div class="loaderBox">
+      <div class="loaderTitle">INITIALIZING SYSTEM</div>
+      <div id="typeLine" class="typeLine">Boot sequence…</div>
+      <div class="barWrap"><div id="bar" class="bar"></div></div>
+      <div class="percentRow">
+        <div id="pct">0%</div>
+        <div id="status">loading geometry</div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="renderCanvas"></canvas>
+
+  <button id="vrToggle" type="button" aria-label="VR Toggle">
+  <span class="vrLed" aria-hidden="true"></span>
+  <span class="vrText">VR OFF</span>
+</button>
+<div id="panel" aria-hidden="false">
+    <div id="title">JOFRE OLIVERAS</div>
+    <div id="submeta"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="dynamicDescription"></div>
+  </div>
+
+<script>
+const PANEL_CONTENT = {
+  title: "JOFRE OLIVERAS",
+  submeta: [
+    "ARTIST · EXPLORER · LANDSCAPER",
+    "BASED BETWEEN DISCIPLINES",
+    "EXPERIMENTAL ARCHIVE"
+  ],
+  tabs: [
+    { key: "STUDIES", ctaHref: "https://inside.jofrearchive.com/studies/" },
+    { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" },
+    { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
+  ]
+};
+
+(function initPanel(){
+  const panel = document.getElementById("panel");
+  const titleEl = document.getElementById("title");
+  const submetaEl = document.getElementById("submeta");
+  const tabsEl = document.getElementById("tabs");
+
+  function escapeHtml(s){
+    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  titleEl.textContent = PANEL_CONTENT.title;
+  submetaEl.innerHTML = PANEL_CONTENT.submeta.map(escapeHtml).join("<br>");
+
+  tabsEl.innerHTML = "";
+  PANEL_CONTENT.tabs.forEach((t)=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tabLink";
+    b.textContent = t.key;
+    b.addEventListener("click", ()=>{
+      if (t.ctaHref) window.location.href = t.ctaHref;
+    });
+    tabsEl.appendChild(b);
+  });
+
+  const obs = new MutationObserver(() => {
+    if (document.body.classList.contains("bab3d-on")) {
+      panel.classList.add("show");
+      obs.disconnect();
+    }
+  });
+  obs.observe(document.body, { attributes:true, attributeFilter:["class"] });
+})();
+</script>
+
+<script>
+(function(){
+
+  async function requestGyroPermission(){
+    try{
+      if (typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function") {
+        const res = await DeviceOrientationEvent.requestPermission();
+        return res === "granted";
+      }
+      return true;
+    }catch(e){
+      console.warn("Gyro permission denied:", e);
+      return false;
+    }
+  }
+
+  function isMobile(){
+    const ua = navigator.userAgent || "";
+    const tp = navigator.maxTouchPoints || 0;
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/(Macintosh)/i.test(ua) && tp > 1);
+  }
+
+  const canvas = document.getElementById("renderCanvas");
+  const engine = new BABYLON.Engine(canvas, true);
+  let scene;
+  let cameraRef = null;
+  let vrEnabled = false;
+  let vrInput = null;
+
+  const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
+
+  async function createScene(){
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.043, 0.043, 0.043, 1);
+
+    const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+    hemiLight.intensity = 0.35;
+
+    const keyLight = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(-0.4, -1, -0.6), scene);
+    keyLight.position = new BABYLON.Vector3(3, 6, 4);
+    keyLight.intensity = 1.1;
+
+    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
+cameraRef = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
+const camera = cameraRef;
+camera.attachControl(canvas, true);
+
+// Objetivo de mirada: hacia el centro elevado (mirada ascendente)
+camera.setTarget(new BABYLON.Vector3(0, 15, 0));
+
+// Sin teclado
+camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
+    const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
+    res.meshes.forEach(mesh => {
+      if (mesh && mesh.getTotalVertices() > 0) {
+        mesh.isVisible = true;
+        const solidMat = new BABYLON.PBRMaterial("solidMat_"+mesh.name, scene);
+        solidMat.albedoColor = new BABYLON.Color3(0.02, 0.02, 0.02);
+        solidMat.metallic = 0.4;
+        solidMat.roughness = 0.35;
+        mesh.material = solidMat;
+      }
+    });
+
+    
+
+
+
+
+// --- CAMERA IN CLOISTER VOID CENTER (DISTANCE-FIELD) — finds the largest empty space on XZ near the floor ---
+// Full/trimmed bounding boxes can still be biased. This approach:
+// 1) Samples world vertices (mostly walls/columns) near the floor band.
+// 2) Builds a coarse grid on XZ.
+// 3) Chooses the grid point that maximizes distance to the nearest sampled vertex => center of the largest void.
+//
+// Tweak knobs:
+const FLOOR_BAND = 0.22;        // fraction of total height above minY to consider as "near floor"
+const MAX_SAMPLES = 9000;       // cap of sampled points for speed
+const GRID_N = 45;              // grid resolution per axis (odd is nice)
+const CENTER_DX = 0.0;          // manual micro-offsets
+const CENTER_DZ = 0.0;
+const EYE_MIN = 1.6;            // minimum eye height
+const LOOK_UP = 0.28;           // fraction of height above center to look at
+const FACE_Z_BIAS = 0.0;        // keep 0 for perfectly centered roof
+
+try {
+  // 1) global bounds
+  let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+
+  res.meshes.forEach(m => {
+    if (!m || !m.getBoundingInfo) return;
+    const bi = m.getBoundingInfo();
+    if (!bi || !bi.boundingBox) return;
+    const bmin = bi.boundingBox.minimumWorld;
+    const bmax = bi.boundingBox.maximumWorld;
+
+    min.x = Math.min(min.x, bmin.x); min.y = Math.min(min.y, bmin.y); min.z = Math.min(min.z, bmin.z);
+    max.x = Math.max(max.x, bmax.x); max.y = Math.max(max.y, bmax.y); max.z = Math.max(max.z, bmax.z);
+  });
+
+  const size = max.subtract(min);
+  const floorY = min.y;
+  const bandY = floorY + size.y * FLOOR_BAND;
+
+  // 2) sample points near the floor band (mostly walls/columns edges)
+  const samples = [];
+  let stride = 3; // start stride
+  const pushSample = (x,z) => { samples.push(x, z); };
+
+  const collect = () => {
+    samples.length = 0;
+
+    res.meshes.forEach(m => {
+      if (!m || !m.isVerticesDataPresent || !m.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) return;
+
+      const pos = m.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+      if (!pos || pos.length < 3) return;
+
+      const wm = m.computeWorldMatrix(true);
+      const tmp = new BABYLON.Vector3();
+
+      for (let i = 0; i < pos.length; i += 3 * stride) {
+        tmp.set(pos[i], pos[i+1], pos[i+2]);
+        BABYLON.Vector3.TransformCoordinatesToRef(tmp, wm, tmp);
+
+        if (tmp.y <= bandY) {
+          pushSample(tmp.x, tmp.z);
+          if (samples.length/2 >= MAX_SAMPLES) return;
+        }
+      }
+    });
+  };
+
+  // adaptive stride if too many points
+  for (let attempts = 0; attempts < 4; attempts++) {
+    collect();
+    if ((samples.length/2) <= MAX_SAMPLES) break;
+    stride = Math.min(24, stride * 2);
+  }
+
+  // Fallback: if we got almost nothing, use full bbox center
+  let bestX = (min.x + max.x) * 0.5;
+  let bestZ = (min.z + max.z) * 0.5;
+
+  if (samples.length >= 20) {
+    // 3) grid search for point farthest from nearest sample
+    const pad = 0.06; // keep away from extreme outer bounds
+    const x0 = min.x + size.x * pad, x1 = max.x - size.x * pad;
+    const z0 = min.z + size.z * pad, z1 = max.z - size.z * pad;
+
+    let bestD2 = -1;
+
+    for (let ix = 0; ix < GRID_N; ix++) {
+      const x = x0 + (x1 - x0) * (ix / (GRID_N - 1));
+      for (let iz = 0; iz < GRID_N; iz++) {
+        const z = z0 + (z1 - z0) * (iz / (GRID_N - 1));
+
+        // distance to nearest sample
+        let d2min = Number.POSITIVE_INFINITY;
+        for (let s = 0; s < samples.length; s += 2) {
+          const dx = x - samples[s];
+          const dz = z - samples[s+1];
+          const d2 = dx*dx + dz*dz;
+          if (d2 < d2min) d2min = d2;
+          // early exit if already worse than best
+          if (d2min <= bestD2) break;
+        }
+
+        if (d2min > bestD2) {
+          bestD2 = d2min;
+          bestX = x;
+          bestZ = z;
+        }
+      }
+    }
+  }
+
+  // 4) place camera at void center, face +Z, look upward
+  const eyeH = Math.max(size.y * 0.10, EYE_MIN);
+  const camX = bestX + CENTER_DX;
+  const camZ = bestZ + CENTER_DZ;
+  const camY = floorY + eyeH;
+
+  camera.position.set(camX, camY, camZ);
+
+  const targetY = (min.y + max.y) * 0.5 + size.y * LOOK_UP;
+  camera.setTarget(new BABYLON.Vector3(camX, targetY, camZ + FACE_Z_BIAS));
+
+  // near/far planes
+  const radius = Math.max(size.x, size.z) * 0.5;
+  camera.minZ = Math.max(0.01, radius / 1500);
+  camera.maxZ = Math.max(1000, radius * 60);
+
+} catch (e) {
+  console.warn("Void-center camera failed:", e);
+}
+
+    try{ await scene.createDefaultXRExperienceAsync({ disableTeleportation: true }); }catch(e){}
+
+    return scene;
+  }
+
+  function startLoader(minMs=2600){
+    const loader = document.getElementById("loader");
+    const bar = document.getElementById("bar");
+    const pct = document.getElementById("pct");
+    const typeLine = document.getElementById("typeLine");
+    const status = document.getElementById("status");
+
+    loader.classList.remove("fadeOut");
+    loader.setAttribute("aria-hidden","false");
+
+    const steps = ["Allocating scene…","Preparing materials…","Building point cloud…","Finalizing render loop…"];
+    let stepIdx = 0;
+    const t0 = performance.now();
+    let v = 0;
+    let raf = 0;
+
+    function tick(){
+      v = Math.min(92, v + (92 - v)*0.035 + 0.25);
+      if (bar) bar.style.width = v.toFixed(1) + "%";
+      if (pct) pct.textContent = Math.floor(v) + "%";
+      if (typeLine && (performance.now()-t0) > (stepIdx+1)*620){
+        typeLine.textContent = steps[Math.min(stepIdx, steps.length-1)];
+        stepIdx = Math.min(stepIdx+1, steps.length-1);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+
+    async function done(){
+      const elapsed = performance.now() - t0;
+      const wait = Math.max(0, minMs - elapsed);
+      if(wait) await new Promise(r=>setTimeout(r, wait));
+
+      cancelAnimationFrame(raf);
+      if (bar) bar.style.width = "100%";
+      if (pct) pct.textContent = "100%";
+      if (status) status.textContent = "ready";
+
+      loader.classList.add("fadeOut");
+      setTimeout(()=>{
+        loader.setAttribute("aria-hidden","true");
+      }, 1100);
+    }
+
+    function fail(msg){
+      cancelAnimationFrame(raf);
+      if (status) status.textContent = "error";
+    }
+
+    return {done, fail};
+  }
+
+  let loopStarted = false;
+  let initializedOnce = false;
+
+  async function initSystem(opts){
+    const { withLoader } = opts || {};
+    const L = withLoader ? startLoader(2600) : null;
+
+    document.body.classList.remove("bab3d-ready");
+    document.body.classList.add("bab3d-on");
+
+    try{
+      if (!initializedOnce){
+        initializedOnce = true;
+        await createScene();
+        updateVrBtn();
+      }
+
+      if (!loopStarted){
+        loopStarted = true;
+        engine.runRenderLoop(() => { if (scene) scene.render(); });
+      }
+
+      if (scene && scene.executeWhenReady){
+        await new Promise(res => scene.executeWhenReady(res));
+      }
+
+      if (L) await L.done();
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+
+  // ===== VR TOGGLE (gyro on/off) =====
+  const vrBtn = document.getElementById("vrToggle");
+
+  function updateVrBtn(){
+    if (!vrBtn) return;
+    if (!isMobile()) { vrBtn.style.display = "none"; return; }
+    vrBtn.style.display = "flex";
+    vrBtn.classList.toggle("vrOn", !!vrEnabled);
+    const txt = vrBtn.querySelector(".vrText");
+    if (txt) txt.textContent = vrEnabled ? "VR ON" : "VR OFF";
+  }
+
+  async function setVrEnabled(on){
+    if (!isMobile()) return;
+
+    if (on){
+      const ok = await requestGyroPermission();
+      if (!ok) return;
+
+      if (cameraRef){
+        if (!vrInput){
+          vrInput = new BABYLON.FreeCameraDeviceOrientationInput();
+          cameraRef.inputs.add(vrInput);
+        }
+        cameraRef.angularSensibility = 4000;
+      }
+      vrEnabled = true;
+    } else {
+      if (cameraRef && vrInput){
+        cameraRef.inputs.remove(vrInput);
+        vrInput = null;
+      }
+      vrEnabled = false;
+    }
+    updateVrBtn();
+  }
+
+  if (vrBtn){
+    vrBtn.addEventListener("click", async () => {
+      // ensure system is initialized first
+      if (!initializedOnce){
+        await initSystem({ withLoader: true });
+      }
+      await setVrEnabled(!vrEnabled);
+    });
+  }
+  document.getElementById("startVR").addEventListener("click", async () => {
+    await initSystem({ withLoader: true });
+  });
+
+  if (localStorage.getItem("JA_INIT_DONE_v1") === "1") {
+    requestAnimationFrame(() => { initSystem({ withLoader: false }); });
+  }
+
+  window.addEventListener("resize", () => engine.resize());
+})();
+</script>
+
+</body>
+</html>
