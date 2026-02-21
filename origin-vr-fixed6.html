@@ -421,6 +421,10 @@ function requestMotionPermissionIfNeeded(){
   // iOS 13+ requires explicit permission
   if(typeof DOE.requestPermission === 'function'){
     // show overlay panel
+    // If overlay elements are missing, fall back to calling requestPermission directly
+    if(!motionGate || !enableMotionBtn){
+      return DOE.requestPermission().then(res => res==='granted').catch(()=>false);
+    }
     motionGate.style.display = 'flex';
     motionGate.setAttribute('aria-hidden','false');
 
@@ -445,7 +449,7 @@ function requestMotionPermissionIfNeeded(){
 }
 
 async function requestGyroPermission(){
-  return await requestMotionPermissionIfNeeded();
+  return requestMotionPermissionIfNeeded();
 }
 
   function isMobile(){
@@ -471,7 +475,11 @@ async function requestGyroPermission(){
     keyLight.position = new BABYLON.Vector3(3, 6, 4);
     keyLight.intensity = 1.1;
 
-    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
+    
+    // Luz fija en el mundo (para que al rotar el claustro cambien luces/sombras y no parezca una foto girando)
+    const worldPoint = new BABYLON.PointLight("worldPoint", new BABYLON.Vector3(6, 10, -12), scene);
+    worldPoint.intensity = 0.85;
+// CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
 const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
 camera.attachControl(canvas, true);
 // Keep framing consistent across desktop/mobile aspect ratios
@@ -485,138 +493,78 @@ camera.setTarget(new BABYLON.Vector3(0, 15, 0));
 // Sin teclado
 camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
-// --- VR TOGGLE BUTTON (ON/OFF) WITH LED ---
+// ---// --- VR TOGGLE BUTTON (ON/OFF) WITH LED ---
 const motionBtn = document.getElementById("motionBtn");
 if (isMobile() && motionBtn){
   motionBtn.style.display = "flex";
-
   let motionEnabled = false;
+
+  // Forzar uso de cuaterniones para evitar bloqueos
+  if (!camera.rotationQuaternion){
+    camera.rotationQuaternion = BABYLON.Quaternion.FromEulerVector(camera.rotation);
+  }
+
   let baseQuat = null;
   let correctionQuat = null;
+  let _handler = null;
 
-  // --- Minimal DeviceOrientation controls (keeps current camera perspective on enable)
-  let _onDeviceOri = null;
-  let _onScreenOri = null;
-  let _screenOrient = 0;
+  function enableMotion(){
+    baseQuat = camera.rotationQuaternion.clone();
 
-  function degToRad(d){ return d * Math.PI / 180; }
-
-  // Quaternion from Euler with order YXZ (ported from three.js)
-  function quatFromEulerYXZ(x, y, z){
-    const c1 = Math.cos(x/2), c2 = Math.cos(y/2), c3 = Math.cos(z/2);
-    const s1 = Math.sin(x/2), s2 = Math.sin(y/2), s3 = Math.sin(z/2);
-    return new BABYLON.Quaternion(
-      s1*c2*c3 + c1*s2*s3,
-      c1*s2*c3 - s1*c2*s3,
-      c1*c2*s3 - s1*s2*c3,
-      c1*c2*c3 + s1*s2*s3
-    );
-  }
-
-  const zee = new BABYLON.Vector3(0,0,1);
-  // q1 = -PI/2 around X (same as three.js DeviceOrientationControls)
-  const q1 = new BABYLON.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5));
-  const q0 = new BABYLON.Quaternion();
-
-  function sensorQuaternion(alpha, beta, gamma){
-    // alpha, beta, gamma are in degrees.
-    const a = degToRad(alpha || 0);
-    const b = degToRad(beta  || 0);
-    const g = degToRad(gamma || 0);
-
-    // 'YXZ' with (beta, alpha, -gamma)
-    const q = quatFromEulerYXZ(b, a, -g);
-
-    // camera looks out the back of the device, not the top
-    q.multiplyInPlace(q1);
-
-    // screen orientation (portrait/landscape)
-    BABYLON.Quaternion.RotationAxisToRef(zee, -_screenOrient, q0);
-    q.multiplyInPlace(q0);
-
-    return q;
-  }
-
-  function attachDeviceOrientation(){
-    // screen orientation
-    _screenOrient = degToRad(window.orientation || 0);
-
-    _onScreenOri = () => {
-      _screenOrient = degToRad(window.orientation || 0);
-    };
-    window.addEventListener("orientationchange", _onScreenOri, true);
-
-    _onDeviceOri = (e) => {
-      if (!motionEnabled) return;
+    _handler = (e) => {
       if (e.alpha == null || e.beta == null || e.gamma == null) return;
+      if (!camera.rotationQuaternion) return;
 
-      const raw = sensorQuaternion(e.alpha, e.beta, e.gamma);
+      const alpha = e.alpha * Math.PI / 180;
+      const beta  = e.beta  * Math.PI / 180;
+      const gamma = e.gamma * Math.PI / 180;
 
-      // First valid sensor sample after enabling: compute correction so there is NO jump.
-      if (!correctionQuat && baseQuat){
-        const inv = raw.clone(); inv.invert();
-        correctionQuat = baseQuat.multiply(inv);
+      // Nota: este mapeo es deliberadamente simple para máxima compatibilidad.
+      // Si tu escena requiere un eje distinto, se ajusta aquí sin tocar el layout.
+      const qY = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, alpha);
+      const qX = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, beta);
+      const qZ = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -gamma);
+      const sensorQuat = qY.multiply(qX).multiply(qZ);
+
+      if (!correctionQuat){
+        const inv = sensorQuat.clone();
+        inv.invert();
+        correctionQuat = baseQuat.multiply(inv); // mantener la misma mirada actual (sin salto)
       }
-      if (correctionQuat){
-        camera.rotationQuaternion = correctionQuat.multiply(raw);
-        camera.rotation.set(0,0,0);
-      }
+
+      camera.rotationQuaternion.copyFrom(correctionQuat.multiply(sensorQuat));
     };
 
-    // Prefer absolute if available (doesn't hurt if ignored)
-    window.addEventListener("deviceorientation", _onDeviceOri, true);
-    window.addEventListener("deviceorientationabsolute", _onDeviceOri, true);
+    window.addEventListener("deviceorientation", _handler, true);
+
+    motionEnabled = true;
+    motionBtn.classList.add("active");
+    motionBtn.querySelector(".vrLabel").textContent = "VR ON";
   }
 
-  function detachDeviceOrientation(){
-    if (_onDeviceOri){
-      window.removeEventListener("deviceorientation", _onDeviceOri, true);
-      window.removeEventListener("deviceorientationabsolute", _onDeviceOri, true);
-      _onDeviceOri = null;
+  function disableMotion(){
+    if (_handler){
+      window.removeEventListener("deviceorientation", _handler, true);
+      _handler = null;
     }
-    if (_onScreenOri){
-      window.removeEventListener("orientationchange", _onScreenOri, true);
-      _onScreenOri = null;
-    }
+    motionEnabled = false;
+    motionBtn.classList.remove("active");
+    motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+    correctionQuat = null;
   }
 
   motionBtn.addEventListener("click", async () => {
     if (!motionEnabled){
       const ok = await requestGyroPermission();
-      if (!ok) return;
-
-      // Capture *current* camera orientation as base (so enabling does not jump).
-      if (!camera.rotationQuaternion){
-        camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(
-          camera.rotation.x, camera.rotation.y, camera.rotation.z
-        );
-      }
-      baseQuat = camera.rotationQuaternion.clone();
-      correctionQuat = null;
-
-      motionEnabled = true;
-      attachDeviceOrientation();
-
-      motionBtn.classList.add("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+      if (ok) enableMotion();
     } else {
-      motionEnabled = false;
-      detachDeviceOrientation();
-
-      correctionQuat = null;
-
-      motionBtn.classList.remove("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+      disableMotion();
     }
   });
 }
 
-    
-const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
-    res.meshes.forEach(mesh => {
-      if (mesh && mesh.getTotalVertices() > 0) {
-        mesh.isVisible = true;
-        const solidMat = new BABYLON.PBRMaterial("solidMat_"+mesh.name, scene);
+
+solidMat = new BABYLON.PBRMaterial("solidMat_"+mesh.name, scene);
         solidMat.albedoColor = new BABYLON.Color3(0.02, 0.02, 0.02);
         solidMat.metallic = 0.4;
         solidMat.roughness = 0.35;
@@ -866,7 +814,6 @@ try {
   }
 
   document.getElementById("startVR").addEventListener("click", async () => {
-    await requestGyroPermission();
     await initSystem({ withLoader: true });
   });
 
