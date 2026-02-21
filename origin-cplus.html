@@ -369,10 +369,10 @@ const PANEL_CONTENT = {
     keyLight.position = new BABYLON.Vector3(3, 6, 4);
     keyLight.intensity = 1.1;
 
-    // CÁMARA AJUSTADA: Centro del espacio (0,0,0) mirando hacia arriba en el eje Z
+    // CÁMARA AJUSTADA: En el centro (0,0,0) y mirando hacia arriba en el eje Z (Y en Babylon)
     const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, 0, 0), scene);
     camera.attachControl(canvas, true);
-    camera.setTarget(new BABYLON.Vector3(0, 5, 0.1));
+    camera.setTarget(new BABYLON.Vector3(0, 10, 0));
     camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
     if (isMobile()) {
