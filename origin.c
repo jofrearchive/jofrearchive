@@ -52,78 +52,77 @@
     #led { width:8px; height:8px; background:#222; border-radius:50%; box-shadow: 0 0 0px var(--led-green); transition:.3s; }
     #startVR:hover #led { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
 
-    /* ===== PANEL PRINCIPAL ===== */
+    /* ===== PANEL CONFIGURACIÓN ===== */
     #panel {
       position:fixed;
       left:50%;
       top:50%;
       transform: translate(-50%, -50%);
-      width: min(480px, 88vw);
+      width: min(520px, 86vw);
       background: rgba(10,10,10,.65);
       border:1px solid rgba(255,255,255,.18);
-      /* PADDING UNIFORME SOLICITADO */
-      padding: 30px !important; 
       backdrop-filter: blur(8px);
       z-index:8;
       opacity:0;
       transition: opacity 1.0s ease;
       display:none;
+      box-sizing: border-box;
+      
+      /* MODIFICACIÓN: Margen interno igual en todos los lados para Desktop */
+      padding: 45px !important; 
     }
-    #panel.show{ opacity:1; display:block; }
+    #panel.show { opacity:1; display:block; }
 
-    #panel #title{
+    #panel #title {
       font-family:'EB Garamond', serif;
-      font-size: clamp(28px, 4vw, 42px);
-      letter-spacing: .18em;
+      font-size: 32px;
+      letter-spacing: .16em;
       text-transform: uppercase;
       color: var(--ivory);
-      margin: 0 0 16px 0;
+      margin: 0 0 20px 0;
     }
-    #panel #submeta{
+    #panel #submeta {
       font-family:'Source Code Pro', monospace;
       font-size: 11px;
       letter-spacing: .14em;
       text-transform: uppercase;
       opacity:.65;
-      line-height: 1.7;
-      margin-bottom: 18px;
+      line-height:1.7;
+      margin-bottom: 25px;
       color: var(--ivory);
     }
-    .tabs{ display:flex; gap: 12px; margin-bottom: 0; }
-    .tabLink{
+    .tabs { 
+      display:flex; 
+      flex-direction: row; 
+      gap: 15px; 
+      margin-top: 20px;
+    }
+    .tabLink {
       flex: 1;
       background: rgba(255,255,255,.02);
       border:1px solid rgba(255,255,255,.16);
       color: var(--ivory);
-      font-family:'Source Code Pro', monospace;
-      font-size: 11px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      padding: 12px 10px;
+      padding: 15px 10px;
       cursor:pointer;
-      transition: all .2s ease;
+      font-family:'Source Code Pro', monospace;
+      font-size: 12px;
+      transition: all .3s ease;
       text-align: center;
     }
-    .tabLink:hover, .tabLink.active{
-      background: rgba(255,255,255,.08);
+    .tabLink:hover {
+      background: rgba(255,255,255,.05);
       border-color: rgba(255,255,255,.3);
-      opacity: 1;
     }
 
-    /* Ajuste para móviles */
-    @media (max-width: 520px){
+    /* Versión Móvil: Reducimos el padding para que no ocupe toda la pantalla */
+    @media (max-width: 520px) {
       #panel {
-        width: 90vw !important;
-        padding: 20px !important; /* Padding uniforme más pequeño en móvil */
+        padding: 20px !important;
+        width: 92vw !important;
       }
-      #panel #title { font-size: 24px !important; }
-      .tabLink { font-size: 10px !important; padding: 10px 5px !important; }
+      .tabs { gap: 8px; }
+      .tabLink { padding: 10px 5px; font-size: 10px; }
     }
-
-    /* Status clases */
-    body.bab3d-ready #panel{ display:none; }
-    body.bab3d-on #gate{ display:none; }
-    body.bab3d-on #panel{ display:block; }
 
     /* LOADER */
     #loader {
@@ -132,20 +131,13 @@
       z-index:9999;
       display:flex; align-items:center; justify-content:center;
     }
-    #loader[aria-hidden="true"]{ display:none; }
-    .loaderBox { width:min(760px, 92vw); border:1px solid rgba(255,255,255,.16); background: rgba(10,10,10,.60); padding: 30px; }
-    .loaderTitle { font-family:'EB Garamond', serif; font-size: 20px; letter-spacing: .24em; text-transform: uppercase; color: var(--ivory); margin-bottom: 12px; }
-    .typeLine { font-family: 'Source Code Pro', monospace; font-size: 14px; color: var(--ivory); min-height: 3em; opacity: 0.8; }
-    .barWrap { margin-top: 18px; height: 4px; background: rgba(255,255,255,0.1); }
-    .bar { height:100%; width:0%; background: var(--ivory); transition: width .1s; }
+    #loader[aria-hidden="true"] { display:none; }
+    .loaderBox { width:min(700px, 90vw); border:1px solid rgba(255,255,255,.1); padding: 40px; background: rgba(0,0,0,0.4); }
+    .barWrap { margin-top: 20px; height: 2px; background: rgba(255,255,255,0.1); }
+    .bar { height:100%; width:0%; background: var(--ivory); transition: width 0.1s linear; }
     .fadeOut { opacity:0; pointer-events:none; transition: opacity 1s ease; }
 
-    #motionBtn{
-      position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
-      z-index: 12; display: none; padding: 10px 20px;
-      background: rgba(0,0,0,0.7); border: 1px solid var(--ivory);
-      color: var(--ivory); font-family:'Source Code Pro', monospace; cursor: pointer;
-    }
+    body.bab3d-on #gate { display:none; }
   </style>
 </head>
 <body class="bab3d-ready">
@@ -160,15 +152,12 @@
 
   <div id="loader" aria-hidden="true">
     <div class="loaderBox">
-      <div class="loaderTitle">INITIALIZING SYSTEM</div>
-      <div id="typeLine" class="typeLine">Boot sequence…</div>
+      <div id="typeLine" style="color:var(--ivory); font-family:'Source Code Pro'; margin-bottom:10px;">Boot sequence…</div>
       <div class="barWrap"><div id="bar" class="bar"></div></div>
     </div>
   </div>
 
   <canvas id="renderCanvas"></canvas>
-
-  <button id="motionBtn">Enable Motion</button>
 
   <div id="panel">
     <div id="title">JOFRE OLIVERAS</div>
@@ -179,9 +168,9 @@
 <script>
 const PANEL_CONTENT = {
   tabs: [
-    { key: "STUDIES", ctaHref: "https://inside.jofrearchive.com/studies/" },
-    { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" },
-    { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
+    { key: "STUDIES", href: "https://inside.jofrearchive.com/studies/" },
+    { key: "GENEALOGY", href: "https://inside.jofrearchive.com/genealogy/" },
+    { key: "ARTIFACTS", href: "https://jofrearchive.com/artifacts" }
   ]
 };
 
@@ -191,14 +180,11 @@ const PANEL_CONTENT = {
     const b = document.createElement("button");
     b.className = "tabLink";
     b.textContent = t.key;
-    b.onclick = () => { if(t.ctaHref) window.location.href = t.ctaHref; };
+    b.onclick = () => window.location.href = t.href;
     tabsEl.appendChild(b);
   });
-
   const obs = new MutationObserver(() => {
-    if (document.body.classList.contains("bab3d-on")) {
-      document.getElementById("panel").classList.add("show");
-    }
+    if (document.body.classList.contains("bab3d-on")) document.getElementById("panel").classList.add("show");
   });
   obs.observe(document.body, { attributes:true, attributeFilter:["class"] });
 })();
@@ -210,60 +196,55 @@ const PANEL_CONTENT = {
 
   async function createScene(){
     scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.04, 0.04, 0.04, 1);
+    scene.clearColor = new BABYLON.Color4(0.043, 0.043, 0.043, 1);
 
-    // LUMINARIA
-    new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    // Luces
+    new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene).intensity = 0.7;
 
-    // --- MODIFICACIÓN DE CÁMARA (MIRANDO HACIA ARRIBA) ---
-    // Posición: x=0, y=-5 (abajo), z=0
-    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, -5, 0), scene);
-    camera.setTarget(new BABYLON.Vector3(0, 0, 0)); // Mira al centro (arriba desde su posición)
+    // --- MODIFICACIÓN POSICIÓN CÁMARA ---
+    // Colocamos la cámara abajo (Y = -6) y centrada.
+    const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, -6, 0), scene);
+    // Hacemos que mire hacia arriba (Y positiva)
+    camera.setTarget(new BABYLON.Vector3(0, 5, 0));
     camera.attachControl(canvas, true);
     camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
-    if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-      camera.inputs.addDeviceOrientation();
-    }
-
-    // CARGA DE MODELO
+    // Carga del modelo
     const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
     try {
       const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
       res.meshes.forEach(m => {
-        if(m.material) {
-          const pbr = new BABYLON.PBRMaterial("mat", scene);
-          pbr.albedoColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-          m.material = pbr;
+        if(m.getTotalVertices() > 0) {
+          m.material = new BABYLON.PBRMaterial("m", scene);
+          m.material.albedoColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         }
       });
-    } catch(e) { console.error("Error loading model", e); }
+    } catch(e) { console.error(e); }
 
     return scene;
   }
 
-  async function startSystem() {
-    document.body.classList.remove("bab3d-ready");
+  async function start() {
     document.body.classList.add("bab3d-on");
-    
-    document.getElementById("loader").setAttribute("aria-hidden", "false");
-    const bar = document.getElementById("bar");
+    const loader = document.getElementById("loader");
+    loader.setAttribute("aria-hidden", "false");
     
     let p = 0;
-    const int = setInterval(() => {
+    const bar = document.getElementById("bar");
+    const interval = setInterval(() => {
       p += (100 - p) * 0.1;
       bar.style.width = p + "%";
-      if(p > 99) {
-        clearInterval(int);
-        setTimeout(() => document.getElementById("loader").classList.add("fadeOut"), 500);
+      if(p > 98) {
+        clearInterval(interval);
+        setTimeout(() => loader.classList.add("fadeOut"), 600);
       }
-    }, 100);
+    }, 80);
 
     await createScene();
     engine.runRenderLoop(() => scene.render());
   }
 
-  document.getElementById("startVR").addEventListener("click", startSystem);
+  document.getElementById("startVR").addEventListener("click", start);
   window.addEventListener("resize", () => engine.resize());
 })();
 </script>
