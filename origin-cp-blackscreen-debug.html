@@ -230,21 +230,53 @@ body.bab3d-on #panel{ display:block; }
   }
 }
 
+
+/* Fatal overlay (shows errors even if Babylon fails) */
+#fatalOverlay{
+  position:fixed; inset:0;
+  display:none;
+  z-index:99999;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+           max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  background: rgba(0,0,0,.92);
+  color: #e8e2d6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+#fatalOverlay.show{ display:block; }
+
 </style>
 </head>
 <body class="bab3d-ready">
 
 <script>
-(function(){
-  try{
-    if (localStorage.getItem("JA_INIT_DONE_v1")==="1") {
-      document.body.classList.remove("bab3d-ready");
-      document.body.classList.add("bab3d-on");
-    }
-  }catch(e){}
-})();
-</script>
+(function(){ /* auto-init disabled for debug */ })();</script>
 
+// --- GLOBAL ERROR OVERLAY (debug) ---
+const fatal = document.getElementById("fatalOverlay");
+function showFatal(msg){
+  try{
+    if (!fatal) return;
+    fatal.classList.add("show");
+    fatal.setAttribute("aria-hidden","false");
+    fatal.textContent = msg;
+  }catch(e){}
+}
+window.addEventListener("error", (ev)=>{
+  const m = (ev && ev.message) ? ev.message : "Unknown error";
+  const f = (ev && ev.filename) ? ev.filename : "";
+  const l = (ev && ev.lineno) ? ev.lineno : "";
+  const c = (ev && ev.colno) ? ev.colno : "";
+  showFatal("JS ERROR\n" + m + "\n" + f + ":" + l + ":" + c + "\n\nIf this is on iPhone: check HTTPS and that Babylon CDN is reachable.");
+}, true);
+window.addEventListener("unhandledrejection", (ev)=>{
+  const r = ev && ev.reason ? (ev.reason.stack || String(ev.reason)) : "Unknown rejection";
+  showFatal("PROMISE REJECTION\n" + r);
+});
+
+  <div id="fatalOverlay" aria-hidden="true"></div>
   <div id="gate">
     <h1>EXPERIMENTAL ARCHIVE</h1>
     <button id="startVR">
@@ -353,6 +385,10 @@ const PANEL_CONTENT = {
   }
 
   const canvas = document.getElementById("renderCanvas");
+  if (typeof BABYLON === "undefined") {
+    showFatal("BABYLON is not loaded.\n\nLikely causes:\n- CDN blocked / offline\n- Mixed content (not HTTPS)\n- Content-Security-Policy blocks cdn.babylonjs.com\n\nFix: serve over HTTPS and allow cdn.babylonjs.com\n");
+    return;
+  }
   const engine = new BABYLON.Engine(canvas, true);
   let scene;
 
@@ -369,46 +405,20 @@ const PANEL_CONTENT = {
     keyLight.position = new BABYLON.Vector3(3, 6, 4);
     keyLight.intensity = 1.1;
 
-    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
-const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
-camera.attachControl(canvas, true);
-// Keep framing consistent across desktop/mobile aspect ratios
-camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
-camera.fov = 0.85; // tweak: smaller = tighter, larger = wider
+    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba
+    const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -10, 0), scene);
+    camera.attachControl(canvas, true);
+    
+    // Objetivo de mirada: Vertical hacia el centro superior (Y=50)
+    camera.setTarget(new BABYLON.Vector3(0, 50, 0));
+    
+    camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
-
-// Objetivo de mirada: hacia el centro elevado (mirada ascendente)
-camera.setTarget(new BABYLON.Vector3(0, 15, 0));
-
-// Sin teclado
-camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
-// Mobile: keep the SAME initial perspective as desktop.
-// Only enable gyro when the user taps "Enable Motion" (motionBtn).
-const motionBtn = document.getElementById("motionBtn");
-if (isMobile() && motionBtn){
-  motionBtn.style.display = "flex";
-
-  let motionEnabled = false;
-  motionBtn.addEventListener("click", async () => {
-    if (motionEnabled) return;
-
-    const ok = await requestGyroPermission();
-    if (!ok) return;
-
-    // Add device orientation input
-    const orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
-    camera.inputs.add(orientationInput);
-
-    // Calibrate start: keep current view as reference so it doesn't "jump"
-    // We lock the current camera rotation as baseline by forcing a rotationQuaternion.
-    if (!camera.rotationQuaternion) {
-      camera.rotationQuaternion = BABYLON.Quaternion.FromEulerVector(camera.rotation);
+    if (isMobile()) {
+      const orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
+      camera.inputs.add(orientationInput);
+      camera.angularSensibility = 4000;
     }
-
-    motionEnabled = true;
-    motionBtn.style.display = "none";
-  });
-}
 
     const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
     res.meshes.forEach(mesh => {
@@ -421,159 +431,6 @@ if (isMobile() && motionBtn){
         mesh.material = solidMat;
       }
     });
-
-// --- MODEL ROOT + SLOW CONSTANT ROTATION (like a calm museum turntable) ---
-// Parent all imported top-level meshes to a single root so we can rotate the whole cloister cleanly.
-const modelRoot = new BABYLON.TransformNode("modelRoot", scene);
-res.meshes.forEach(m => {
-  if (m && m !== modelRoot && !m.parent) m.parent = modelRoot;
-});
-
-// Slow constant rotation speed (radians per second). Tweak to taste:
-const ROT_SPEED = 0.06; // ~3.4 degrees/sec. Try 0.02 for ultra-slow.
-let _lastT = performance.now();
-
-scene.onBeforeRenderObservable.add(() => {
-  const now = performance.now();
-  const dt = Math.min(0.05, (now - _lastT) / 1000); // clamp for tab-switch jumps
-  _lastT = now;
-  modelRoot.rotation.y += ROT_SPEED * dt;
-});
-
-
-    
-
-
-
-
-// --- CAMERA IN CLOISTER VOID CENTER (DISTANCE-FIELD) — finds the largest empty space on XZ near the floor ---
-// Full/trimmed bounding boxes can still be biased. This approach:
-// 1) Samples world vertices (mostly walls/columns) near the floor band.
-// 2) Builds a coarse grid on XZ.
-// 3) Chooses the grid point that maximizes distance to the nearest sampled vertex => center of the largest void.
-//
-// Tweak knobs:
-const FLOOR_BAND = 0.22;        // fraction of total height above minY to consider as "near floor"
-const MAX_SAMPLES = 9000;       // cap of sampled points for speed
-const GRID_N = 45;              // grid resolution per axis (odd is nice)
-const CENTER_DX = 0.0;          // manual micro-offsets
-const CENTER_DZ = 0.0;
-const EYE_MIN = 1.6;            // minimum eye height
-const LOOK_UP = 0.28;           // fraction of height above center to look at
-const FACE_Z_BIAS = 0.0;        // keep 0 for perfectly centered roof
-
-try {
-  // 1) global bounds
-  let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-  let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-
-  res.meshes.forEach(m => {
-    if (!m || !m.getBoundingInfo) return;
-    const bi = m.getBoundingInfo();
-    if (!bi || !bi.boundingBox) return;
-    const bmin = bi.boundingBox.minimumWorld;
-    const bmax = bi.boundingBox.maximumWorld;
-
-    min.x = Math.min(min.x, bmin.x); min.y = Math.min(min.y, bmin.y); min.z = Math.min(min.z, bmin.z);
-    max.x = Math.max(max.x, bmax.x); max.y = Math.max(max.y, bmax.y); max.z = Math.max(max.z, bmax.z);
-  });
-
-  const size = max.subtract(min);
-  const floorY = min.y;
-  const bandY = floorY + size.y * FLOOR_BAND;
-
-  // 2) sample points near the floor band (mostly walls/columns edges)
-  const samples = [];
-  let stride = 3; // start stride
-  const pushSample = (x,z) => { samples.push(x, z); };
-
-  const collect = () => {
-    samples.length = 0;
-
-    res.meshes.forEach(m => {
-      if (!m || !m.isVerticesDataPresent || !m.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) return;
-
-      const pos = m.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-      if (!pos || pos.length < 3) return;
-
-      const wm = m.computeWorldMatrix(true);
-      const tmp = new BABYLON.Vector3();
-
-      for (let i = 0; i < pos.length; i += 3 * stride) {
-        tmp.set(pos[i], pos[i+1], pos[i+2]);
-        BABYLON.Vector3.TransformCoordinatesToRef(tmp, wm, tmp);
-
-        if (tmp.y <= bandY) {
-          pushSample(tmp.x, tmp.z);
-          if (samples.length/2 >= MAX_SAMPLES) return;
-        }
-      }
-    });
-  };
-
-  // adaptive stride if too many points
-  for (let attempts = 0; attempts < 4; attempts++) {
-    collect();
-    if ((samples.length/2) <= MAX_SAMPLES) break;
-    stride = Math.min(24, stride * 2);
-  }
-
-  // Fallback: if we got almost nothing, use full bbox center
-  let bestX = (min.x + max.x) * 0.5;
-  let bestZ = (min.z + max.z) * 0.5;
-
-  if (samples.length >= 20) {
-    // 3) grid search for point farthest from nearest sample
-    const pad = 0.06; // keep away from extreme outer bounds
-    const x0 = min.x + size.x * pad, x1 = max.x - size.x * pad;
-    const z0 = min.z + size.z * pad, z1 = max.z - size.z * pad;
-
-    let bestD2 = -1;
-
-    for (let ix = 0; ix < GRID_N; ix++) {
-      const x = x0 + (x1 - x0) * (ix / (GRID_N - 1));
-      for (let iz = 0; iz < GRID_N; iz++) {
-        const z = z0 + (z1 - z0) * (iz / (GRID_N - 1));
-
-        // distance to nearest sample
-        let d2min = Number.POSITIVE_INFINITY;
-        for (let s = 0; s < samples.length; s += 2) {
-          const dx = x - samples[s];
-          const dz = z - samples[s+1];
-          const d2 = dx*dx + dz*dz;
-          if (d2 < d2min) d2min = d2;
-          // early exit if already worse than best
-          if (d2min <= bestD2) break;
-        }
-
-        if (d2min > bestD2) {
-          bestD2 = d2min;
-          bestX = x;
-          bestZ = z;
-        }
-      }
-    }
-  }
-
-  // 4) place camera at void center, face +Z, look upward
-  const eyeH = Math.max(size.y * 0.10, EYE_MIN);
-  const camX = bestX + CENTER_DX;
-  const camZ = bestZ + CENTER_DZ;
-  const camY = floorY + eyeH;
-
-  camera.position.set(camX, camY, camZ);
-
-  const targetY = (min.y + max.y) * 0.5 + size.y * LOOK_UP;
-  camera.setTarget(new BABYLON.Vector3(camX, targetY, camZ + FACE_Z_BIAS));
-
-  // near/far planes
-  const radius = Math.max(size.x, size.z) * 0.5;
-  camera.minZ = Math.max(0.01, radius / 1500);
-  camera.maxZ = Math.max(1000, radius * 60);
-
-} catch (e) {
-  console.warn("Void-center camera failed:", e);
-}
 
     try{ await scene.createDefaultXRExperienceAsync({ disableTeleportation: true }); }catch(e){}
 
