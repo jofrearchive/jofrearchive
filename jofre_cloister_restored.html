@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JOFRE ARCHIVE — Cloister Point Cloud</title>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+<style>
+:root {
+  --bg-deep: #0b0b0b;
+  --ivory: #e8e2d6;
+}
+
+body, html {
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background: var(--bg-deep);
+}
+
+#renderCanvas {
+  width:100%;
+  height:100%;
+  touch-action:none;
+}
+
+#gate {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--bg-deep);
+  color:var(--ivory);
+  letter-spacing:.2em;
+  cursor:pointer;
+  z-index:10;
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, 92vw);
+  background: rgba(10,10,10,.65);
+  border:1px solid rgba(255,255,255,.18);
+  padding: 32px;
+  backdrop-filter: blur(8px);
+  z-index:8;
+  display:none;
+}
+
+#panel.show{ display:block; }
+
+#panel #title{
+  font-size: 28px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  margin-bottom:10px;
+}
+
+#panel #submeta{
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity:.65;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  color: var(--ivory);
+}
+
+#panel .tabs{
+  display:flex;
+  gap:8px;
+}
+
+#panel .tabLink{
+  flex:1;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: var(--ivory);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="gate">INITIALIZE SYSTEM</div>
+
+<canvas id="renderCanvas"></canvas>
+
+<div id="panel">
+  <div id="title">JOFRE OLIVERAS</div>
+  <div id="submeta">
+    ARTIST · EXPLORER · LANDSCAPER<br>
+    BASED BETWEEN DISCIPLINES<br>
+    EXPERIMENTAL ARCHIVE
+  </div>
+  <div class="tabs">
+    <button class="tabLink" onclick="location.href='https://inside.jofrearchive.com/studies/'">STUDIES</button>
+    <button class="tabLink" onclick="location.href='https://inside.jofrearchive.com/genealogy/'">GENEALOGY</button>
+    <button class="tabLink" onclick="location.href='https://jofrearchive.com/artifacts'">ARTIFACTS</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("renderCanvas");
+const engine = new BABYLON.Engine(canvas, true, { powerPreference:"high-performance" });
+
+let scene;
+let modelRoot;
+
+async function createScene(){
+
+scene = new BABYLON.Scene(engine);
+scene.clearColor = new BABYLON.Color4(0.043,0.043,0.043,1);
+
+const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+hemi.intensity = 0.35;
+
+const camera = new BABYLON.FreeCamera("cam", new BABYLON.Vector3(0,1.6,0), scene);
+camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+camera.fov = 0.7;
+camera.attachControl(canvas,true);
+
+const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", "https://inside.jofrearchive.com/assets/3D/c.glb", scene);
+
+result.meshes.forEach(m=>{
+  if(m.getTotalVertices()>0){
+    const mat = new BABYLON.PBRMaterial("m",scene);
+    mat.albedoColor = new BABYLON.Color3(0.02,0.02,0.02);
+    mat.metallic = 0.4;
+    mat.roughness = 0.35;
+    m.material = mat;
+  }
+});
+
+modelRoot = new BABYLON.TransformNode("root",scene);
+result.meshes.forEach(m=>{ if(!m.parent) m.parent = modelRoot; });
+
+// ----- VOID CENTER CALCULATION (original logic preserved but simplified safely) -----
+let min = new BABYLON.Vector3(Number.MAX_VALUE,Number.MAX_VALUE,Number.MAX_VALUE);
+let max = new BABYLON.Vector3(-Number.MAX_VALUE,-Number.MAX_VALUE,-Number.MAX_VALUE);
+
+result.meshes.forEach(m=>{
+  if(!m.getBoundingInfo) return;
+  const b = m.getBoundingInfo().boundingBox;
+  min = BABYLON.Vector3.Minimize(min,b.minimumWorld);
+  max = BABYLON.Vector3.Maximize(max,b.maximumWorld);
+});
+
+const size = max.subtract(min);
+const center = min.add(size.scale(0.5));
+
+camera.position = new BABYLON.Vector3(center.x, min.y + 1.6, center.z);
+camera.setTarget(new BABYLON.Vector3(center.x, center.y + size.y * 0.3, center.z));
+
+modelRoot.setPivotPoint(new BABYLON.Vector3(center.x, center.y, center.z), BABYLON.Space.WORLD);
+
+// ----- EXTREMELY SUBTLE ROTATION -----
+scene.onBeforeRenderObservable.add(()=>{
+  modelRoot.rotation.y += 0.004 * engine.getDeltaTime()/16;
+});
+
+return scene;
+}
+
+document.getElementById("gate").addEventListener("click", async ()=>{
+  await createScene();
+  engine.runRenderLoop(()=>scene.render());
+  document.getElementById("gate").style.display="none";
+  document.getElementById("panel").classList.add("show");
+});
+
+window.addEventListener("resize",()=>engine.resize());
+</script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JOFRE ARCHIVE — Cloister</title>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+<style>
+html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#0b0b0b;
+}
+
+#renderCanvas{
+    width:100%;
+    height:100%;
+    touch-action:none;
+}
+
+#startScreen{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#0b0b0b;
+    color:#e8e2d6;
+    font-family:serif;
+    letter-spacing:.2em;
+    cursor:pointer;
+    z-index:10;
+}
+</style>
+</head>
+<body>
+
+<div id="startScreen">INITIALIZE SYSTEM</div>
+<canvas id="renderCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById("renderCanvas");
+
+const engine = new BABYLON.Engine(canvas, true, {
+    preserveDrawingBuffer:false,
+    stencil:true,
+    powerPreference:"high-performance"
+});
+
+let scene;
+let modelRoot;
+
+async function createScene(){
+
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.043,0.043,0.043,1);
+
+    const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+    hemi.intensity = 0.4;
+
+    const camera = new BABYLON.FreeCamera("cam",
+        new BABYLON.Vector3(0,1.6,0),
+        scene
+    );
+
+    camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+    camera.fov = 0.7;
+    camera.minZ = 0.05;
+    camera.attachControl(canvas,true);
+
+    const result = await BABYLON.SceneLoader.ImportMeshAsync(
+        "",
+        "",
+        "https://inside.jofrearchive.com/assets/3D/c.glb",
+        scene
+    );
+
+    result.meshes.forEach(m=>{
+        if(m.getTotalVertices()>0){
+            const mat = new BABYLON.PBRMaterial("m",scene);
+            mat.albedoColor = new BABYLON.Color3(0.02,0.02,0.02);
+            mat.metallic = 0.4;
+            mat.roughness = 0.35;
+            m.material = mat;
+        }
+    });
+
+    modelRoot = new BABYLON.TransformNode("root",scene);
+    result.meshes.forEach(m=>{
+        if(!m.parent) m.parent = modelRoot;
+    });
+
+    let min = new BABYLON.Vector3(Number.MAX_VALUE,Number.MAX_VALUE,Number.MAX_VALUE);
+    let max = new BABYLON.Vector3(-Number.MAX_VALUE,-Number.MAX_VALUE,-Number.MAX_VALUE);
+
+    result.meshes.forEach(m=>{
+        if(!m.getBoundingInfo) return;
+        const b = m.getBoundingInfo().boundingBox;
+        min = BABYLON.Vector3.Minimize(min,b.minimumWorld);
+        max = BABYLON.Vector3.Maximize(max,b.maximumWorld);
+    });
+
+    const size = max.subtract(min);
+    const center = min.add(size.scale(0.5));
+
+    camera.position = new BABYLON.Vector3(center.x, min.y + 1.6, center.z);
+
+    camera.setTarget(new BABYLON.Vector3(
+        center.x,
+        center.y + size.y * 0.3,
+        center.z
+    ));
+
+    modelRoot.setPivotPoint(
+        new BABYLON.Vector3(center.x, center.y, center.z),
+        BABYLON.Space.WORLD
+    );
+
+    scene.onBeforeRenderObservable.add(()=>{
+        modelRoot.rotation.y += 0.02 * engine.getDeltaTime()/16;
+    });
+
+    return scene;
+}
+
+document.getElementById("startScreen").addEventListener("click",async()=>{
+    try{
+        await createScene();
+        engine.runRenderLoop(()=>scene.render());
+        localStorage.setItem("JA_INIT_DONE_v1","1");
+        document.getElementById("startScreen").style.display="none";
+    }catch(e){
+        alert("Error loading scene.");
+    }
+});
+
+window.addEventListener("resize",()=>engine.resize());
+</script>
+
+</body>
+</html>
