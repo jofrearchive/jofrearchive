@@ -62,7 +62,7 @@
   width: min(360px, 92vw);
   background: rgba(10,10,10,.65);
   border:1px solid rgba(255,255,255,.18);
-  padding: 32px !important; /* Padding restaurado a 32px */
+  padding: 32px !important;
   backdrop-filter: blur(8px);
   z-index:8;
   opacity:0;
@@ -208,7 +208,7 @@ body.bab3d-on #panel{ display:block; }
   padding: 10px 14px;
   border: 1px solid rgba(255,255,255,.16);
   background: rgba(0,0,0,.45);
-  color: rgba(232,226,214,.55); /* OFF = grey */
+  color: rgba(232,226,214,.55);
   font-family:'Source Code Pro', monospace;
   font-size: 12px;
   letter-spacing: .16em;
@@ -224,7 +224,7 @@ body.bab3d-on #panel{ display:block; }
 
 #motionDot{
   width:8px; height:8px; border-radius:50%;
-  background:#222;           /* OFF = grey dot */
+  background:#222;
   box-shadow:none;
   transition:all .25s ease;
 }
@@ -234,15 +234,11 @@ body.bab3d-on #panel{ display:block; }
   box-shadow: 0 0 12px rgba(74,222,128,.85);
 }
 
-
-/* Mobile adjustments */
 @media (max-width: 520px){
   #panel{
     padding: 14px 14px 8px !important;
   }
 }
-
-
 </style>
 </head>
 <body class="bab3d-ready">
@@ -345,8 +341,6 @@ const PANEL_CONTENT = {
 <script>
 (function(){
 
-  
-// iOS motion permission: Safari will show the real system prompt when required.
 async function requestGyroPermission(){
   const DOE = window.DeviceOrientationEvent;
   if (!DOE) return false;
@@ -384,111 +378,93 @@ async function requestGyroPermission(){
     keyLight.position = new BABYLON.Vector3(3, 6, 4);
     keyLight.intensity = 1.1;
 
-    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
-const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
-camera.attachControl(canvas, true);
-// Keep framing consistent across desktop/mobile aspect ratios
-camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
-camera.fov = 0.85; // tweak: smaller = tighter, larger = wider
+    const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
+    camera.attachControl(canvas, true);
+    camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+    camera.fov = 0.85; 
 
+    camera.setTarget(new BABYLON.Vector3(0, 15, 0));
+    camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
-// Objetivo de mirada: hacia el centro elevado (mirada ascendente)
-camera.setTarget(new BABYLON.Vector3(0, 15, 0));
+    const motionBtn = document.getElementById("motionBtn");
+    if (isMobile() && motionBtn){
+      motionBtn.style.display = "flex";
 
-// Sin teclado
-camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
+      let motionEnabled = false;
+      let orientationInput = null;
+      let sensorNeutral = null;
+      let beforeObserver = null;
+      let originalDesignQuat = null; // Almacén para la vista original
 
-// --- VR TOGGLE BUTTON (ON/OFF) WITH LED ---
-const motionBtn = document.getElementById("motionBtn");
-if (isMobile() && motionBtn){
+      motionBtn.addEventListener("click", async () => {
+        if (!motionEnabled){
+          const ok = await requestGyroPermission();
+          if (!ok) return;
 
-  motionBtn.style.display = "flex";
-
-  let motionEnabled = false;
-  let orientationInput = null;
-
-  // "Neutral" = the device orientation at the moment VR is enabled.
-  // We will render RELATIVE rotation from that neutral, so there is no jump on activation.
-  let sensorNeutral = null;
-      let camBaseQuat = null; // camera's designed framing quaternion (from setTarget) before enabling sensor
-
-  // Keep a handle so we don't add multiple observers if user toggles repeatedly
-  let beforeObserver = null;
-
-  motionBtn.addEventListener("click", async () => {
-
-    if (!motionEnabled){
-
-      const ok = await requestGyroPermission();
-      if (!ok) return;
-
-      // Ensure we use quaternion-based rotation
           if (!camera.rotationQuaternion) camera.rotationQuaternion = new BABYLON.Quaternion();
 
-          // Capture the current (designed) camera framing BEFORE the sensor starts overriding it
-          camBaseQuat = camera.rotationQuaternion ? camera.rotationQuaternion.clone()
-            : BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+          // Guardamos la orientación de diseño la primera vez o la reutilizamos
+          if (!originalDesignQuat) {
+              originalDesignQuat = camera.rotationQuaternion.clone();
+          }
 
-      // Activate device orientation input
-      orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
-      camera.inputs.add(orientationInput);
+          // Reseteamos cámara a posición maestra antes de activar sensor
+          camera.rotationQuaternion.copyFrom(originalDesignQuat);
 
-      // Wait a tiny moment so the first sensor quaternion arrives, then lock it as neutral
-      sensorNeutral = null;
-      setTimeout(() => {
-            if (camera.rotationQuaternion) sensorNeutral = camera.rotationQuaternion.clone();
-          }, 80);
+          orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
+          camera.inputs.add(orientationInput);
 
-      // Apply relative rotation every frame
-      if (!beforeObserver){
-        beforeObserver = scene.onBeforeRenderObservable.add(() => {
-          if (!motionEnabled) return;
-          if (!camera.rotationQuaternion || !sensorNeutral) return;
-
-          const current = camera.rotationQuaternion.clone();
-          const neutralInv = sensorNeutral.clone();
-          neutralInv.invert();
-
-          // relative = current * neutral^-1  (prevents flipped direction)
-              const relative = current.multiply(neutralInv);
-
-          if (camBaseQuat){
-              camera.rotationQuaternion = camBaseQuat.multiply(relative);
-            } else {
-              camera.rotationQuaternion = relative;
+          sensorNeutral = null;
+          // Capturamos el neutro del sensor de forma reactiva
+          const observer = scene.onBeforeRenderObservable.add(() => {
+            if (camera.rotationQuaternion && !sensorNeutral) {
+              sensorNeutral = camera.rotationQuaternion.clone();
+              scene.onBeforeRenderObservable.remove(observer);
             }
-            camera.rotation.set(0,0,0);
-        });
-      }
+          });
 
-      motionEnabled = true;
-      motionBtn.classList.add("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+          if (!beforeObserver){
+            beforeObserver = scene.onBeforeRenderObservable.add(() => {
+              if (!motionEnabled || !sensorNeutral) return;
 
-    } else {
+              const current = camera.rotationQuaternion.clone();
+              const neutralInv = BABYLON.Quaternion.Inverse(sensorNeutral);
+              const relativeMotion = current.multiply(neutralInv);
 
-      // Disable input
-      if (orientationInput){
-        camera.inputs.remove(orientationInput);
-        orientationInput = null;
-      }
+              // Aplicamos el movimiento relativo sobre la base original inmutable
+              camera.rotationQuaternion = originalDesignQuat.multiply(relativeMotion);
+              camera.rotation.set(0,0,0);
+            });
+          }
 
-      // Remove observer so it doesn't keep affecting the camera
-      if (beforeObserver){
-        scene.onBeforeRenderObservable.remove(beforeObserver);
-        beforeObserver = null;
-      }
+          motionEnabled = true;
+          motionBtn.classList.add("active");
+          motionBtn.querySelector(".vrLabel").textContent = "VR ON";
 
-      sensorNeutral = null;
-      motionEnabled = false;
-      motionBtn.classList.remove("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+        } else {
+          if (orientationInput){
+            camera.inputs.remove(orientationInput);
+            orientationInput = null;
+          }
+          if (beforeObserver){
+            scene.onBeforeRenderObservable.remove(beforeObserver);
+            beforeObserver = null;
+          }
+
+          // Al apagar, devolvemos la cámara a su orientación exacta de diseño
+          if (originalDesignQuat) {
+              camera.rotationQuaternion.copyFrom(originalDesignQuat);
+          }
+
+          sensorNeutral = null;
+          motionEnabled = false;
+          motionBtn.classList.remove("active");
+          motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+        }
+      });
     }
-  });
-}
 
-    
-const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
+    const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
     res.meshes.forEach(mesh => {
       if (mesh && mesh.getTotalVertices() > 0) {
         mesh.isVisible = true;
@@ -499,48 +475,23 @@ const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
         mesh.material = solidMat;
       }
     });
-// --- MODEL ROOT + SLOW CONSTANT ROTATION (like a calm museum turntable) ---
-// Parent all imported top-level meshes to a single root so we can rotate the whole cloister cleanly.
-const modelRoot = new BABYLON.TransformNode("modelRoot", scene);
-res.meshes.forEach(m => {
-  if (m && m !== modelRoot && !m.parent) m.parent = modelRoot;
-});
 
-// Slow constant rotation speed (radians per second). Tweak to taste:
-const ROT_SPEED = 0.06; // ~3.4 degrees/sec. Try 0.02 for ultra-slow.
-let _lastT = performance.now();
+    const modelRoot = new BABYLON.TransformNode("modelRoot", scene);
+    res.meshes.forEach(m => {
+      if (m && m !== modelRoot && !m.parent) m.parent = modelRoot;
+    });
 
-scene.onBeforeRenderObservable.add(() => {
-  const now = performance.now();
-  const dt = Math.min(0.05, (now - _lastT) / 1000); // clamp for tab-switch jumps
-  _lastT = now;
-  modelRoot.rotation.y += ROT_SPEED * dt;
-});
+    const ROT_SPEED = 0.06; 
+    let _lastT = performance.now();
 
-
-    
-
-
-
-
-// --- CAMERA IN CLOISTER VOID CENTER (DISTANCE-FIELD) — finds the largest empty space on XZ near the floor ---
-// Full/trimmed bounding boxes can still be biased. This approach:
-// 1) Samples world vertices (mostly walls/columns) near the floor band.
-// 2) Builds a coarse grid on XZ.
-// 3) Chooses the grid point that maximizes distance to the nearest sampled vertex => center of the largest void.
-//
-// Tweak knobs:
-const FLOOR_BAND = 0.22;        // fraction of total height above minY to consider as "near floor"
-const MAX_SAMPLES = 9000;       // cap of sampled points for speed
-const GRID_N = 45;              // grid resolution per axis (odd is nice)
-const CENTER_DX = 0.0;          // manual micro-offsets
-const CENTER_DZ = 0.0;
-const EYE_MIN = 1.6;            // minimum eye height
-const LOOK_UP = 0.28;           // fraction of height above center to look at
-const FACE_Z_BIAS = 0.0;        // keep 0 for perfectly centered roof
+    scene.onBeforeRenderObservable.add(() => {
+      const now = performance.now();
+      const dt = Math.min(0.05, (now - _lastT) / 1000);
+      _lastT = now;
+      modelRoot.rotation.y += ROT_SPEED * dt;
+    });
 
 try {
-  // 1) global bounds
   let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
   let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
 
@@ -550,115 +501,75 @@ try {
     if (!bi || !bi.boundingBox) return;
     const bmin = bi.boundingBox.minimumWorld;
     const bmax = bi.boundingBox.maximumWorld;
-
     min.x = Math.min(min.x, bmin.x); min.y = Math.min(min.y, bmin.y); min.z = Math.min(min.z, bmin.z);
     max.x = Math.max(max.x, bmax.x); max.y = Math.max(max.y, bmax.y); max.z = Math.max(max.z, bmax.z);
   });
 
   const size = max.subtract(min);
   const floorY = min.y;
-  const bandY = floorY + size.y * FLOOR_BAND;
-
-  // 2) sample points near the floor band (mostly walls/columns edges)
+  const bandY = floorY + size.y * 0.22;
   const samples = [];
-  let stride = 3; // start stride
-  const pushSample = (x,z) => { samples.push(x, z); };
+  let stride = 3; 
 
   const collect = () => {
     samples.length = 0;
-
     res.meshes.forEach(m => {
       if (!m || !m.isVerticesDataPresent || !m.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) return;
-
       const pos = m.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-      if (!pos || pos.length < 3) return;
-
+      if (!pos) return;
       const wm = m.computeWorldMatrix(true);
       const tmp = new BABYLON.Vector3();
-
       for (let i = 0; i < pos.length; i += 3 * stride) {
         tmp.set(pos[i], pos[i+1], pos[i+2]);
         BABYLON.Vector3.TransformCoordinatesToRef(tmp, wm, tmp);
-
         if (tmp.y <= bandY) {
-          pushSample(tmp.x, tmp.z);
-          if (samples.length/2 >= MAX_SAMPLES) return;
+          samples.push(tmp.x, tmp.z);
+          if (samples.length/2 >= 9000) return;
         }
       }
     });
   };
 
-  // adaptive stride if too many points
   for (let attempts = 0; attempts < 4; attempts++) {
     collect();
-    if ((samples.length/2) <= MAX_SAMPLES) break;
+    if ((samples.length/2) <= 9000) break;
     stride = Math.min(24, stride * 2);
   }
 
-  // Fallback: if we got almost nothing, use full bbox center
-  let bestX = (min.x + max.x) * 0.5;
-  let bestZ = (min.z + max.z) * 0.5;
-
+  let bestX = (min.x + max.x) * 0.5, bestZ = (min.z + max.z) * 0.5;
   if (samples.length >= 20) {
-    // 3) grid search for point farthest from nearest sample
-    const pad = 0.06; // keep away from extreme outer bounds
-    const x0 = min.x + size.x * pad, x1 = max.x - size.x * pad;
-    const z0 = min.z + size.z * pad, z1 = max.z - size.z * pad;
-
+    const x0 = min.x + size.x * 0.06, x1 = max.x - size.x * 0.06;
+    const z0 = min.z + size.z * 0.06, z1 = max.z - size.z * 0.06;
     let bestD2 = -1;
-
-    for (let ix = 0; ix < GRID_N; ix++) {
-      const x = x0 + (x1 - x0) * (ix / (GRID_N - 1));
-      for (let iz = 0; iz < GRID_N; iz++) {
-        const z = z0 + (z1 - z0) * (iz / (GRID_N - 1));
-
-        // distance to nearest sample
+    for (let ix = 0; ix < 45; ix++) {
+      const x = x0 + (x1 - x0) * (ix / 44);
+      for (let iz = 0; iz < 45; iz++) {
+        const z = z0 + (z1 - z0) * (iz / 44);
         let d2min = Number.POSITIVE_INFINITY;
         for (let s = 0; s < samples.length; s += 2) {
-          const dx = x - samples[s];
-          const dz = z - samples[s+1];
+          const dx = x - samples[s], dz = z - samples[s+1];
           const d2 = dx*dx + dz*dz;
           if (d2 < d2min) d2min = d2;
-          // early exit if already worse than best
           if (d2min <= bestD2) break;
         }
-
-        if (d2min > bestD2) {
-          bestD2 = d2min;
-          bestX = x;
-          bestZ = z;
-        }
+        if (d2min > bestD2) { bestD2 = d2min; bestX = x; bestZ = z; }
       }
     }
   }
 
-  // 4) place camera at void center, face +Z, look upward
-  const eyeH = Math.max(size.y * 0.10, EYE_MIN);
-  const camX = bestX + CENTER_DX;
-  const camZ = bestZ + CENTER_DZ;
-  const camY = floorY + eyeH;
+  const eyeH = Math.max(size.y * 0.10, 1.6);
+  camera.position.set(bestX, floorY + eyeH, bestZ);
+  camera.setTarget(new BABYLON.Vector3(bestX, (min.y + max.y) * 0.5 + size.y * 0.42, bestZ));
 
-  camera.position.set(camX, camY, camZ);
-
-  const targetY = (min.y + max.y) * 0.5 + size.y * 0.42; // stronger upward target
-  camera.setTarget(new BABYLON.Vector3(camX, targetY, camZ + FACE_Z_BIAS));
-
-  // Center the model rotation axis in the cloister void (XZ void center + vertical midpoint)
-  const voidAxis = new BABYLON.Vector3(camX, (min.y + max.y) * 0.5, camZ);
-  if (typeof modelRoot !== 'undefined' && modelRoot && modelRoot.setPivotPoint) {
-    modelRoot.setPivotPoint(voidAxis, BABYLON.Space.WORLD);
+  if (modelRoot && modelRoot.setPivotPoint) {
+    modelRoot.setPivotPoint(new BABYLON.Vector3(bestX, (min.y + max.y) * 0.5, bestZ), BABYLON.Space.WORLD);
   }
 
-  // near/far planes
   const radius = Math.max(size.x, size.z) * 0.5;
   camera.minZ = Math.max(0.01, radius / 1500);
   camera.maxZ = Math.max(1000, radius * 60);
 
-} catch (e) {
-  console.warn("Void-center camera failed:", e);
-}
-
-    // XR disabled to prevent black screen issues
+} catch (e) { console.warn("Void-center camera failed:", e); }
 
     return scene;
   }
@@ -695,24 +606,14 @@ try {
       const elapsed = performance.now() - t0;
       const wait = Math.max(0, minMs - elapsed);
       if(wait) await new Promise(r=>setTimeout(r, wait));
-
       cancelAnimationFrame(raf);
       if (bar) bar.style.width = "100%";
       if (pct) pct.textContent = "100%";
       if (status) status.textContent = "ready";
-
       loader.classList.add("fadeOut");
-      setTimeout(()=>{
-        loader.setAttribute("aria-hidden","true");
-      }, 1100);
+      setTimeout(()=>{ loader.setAttribute("aria-hidden","true"); }, 1100);
     }
-
-    function fail(msg){
-      cancelAnimationFrame(raf);
-      if (status) status.textContent = "error";
-    }
-
-    return {done, fail};
+    return {done};
   }
 
   let loopStarted = false;
@@ -721,29 +622,22 @@ try {
   async function initSystem(opts){
     const { withLoader } = opts || {};
     const L = withLoader ? startLoader(2600) : null;
-
     document.body.classList.remove("bab3d-ready");
     document.body.classList.add("bab3d-on");
-
     try{
       if (!initializedOnce){
         initializedOnce = true;
         await createScene();
       }
-
       if (!loopStarted){
         loopStarted = true;
         engine.runRenderLoop(() => { if (scene) scene.render(); });
       }
-
       if (scene && scene.executeWhenReady){
         await new Promise(res => scene.executeWhenReady(res));
       }
-
       if (L) await L.done();
-    }catch(err){
-      console.error(err);
-    }
+    }catch(err){ console.error(err); }
   }
 
   document.getElementById("startVR").addEventListener("click", async () => {
@@ -757,6 +651,5 @@ try {
   window.addEventListener("resize", () => engine.resize());
 })();
 </script>
-
 </body>
 </html>
