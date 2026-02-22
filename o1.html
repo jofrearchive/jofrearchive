@@ -442,16 +442,58 @@ if (isMobile() && motionBtn) {
         const beta = (event.beta === null) ? 0 : BABYLON.Tools.ToRadians(event.beta);
         const gamma = (event.gamma === null) ? 0 : BABYLON.Tools.ToRadians(event.gamma);
 
-        // Crear cuaternión desde ángulos de Euler del dispositivo
-        // ZYX rotation order: alpha (Z), beta (X), gamma (Y)
-        // NOTE: Babylon expects (yaw حول Y, pitch حول X, roll حول Z).
-        // For our phone-hold portrait use-case, we correct the left-right axis:
-        // - Negate yaw so turning phone right turns view right (no inversion)
-        // - Negate roll to reduce "clock-hands" spin feeling
-        const yaw = -alpha;
-        const pitch = beta;
-        const roll = -gamma;
-        BABYLON.Quaternion.RotationYawPitchRollToRef(yaw, pitch, roll, currentDeviceQuat);
+        // Construir cuaternión del dispositivo evitando gimbal lock (orden Y * X * Z)
+// y compensando la orientación de pantalla (portrait/landscape).
+const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
+    ? screen.orientation.angle
+    : (typeof window.orientation === 'number' ? window.orientation : 0);
+const orient = BABYLON.Tools.ToRadians(orientDeg);
+
+// Ajustes de ejes según tu UX:
+// - En portrait (vertical) el yaw estaba invertido -> lo corregimos solo ahí
+// - En landscape mantenemos el sentido actual
+// - roll NO invertido
+const isPortrait = (Math.abs(orientDeg) % 180) === 0;
+// En portrait: yaw correcto con -alpha, pero ahora pitch y roll están invertidos -> invertimos SOLO ahí.
+// En landscape: mantenemos los signos actuales.
+const yaw = isPortrait ? -alpha : alpha;
+const pitch = isPortrait ? -beta : beta;
+const roll = isPortrait ? -gamma : gamma
+
+// q = qY(yaw) * qX(pitch) * qZ(roll)  (orden YXZ)
+const qYaw = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, yaw);
+const qPitch = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, pitch);
+const qRoll = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, roll);
+
+qYaw.multiplyToRef(qPitch, currentDeviceQuat);   // currentDeviceQuat = qYaw * qPitch
+currentDeviceQuat.multiplyInPlace(qRoll);
+// --- Screen-orientation compensation (MINIMAL):
+// Make motion feel screen-relative in landscape, so "left/right" doesn't become "roll".
+(function(){
+    // Prefer iOS window.orientation; fallback to Screen Orientation API.
+    var orientDeg = (typeof window.orientation === "number") ? window.orientation :
+        (screen.orientation && typeof screen.orientation.angle === "number" ? screen.orientation.angle : 0);
+
+    // Only apply in landscape (±90). In portrait, do nothing.
+    if (Math.abs(orientDeg) === 90) {
+        var orientRad = orientDeg * DEG2RAD;
+        if (!handleMotion._qScreen) handleMotion._qScreen = new BABYLON.Quaternion();
+        // Rotate around Z to align device axes to screen axes.
+        BABYLON.Quaternion.RotationAxisToRef(BABYLON.Axis.Z, -orientRad, handleMotion._qScreen);
+        currentDeviceQuat.multiplyInPlace(handleMotion._qScreen);
+    }
+})();        // currentDeviceQuat = (qYaw*qPitch) * qRoll
+
+// Convertir de coords del dispositivo a coords del mundo/cámara (equivalente a -PI/2 en X)
+if (!handleMotion._q1) {
+    const s = Math.sqrt(0.5);
+    handleMotion._q1 = new BABYLON.Quaternion(-s, 0, 0, s);
+}
+currentDeviceQuat.multiplyInPlace(handleMotion._q1);
+
+// Compensar la rotación de la pantalla (para que portrait/landscape no cambie el mapeo)
+const qScreen = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -orient);
+currentDeviceQuat.multiplyInPlace(qScreen);
 
         // Suavizado (smoothing)
         if (firstRead) {
@@ -471,11 +513,13 @@ if (isMobile() && motionBtn) {
         const deviceRelative = smoothedDeviceQuat.multiply(sensorZeroQuat);
 
         // Aplicar sobre la rotación inicial de la cámara
-        if (camera.rotationQuaternion) {
-            deviceRelative.multiplyToRef(initialCameraQuat, camera.rotationQuaternion);
-        } else {
-            console.warn("Camera has no rotationQuaternion");
-        }
+// Importante: para mantener los ejes intuitivos con una cámara ya inclinada,
+// aplicamos el delta del dispositivo DESPUÉS de la orientación base (post-multiply).
+if (camera.rotationQuaternion) {
+    initialCameraQuat.multiplyToRef(deviceRelative, camera.rotationQuaternion);
+} else {
+    console.warn("Camera has no rotationQuaternion");
+}
     };
 
     motionBtn.addEventListener("click", async () => {
