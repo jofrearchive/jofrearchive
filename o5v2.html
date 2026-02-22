@@ -420,6 +420,10 @@ if (isMobile() && motionBtn){
 
   // Calibration: maps sensor quaternion to the current view when VR is enabled.
   let calibQuat = null;
+  // Relative-gyrro reference (avoids jumps/drift from absolute alpha)
+  let refSensorQuat = null;
+  let baseRigQuat = null;
+  let lastSensorQuat = null;
 
   // Smoothing
   const SMOOTH = 0.14; // 0..1 (higher = snappier, lower = smoother)
@@ -479,38 +483,60 @@ if (isMobile() && motionBtn){
       // Safety: remove previous handler
       if (onDeviceOrientation){
         window.removeEventListener("deviceorientation", onDeviceOrientation);
-        onDeviceOrientation = null;
-      }
-
-      // IMPORTANT: do NOT reset gyroRig here — we calibrate to the *current* view.
-      calibQuat = null;
-
       onDeviceOrientation = (e) => {
-        if (!motionEnabled) return;
+  if (!motionEnabled) return;
 
-        // Some browsers deliver nulls until permission is fully granted.
-        if (e.alpha == null || e.beta == null) return;
+  // Some browsers deliver nulls until permission is fully granted.
+  if (e.alpha == null || e.beta == null || Number.isNaN(e.alpha) || Number.isNaN(e.beta)) return;
 
-        const alpha = BABYLON.Tools.ToRadians(e.alpha);
-        const beta  = BABYLON.Tools.ToRadians(e.beta);
-        const gamma = BABYLON.Tools.ToRadians(e.gamma || 0);
+  // Convert to radians
+  const alpha = BABYLON.Tools.ToRadians(e.alpha || 0);
+  const beta  = BABYLON.Tools.ToRadians(e.beta  || 0);
+  const gammaRaw = BABYLON.Tools.ToRadians(e.gamma || 0);
 
-        const sensorQ = quatFromDeviceOrientation(alpha, beta, gamma);
+  // Damp roll heavily for stability ("boat" effect)
+  const gamma = gammaRaw * 0.15;
 
-        // Calibrate so that enabling VR keeps the exact current view (no jump).
-        if (!calibQuat){
-          const currentRig = (gyroRig.rotationQuaternion || BABYLON.Quaternion.Identity()).clone();
-          const invSensor = sensorQ.clone(); invSensor.conjugate(); // inverse (unit quaternion)
-          calibQuat = currentRig.multiply(invSensor);
-          calibQuat.normalize();
-        }
+  const sensorQ = quatFromDevice(alpha, beta, gamma);
 
-        const target = calibQuat.multiply(sensorQ);
-        target.normalize();
+  const curRig = gyroRig.rotationQuaternion || BABYLON.Quaternion.Identity();
 
-        // Smooth to reduce jitter
-        const cur = gyroRig.rotationQuaternion || BABYLON.Quaternion.Identity();
-        gyroRig.rotationQuaternion = BABYLON.Quaternion.Slerp(cur, target, SMOOTH);
+  // Initialize relative reference on first good sample:
+  // keep the CURRENT view exactly, and apply only RELATIVE motion after.
+  if (!refSensorQuat || !baseRigQuat){
+    refSensorQuat = sensorQ.clone(); refSensorQuat.normalize();
+    baseRigQuat = curRig.clone(); baseRigQuat.normalize();
+    lastSensorQuat = sensorQ.clone(); lastSensorQuat.normalize();
+    return;
+  }
+
+  // Glitch guard: if sensor jumps discontinuously, re-anchor instead of snapping.
+  const ds = BABYLON.Quaternion.Dot(lastSensorQuat, sensorQ);
+  if (ds < 0.2){
+    refSensorQuat = sensorQ.clone(); refSensorQuat.normalize();
+    baseRigQuat = curRig.clone(); baseRigQuat.normalize();
+    lastSensorQuat = sensorQ.clone(); lastSensorQuat.normalize();
+    return;
+  }
+  lastSensorQuat = sensorQ.clone(); lastSensorQuat.normalize();
+
+  // delta = inverse(ref) * current
+  const invRef = refSensorQuat.clone(); invRef.conjugate();
+  const delta = invRef.multiply(sensorQ);
+  delta.normalize();
+
+  let target = baseRigQuat.multiply(delta);
+  target.normalize();
+
+  // Ensure shortest-path slerp (avoid flips)
+  if (BABYLON.Quaternion.Dot(curRig, target) < 0){
+    target = target.scale(-1);
+  }
+
+  // Smooth to reduce jitter
+  gyroRig.rotationQuaternion = BABYLON.Quaternion.Slerp(curRig, target, SMOOTH);
+  gyroRig.rotationQuaternion.normalize();
+};, SMOOTH);
         gyroRig.rotationQuaternion.normalize();
       };
 
@@ -533,6 +559,9 @@ if (isMobile() && motionBtn){
       // Back to exact non-VR view
       gyroRig.rotationQuaternion = BABYLON.Quaternion.Identity();
       calibQuat = null;
+      refSensorQuat = null;
+      baseRigQuat = null;
+      lastSensorQuat = null;
 
       // Restore touch/mouse controls
       camera.attachControl(canvas, true);
@@ -544,7 +573,12 @@ if (isMobile() && motionBtn){
 
   // Keep calibration consistent if user rotates the screen while VR is ON.
   window.addEventListener("orientationchange", () => {
-    if (motionEnabled) calibQuat = null; // recalibrate on next sensor sample
+    if (motionEnabled){
+      calibQuat = null;
+      refSensorQuat = null;
+      baseRigQuat = null;
+      lastSensorQuat = null;
+    } // re-anchor on next sensor sample
   }, { passive: true });
 }
 const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
