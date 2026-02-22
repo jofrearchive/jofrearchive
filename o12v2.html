@@ -405,18 +405,18 @@ if (isMobile() && motionBtn){
   motionBtn.style.display = "flex";
 
   let motionEnabled = false;
-  let orientationInput = null; // unused now (kept for compatibility)
-  // Stable VR toggle: we compute our own sensor quaternion and apply a fixed offset so VR starts
-  // exactly from the current desktop view (no jump) and is repeatable across toggles.
-  let desktopQuat = null;     // camera orientation right before enabling VR
-  let camBaseQuat = null;     // desktopQuat with any fixed flips applied (e.g., 180° Z)
-  let worldBaseQuat = null;   // camBaseQuat * inverse(sensorQuat0)
-  let sensorQuat0 = null;     // first sensor quaternion captured on enable
-  let onDeviceOrientation = null; // event handler reference (for removeEventListener)
+  let orientationInput = null;
+
+  // "Neutral" = the device orientation at the moment VR is enabled.
+  // We will render RELATIVE rotation from that neutral, so there is no jump on activation.
+  let sensorNeutral = null;
+      let camBaseQuat = null;
+let desktopQuat = null;
+let worldBaseQuat = null;
+let deviceQuat0 = null; // camera's designed framing quaternion (from setTarget) before enabling sensor
 
   // Keep a handle so we don't add multiple observers if user toggles repeatedly
-  let beforeObserver = null; // unused now (kept to minimize diffs)
-
+  let beforeObserver = null;
 
   motionBtn.addEventListener("click", async () => {
 
@@ -425,79 +425,51 @@ if (isMobile() && motionBtn){
       const ok = await requestGyroPermission();
       if (!ok) return;
 
+            // Capture the current (designed) camera framing BEFORE the sensor starts overriding it
+      // IMPORTANT: FreeCamera framing from setTarget usually lives in camera.rotation (Euler).
+      camBaseQuat = BABYLON.Quaternion.FromEulerAngles(
+        camera.rotation.x,
+        camera.rotation.y,
+        camera.rotation.z
+      );
 
-      // Prevent Babylon's default pointer/touch input from fighting the gyro
-      camera.detachControl(canvas);
-      // Ensure we use quaternion-based rotation
-          // (base framing is captured below for stable VR start)
-// Activate device orientation (stable, repeatable)
-      // Save the exact desktop view at the moment VR is enabled
-      // Save the exact desktop view at the moment VR is enabled (no jump)
-      const designedQuat = camera.rotationQuaternion
-        ? camera.rotationQuaternion.clone()
-        : BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-      designedQuat.normalize();
-
-      // Switch to quaternion mode WITHOUT changing the view
-      camera.rotationQuaternion = designedQuat.clone();
-      camera.rotation.set(0,0,0);
-
-      desktopQuat = designedQuat.clone();
-
-      // IMPORTANT: base == current view. (Removing the fixed 180° Z flip prevents the perspective jump.)
-      camBaseQuat = designedQuat.clone();
-
-      // Keep the same view while waiting for the first sensor sample
+      // Switch to quaternion control and freeze the current framing (prevents any single-frame jump)
       camera.rotationQuaternion = camBaseQuat.clone();
-      camera.rotationQuaternion.normalize();
       camera.rotation.set(0,0,0);
-// Reset calibration state for this activation
-      worldBaseQuat = null;
-      sensorQuat0 = null;
 
-      // Remove any previous handler (safety)
-      if (onDeviceOrientation){
-        window.removeEventListener("deviceorientation", onDeviceOrientation);
-        onDeviceOrientation = null;
+      // Activate device orientation input
+      orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
+      camera.inputs.add(orientationInput);
+
+      // Neutral = first real sensor reading (no fixed timeout)
+      sensorNeutral = null;
+
+      if (!beforeObserver){
+        beforeObserver = scene.onBeforeRenderObservable.add(() => {
+          if (!motionEnabled) return;
+          if (!camera.rotationQuaternion) return;
+
+          // First sensor frame: capture neutral, then immediately snap back to base framing
+          if (!sensorNeutral){
+            sensorNeutral = camera.rotationQuaternion.clone();
+            camera.rotationQuaternion = camBaseQuat.clone();
+            camera.rotation.set(0,0,0);
+            return;
+          }
+
+          // Read current sensor orientation BEFORE we overwrite the camera quaternion
+          const currentSensor = camera.rotationQuaternion.clone();
+
+          // relative = currentSensor * inverse(neutral)
+          const neutralInv = sensorNeutral.clone();
+          neutralInv.invert();
+          const relative = currentSensor.multiply(neutralInv);
+
+          // Apply relative rotation on top of the base framing
+          camera.rotationQuaternion = camBaseQuat.multiply(relative);
+          camera.rotation.set(0,0,0);
+        });
       }
-
-      onDeviceOrientation = (e) => {
-        if (!motionEnabled) return;
-
-        const alpha = BABYLON.Tools.ToRadians(e.alpha || 0);
-        const beta  = BABYLON.Tools.ToRadians(e.beta  || 0);
-        const gamma = BABYLON.Tools.ToRadians(e.gamma || 0);
-
-        // Correct mapping for Babylon (left-handed) so left = left, right = right
-        const sensorQuat = new BABYLON.Quaternion();
-        BABYLON.Quaternion.RotationYawPitchRollToRef(
-          -alpha,  // invert yaw
-          beta,    // pitch as-is
-          -gamma,  // invert roll
-          sensorQuat
-        );
-        sensorQuat.normalize();
-
-        // First sample becomes the neutral reference so there is NO jump at enable
-        if (!sensorQuat0){
-          sensorQuat0 = sensorQuat.clone();
-          const inv0 = sensorQuat0.clone();
-          inv0.conjugate(); // inverse for unit quaternion
-          worldBaseQuat = camBaseQuat.multiply(inv0);
-          worldBaseQuat.normalize();
-        }
-
-        if (!camera.rotationQuaternion) camera.rotationQuaternion = new BABYLON.Quaternion();
-
-        camera.rotationQuaternion = worldBaseQuat
-          ? worldBaseQuat.multiply(sensorQuat)
-          : camBaseQuat.clone();
-
-        camera.rotationQuaternion.normalize();
-        camera.rotation.set(0,0,0); // avoid Euler/quaternion mixing
-      };
-
-      window.addEventListener("deviceorientation", onDeviceOrientation, { passive: true });
 
       motionEnabled = true;
       motionBtn.classList.add("active");
@@ -505,31 +477,24 @@ if (isMobile() && motionBtn){
 
     } else {
 
-      // Disable VR: remove sensor handler and restore the exact desktop view
+      // Disable input
+      if (orientationInput){
+        camera.inputs.remove(orientationInput);
+        orientationInput = null;
+      }
+
+      // Remove observer so it doesn't keep affecting the camera
+      if (beforeObserver){
+        scene.onBeforeRenderObservable.remove(beforeObserver);
+        beforeObserver = null;
+      }
+
+      sensorNeutral = null;
       motionEnabled = false;
-
-      if (onDeviceOrientation){
-        window.removeEventListener("deviceorientation", onDeviceOrientation);
-        onDeviceOrientation = null;
-      }
-
-      if (desktopQuat){
-        if (!camera.rotationQuaternion) camera.rotationQuaternion = new BABYLON.Quaternion();
-        camera.rotationQuaternion = desktopQuat.clone();
-        camera.rotationQuaternion.normalize();
-        camera.rotation.set(0,0,0);
-      }
-
-      // Clear calibration state so the next enable is perfectly repeatable
-      worldBaseQuat = null;
-      sensorQuat0 = null;
-      camBaseQuat = null;
-
       motionBtn.classList.remove("active");
-      // Restore desktop pointer/touch controls
-      camera.attachControl(canvas, true);
       motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
-    }  });
+    }
+  });
 }
 
     
