@@ -386,19 +386,16 @@ async function requestGyroPermission(){
     camera.setTarget(new BABYLON.Vector3(0, 15, 0));
     camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
-    // --- BOTÓN VR CON GIROSCOPIO CORREGIDO ---
+    // --- SOLUCIÓN DEFINITIVA: UniversalCamera + FreeCameraDeviceOrientationInput modificado ---
     const motionBtn = document.getElementById("motionBtn");
     if (isMobile() && motionBtn) {
         motionBtn.style.display = "flex";
 
         let isVREnabled = false;
-        let deviceOrientationCamera = null;
-        let vrRig = null;
-        const CLAUSTRO_Y_180 = true; // align claustro forward
+        let vrCamera = null;
 
         motionBtn.addEventListener("click", async () => {
             if (!isVREnabled) {
-                // Verificar HTTPS
                 if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                     alert("Se requiere HTTPS para usar el giroscopio");
                     return;
@@ -407,42 +404,79 @@ async function requestGyroPermission(){
                 const ok = await requestGyroPermission();
                 if (!ok) return;
 
-                // Crear DeviceOrientationCamera en la misma posición
-                vrRig = new BABYLON.TransformNode("VR_RIG", scene);
-                vrRig.position.copyFrom(camera.position);
-                if (CLAUSTRO_Y_180) {
-                    vrRig.rotationQuaternion = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, Math.PI);
-                }
-                deviceOrientationCamera = new BABYLON.DeviceOrientationCamera("VR_Camera", new BABYLON.Vector3(0,0,0), scene);
-                deviceOrientationCamera.parent = vrRig;
+                // Crear UniversalCamera (más estable que DeviceOrientationCamera)
+                vrCamera = new BABYLON.UniversalCamera("VR_Camera", camera.position.clone(), scene);
+                vrCamera.fovMode = camera.fovMode;
+                vrCamera.fov = camera.fov;
+                vrCamera.minZ = camera.minZ;
+                vrCamera.maxZ = camera.maxZ;
 
-                // Copiar configuración de la cámara original
-                deviceOrientationCamera.fovMode = camera.fovMode;
-                deviceOrientationCamera.fov = camera.fov;
-                deviceOrientationCamera.minZ = camera.minZ;
-                deviceOrientationCamera.maxZ = camera.maxZ;
+                // Crear input de orientación personalizado
+                const deviceOrientation = new BABYLON.FreeCameraDeviceOrientationInput();
 
-                // Establecer el target manualmente (DeviceOrientationCamera lo ignora pero lo intentamos)
-                deviceOrientationCamera.setTarget(new BABYLON.Vector3(0, 15, 0));
-// Cambiar a la nueva cámara
-                scene.activeCamera = deviceOrientationCamera;
-                deviceOrientationCamera.attachControl(canvas, true);
+                // Variables para almacenar ángulos iniciales
+                deviceOrientation.angleInitial = 0;
+                deviceOrientation.angleOffset = 0;
+
+                // Guardar función original
+                const originalDeviceOrientation = deviceOrientation._deviceOrientation.bind(deviceOrientation);
+
+                // Sobrescribir para capturar orientación inicial del dispositivo
+                deviceOrientation._deviceOrientation = (evt) => {
+                    if (!deviceOrientation.angleInitial && evt.alpha !== null) {
+                        deviceOrientation.angleInitial = evt.alpha;
+                        console.log("Initial device alpha:", deviceOrientation.angleInitial);
+                    }
+                    originalDeviceOrientation(evt);
+                };
+
+                // Calcular ángulo objetivo basado en la dirección de la cámara actual
+                // Usamos la posición y el target para determinar hacia dónde debe mirar
+                const targetVector = new BABYLON.Vector3(0, 15, 0);
+                const direction = targetVector.subtract(camera.position);
+                const targetYaw = Math.atan2(direction.x, direction.z); // Ángulo horizontal hacia el target
+
+                // Convertir a grados para el offset
+                const targetYawDegrees = targetYaw * 180 / Math.PI;
+                deviceOrientation.angleOffset = targetYawDegrees;
+
+                console.log("Target yaw (degrees):", targetYawDegrees);
+
+                // Sobrescribir checkInputs para aplicar el offset
+                const originalCheckInputs = deviceOrientation.checkInputs.bind(deviceOrientation);
+                deviceOrientation.checkInputs = () => {
+                    if (deviceOrientation.angleInitial) {
+                        // Aplicar offset al alpha del dispositivo
+                        const currentAlpha = deviceOrientation._alpha;
+                        deviceOrientation._alpha = currentAlpha - deviceOrientation.angleInitial - (deviceOrientation.angleOffset * Math.PI / 180);
+
+                        originalCheckInputs();
+
+                        // Restaurar alpha original para no acumular errores
+                        deviceOrientation._alpha = currentAlpha;
+                    } else {
+                        originalCheckInputs();
+                    }
+                };
+
+                // Añadir input a la cámara
+                vrCamera.inputs.add(deviceOrientation);
+                vrCamera.attachControl(canvas, true);
+
+                // Cambiar cámara activa
+                scene.activeCamera = vrCamera;
 
                 isVREnabled = true;
                 motionBtn.classList.add("active");
                 motionBtn.querySelector(".vrLabel").textContent = "VR ON";
 
-                console.log("VR enabled - DeviceOrientationCamera active");
+                console.log("VR enabled with corrected orientation");
             } else {
                 // Volver a FreeCamera
-                if (deviceOrientationCamera) {
-                    deviceOrientationCamera.detachControl(canvas);
-                    deviceOrientationCamera.dispose();
-                    deviceOrientationCamera = null;
-                }
-                if (vrRig) {
-                    vrRig.dispose();
-                    vrRig = null;
+                if (vrCamera) {
+                    vrCamera.detachControl(canvas);
+                    vrCamera.dispose();
+                    vrCamera = null;
                 }
 
                 scene.activeCamera = camera;
@@ -451,8 +485,6 @@ async function requestGyroPermission(){
                 isVREnabled = false;
                 motionBtn.classList.remove("active");
                 motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
-
-                console.log("VR disabled - FreeCamera restored");
             }
         });
     }
