@@ -395,6 +395,14 @@ camera.fov = 0.85; // tweak: smaller = tighter, larger = wider
 // Objetivo de mirada: hacia el centro elevado (mirada ascendente)
 camera.setTarget(new BABYLON.Vector3(0, 15, 0));
 
+// --- FIX: freeze designed orientation quaternion ---
+camera.rotationQuaternion =
+  BABYLON.Quaternion.FromLookDirectionLH(
+    camera.getTarget().subtract(camera.position).normalize(),
+    BABYLON.Vector3.Up()
+  );
+const designQuat = camera.rotationQuaternion.clone();
+
 // Sin teclado
 camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
@@ -435,27 +443,30 @@ let deviceQuat0 = null; // camera's designed framing quaternion (from setTarget)
           const zFix = BABYLON.Quaternion.FromEulerAngles(0, 0, Math.PI);
           camBaseQuat = zFix.multiply(camBaseQuat);
 
-      // Activate device orientation input (NO JUMP)
+      // Activate device orientation input (RELATIVE, NO JUMP)
       orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
       camera.inputs.add(orientationInput);
 
       let sensorZero = null;
 
-      // Capture first sensor orientation as perceptual zero
-      scene.onBeforeRenderObservable.addOnce(() => {
-        if (camera.rotationQuaternion)
-          sensorZero = camera.rotationQuaternion.clone();
-      });
-
-      // Apply RELATIVE rotation only
       if (!beforeObserver){
         beforeObserver = scene.onBeforeRenderObservable.add(() => {
           if (!motionEnabled) return;
-          if (!camera.rotationQuaternion || !sensorZero) return;
+          if (!camera.rotationQuaternion) return;
 
-          const current = camera.rotationQuaternion.clone();
-          const relative = current.multiply(sensorZero.clone().invert());
+          // First valid sensor frame = perceptual zero
+          if (!sensorZero){
+            sensorZero = camera.rotationQuaternion.clone();
+            return;
+          }
 
+          // Read sensor rotation BEFORE overriding
+          const sensorQuat = camera.rotationQuaternion.clone();
+
+          // Relative motion since activation
+          const relative = sensorQuat.multiply(sensorZero.clone().invert());
+
+          // Compose with designed orientation
           camera.rotationQuaternion = designQuat.multiply(relative);
         });
       }
