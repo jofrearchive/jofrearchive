@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>BabylonJS — VR sin salto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <style>
+    html,body{margin:0;height:100%;overflow:hidden;background:#0b0b0b}
+    canvas{width:100%;height:100%;touch-action:none}
+    #vrBtn{
+      position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+      padding:12px 18px;background:#000;border:1px solid #666;color:#eee;
+      font-family:monospace;letter-spacing:.12em;cursor:pointer;z-index:10
+    }
+  </style>
+</head>
+<body>
+<canvas id="renderCanvas"></canvas>
+<button id="vrBtn">VR OFF</button>
+
+<script>
+const canvas = document.getElementById('renderCanvas');
+const engine = new BABYLON.Engine(canvas,true);
+const scene  = new BABYLON.Scene(engine);
+scene.clearColor = new BABYLON.Color4(0.04,0.04,0.04,1);
+
+// Luz suave
+new BABYLON.HemisphericLight('h',new BABYLON.Vector3(0,1,0),scene).intensity=0.6;
+
+// Geometría simple de referencia (sustituible por tu modelo)
+BABYLON.MeshBuilder.CreateBox('box',{size:10},scene).position.y=5;
+
+// ===== CÁMARA DISEÑADA =====
+const camera = new BABYLON.FreeCamera('cam',new BABYLON.Vector3(0,2,-18),scene);
+camera.attachControl(canvas,true);
+camera.inputs.removeByType('FreeCameraKeyboardMoveInput');
+
+// Mirada artística fija
+camera.setTarget(new BABYLON.Vector3(0,6,0));
+
+// Convertir esa mirada en quaternion explícito
+camera.rotationQuaternion = BABYLON.Quaternion.FromLookDirectionLH(
+  camera.getTarget().subtract(camera.position).normalize(),
+  BABYLON.Vector3.Up()
+);
+
+// Guardar orientación de diseño
+const designQuat = camera.rotationQuaternion.clone();
+
+// ===== VR / GIROSCOPIO SIN SALTO =====
+let motionOn = false;
+let sensorZero = null;
+let orientationInput = null;
+let obs = null;
+
+async function requestGyro(){
+  if (window.DeviceOrientationEvent?.requestPermission){
+    return (await DeviceOrientationEvent.requestPermission())==='granted';
+  }
+  return true;
+}
+
+const btn = document.getElementById('vrBtn');
+btn.onclick = async ()=>{
+  if (!motionOn){
+    if (!(await requestGyro())) return;
+
+    if (!camera.rotationQuaternion)
+      camera.rotationQuaternion = designQuat.clone();
+
+    orientationInput = new BABYLON.FreeCameraDeviceOrientationInput();
+    camera.inputs.add(orientationInput);
+
+    // Capturar el cero del sensor (sin salto)
+    scene.onBeforeRenderObservable.addOnce(()=>{
+      sensorZero = camera.rotationQuaternion.clone();
+    });
+
+    // Aplicar rotación relativa cada frame
+    obs = scene.onBeforeRenderObservable.add(()=>{
+      if (!sensorZero) return;
+      const current = camera.rotationQuaternion.clone();
+      const rel = current.multiply(sensorZero.clone().invert());
+      camera.rotationQuaternion = designQuat.multiply(rel);
+    });
+
+    motionOn = true;
+    btn.textContent = 'VR ON';
+  } else {
+    if (orientationInput){
+      camera.inputs.remove(orientationInput);
+      orientationInput = null;
+    }
+    if (obs){
+      scene.onBeforeRenderObservable.remove(obs);
+      obs = null;
+    }
+    sensorZero = null;
+    camera.rotationQuaternion = designQuat.clone();
+    motionOn = false;
+    btn.textContent = 'VR OFF';
+  }
+};
+
+engine.runRenderLoop(()=>scene.render());
+window.addEventListener('resize',()=>engine.resize());
+</script>
+</body>
+</html>
