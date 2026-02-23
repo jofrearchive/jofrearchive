@@ -816,6 +816,14 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   <div class="led"></div>
   <span id="vr-text">VR OFF</span>
 </button>
+<div id="gyroDebug" style="position:fixed;top:12px;left:12px;z-index:100001;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;line-height:1.45;padding:10px 12px;background:rgba(0,0,0,.55);border:1px solid rgba(232,226,214,.18);backdrop-filter:blur(6px);display:none;max-width:min(90vw,420px);">
+  <div style="opacity:.8;margin-bottom:6px;">gyro debug</div>
+  <div id="gyroDbgLine1"></div>
+  <div id="gyroDbgLine2"></div>
+  <div style="opacity:.7;margin-top:6px;">tune: portrait(y,p,r) / landscape(y,p,r)</div>
+  <div id="gyroDbgLine3" style="opacity:.85;"></div>
+</div>
+
 <div id="vitrine-glass" aria-hidden="true"></div>
 <div id="vitrine-frame" aria-hidden="true"></div>
 <div id="bootError">
@@ -1020,40 +1028,139 @@ if (controls) {
   window.__VR_DELTAQ = new THREE.Quaternion(); // identity by default
 
   let deviceQ0Inv = null; // inverse of device quaternion at activation time
+  let smoothedDeviceQ = new THREE.Quaternion();
+  let firstRead = true;
   let vrTouchMode = false;
 
   const btn = document.getElementById('vr-toggle');
   const btnText = document.getElementById('vr-text');
 
-  // Convert deviceorientation -> quaternion, but suppress roll to avoid "boat" feeling.
-  // Keep yaw (alpha) + pitch (beta), ignore gamma (roll).
-  const deviceQuaternionNoRoll = (e) => {
-    const alpha = e.alpha ? THREE.MathUtils.degToRad(e.alpha) : 0;
-    const beta  = e.beta  ? THREE.MathUtils.degToRad(e.beta)  : 0;
+  
+  // Convert deviceorientation -> quaternion using the SAME mapping logic as origin-gyrocorrect:
+  // - compensate screen orientation (portrait/landscape) so mapping stays identical
+  // - compute RELATIVE delta from the first sensor read => no jump
+  // - smooth with a light slerp to reduce jitter
 
-    const q = new THREE.Quaternion();
-    const euler = new THREE.Euler(beta, alpha, 0, 'YXZ');
-    q.setFromEuler(euler);
-    return q;
+  // === Axis tuning (quick fixes without touching math) ===
+  // If any motion feels inverted, change the sign here to +1 or -1.
+  // Portrait = screen upright (0/180). Landscape = screen rotated (±90).
+  const AXIS_TUNE = {
+    portrait:  { yaw: +1, pitch: +1, roll: -1, swapPitchRoll: false },
+    landscape: { yaw: -1, pitch: +1, roll: -1, swapPitchRoll: true  }
   };
 
+  // Debug overlay (set to false to hide)
+  const SHOW_GYRO_DEBUG = false;
+  const SMOOTHING_FACTOR = 0.12;
+
+  const getScreenAngleDeg = () => {
+    const so = window.screen && window.screen.orientation;
+    if (so && typeof so.angle === "number") return so.angle;
+    // iOS Safari legacy
+    if (typeof window.orientation === "number") return window.orientation;
+    return 0;
+  };
+
+  const buildDeviceQuat = (e) => {
+    // Handle null values (iOS w/o magnetometer can give null alpha)
+    const aDeg = (e.alpha == null) ? 0 : e.alpha;
+    const bDeg = (e.beta  == null) ? 0 : e.beta;
+    const gDeg = (e.gamma == null) ? 0 : e.gamma;
+
+    const alpha = THREE.MathUtils.degToRad(aDeg);
+    const beta  = THREE.MathUtils.degToRad(bDeg);
+    const gamma = THREE.MathUtils.degToRad(gDeg);
+
+    const orientDeg = getScreenAngleDeg();
+    const orient = THREE.MathUtils.degToRad(orientDeg);
+
+    // Base axes mapping
+    let yaw   = alpha; // heading
+    let pitch = beta;  // front/back tilt
+    let roll  = gamma; // left/right tilt
+
+    const isPortrait = ((Math.abs(orientDeg) % 180) === 0);
+
+    // Landscape can optionally swap pitch/roll to keep the same "feel"
+    if (!isPortrait && AXIS_TUNE.landscape.swapPitchRoll) {
+      const tmp = pitch;
+      pitch = roll;
+      roll = tmp;
+    }
+
+    // Apply per-orientation sign corrections
+    const T = isPortrait ? AXIS_TUNE.portrait : AXIS_TUNE.landscape;
+    yaw   *= T.yaw;
+    pitch *= T.pitch;
+    roll  *= T.roll;
+
+// q = qY(yaw) * qX(pitch) * qZ(roll)  (order YXZ)
+    const qYaw   = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), yaw);
+    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), pitch);
+    const qRoll  = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), roll);
+
+    const q = new THREE.Quaternion();
+    q.multiplyQuaternions(qYaw, qPitch);
+    q.multiply(qRoll);
+
+    // Device -> world/camera coords (equivalent to -PI/2 on X)
+    const s = Math.sqrt(0.5);
+    const q1 = new THREE.Quaternion(-s, 0, 0, s);
+    q.multiply(q1);
+
+    // Compensate screen rotation (portrait/landscape)
+    const qScreen = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), -orient);
+    q.multiply(qScreen);
+
+    return q;
+  };
   const handleDeviceOrientation = (e) => {
     if (!window.__VR_ACTIVE || vrTouchMode) return;
 
-    const deviceQ = deviceQuaternionNoRoll(e);
+    const currentQ = buildDeviceQuat(e);
+
+    if (SHOW_GYRO_DEBUG) {
+      const orientDeg = getScreenAngleDeg();
+      const isPortrait = ((Math.abs(orientDeg) % 180) === 0);
+      const a = (e.alpha == null) ? 0 : e.alpha;
+      const b = (e.beta  == null) ? 0 : e.beta;
+      const g = (e.gamma == null) ? 0 : e.gamma;
+      const el = document.getElementById('gyroDebug');
+      if (el) el.style.display = 'block';
+      const l1 = document.getElementById('gyroDbgLine1');
+      const l2 = document.getElementById('gyroDbgLine2');
+      const l3 = document.getElementById('gyroDbgLine3');
+      if (l1) l1.textContent = `screen: ${isPortrait ? 'portrait' : 'landscape'} (${orientDeg}°)`;
+      if (l2) l2.textContent = `raw αβγ: ${a.toFixed(1)} / ${b.toFixed(1)} / ${g.toFixed(1)}`;
+      if (l3) {
+        const P = AXIS_TUNE.portrait, L = AXIS_TUNE.landscape;
+        l3.textContent = `${P.yaw},${P.pitch},${P.roll} / ${L.yaw},${L.pitch},${L.roll}  swapPR:${L.swapPitchRoll?'1':'0'}`;
+      }
+    } else {
+      const el = document.getElementById('gyroDebug');
+      if (el) el.style.display = 'none';
+    }
+
+    // Smooth
+    if (firstRead) {
+      smoothedDeviceQ.copy(currentQ);
+    } else {
+      smoothedDeviceQ.slerp(currentQ, SMOOTHING_FACTOR);
+    }
 
     // First event after activation becomes reference => no jump
-    if (!deviceQ0Inv) {
-      deviceQ0Inv = deviceQ.clone().invert(); // q0^-1
+    if (firstRead) {
+      deviceQ0Inv = smoothedDeviceQ.clone().invert(); // q0^-1
       window.__VR_DELTAQ.identity();
+      firstRead = false;
       return;
     }
 
     // delta = q0^-1 * q
-    window.__VR_DELTAQ.multiplyQuaternions(deviceQ0Inv, deviceQ);
+    window.__VR_DELTAQ.multiplyQuaternions(deviceQ0Inv, smoothedDeviceQ);
   };
 
-  const ensureDome = () => {
+const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
     const mat = new THREE.MeshBasicMaterial({
@@ -1085,6 +1192,8 @@ if (controls) {
 
       deviceQ0Inv = null;
       window.__VR_DELTAQ.identity();
+      firstRead = true;
+      smoothedDeviceQ.identity();
 
       window.__VR_ACTIVE = true;
       btn.classList.add('active');
@@ -1108,6 +1217,8 @@ if (controls) {
 
       deviceQ0Inv = null;
       vrTouchMode = false;
+      firstRead = true;
+      smoothedDeviceQ.identity();
       window.__VR_DELTAQ.identity();
 
       // Restore default desktop state (disabled)
