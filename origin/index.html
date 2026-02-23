@@ -18,39 +18,13 @@
     #renderCanvas { width:100%; height:100%; touch-action:none; filter: contrast(110%) brightness(90%); }
 
     /* Gate */
-    #gate {
-      position:absolute; inset:0;
-      background: radial-gradient(circle at center, rgba(11,11,11,0.8) 0%, var(--bg-deep) 100%);
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      z-index:10; color:var(--ivory); text-align:center;
-    }
-    .bab3d-on #gate{ display:none; }
-
-    h1 {
+h1 {
       font-family:'EB Garamond', serif;
       font-weight: normal;
       letter-spacing: .2em;
       opacity:.9;
       margin: 0 0 40px 0;
     }
-
-    #startVR {
-      background: rgba(0,0,0,.6);
-      border: 1px solid rgba(232,226,214,.2);
-      color: var(--ivory);
-      font-family:'Source Code Pro', monospace;
-      text-transform: uppercase;
-      letter-spacing: .18em;
-      padding: 12px 30px;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      gap: 15px;
-      transition: all .3s ease;
-    }
-    #startVR:hover { border-color: rgba(232,226,214,.5); background: rgba(0,0,0,.8); }
-    #led { width:8px; height:8px; background:#222; border-radius:50%; box-shadow: 0 0 0px var(--led-green); transition:.3s; }
-    #startVR:hover #led { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
 
     
 /* ===== PANEL ===== */
@@ -125,7 +99,6 @@
 
 /* gate vs system */
 body.bab3d-ready #panel{ display:none; }
-body.bab3d-on #gate{ display:none; }
 body.bab3d-on #panel{ display:block; }
 
 /* ===== LOADER ===== */
@@ -248,20 +221,8 @@ body.bab3d-on #panel{ display:block; }
 <body class="bab3d-ready">
 
 <script>
-(function(){
-  try{
-    if (localStorage.getItem("JA_INIT_DONE_v1")==="1") {
-      document.body.classList.remove("bab3d-ready");
-      document.body.classList.add("bab3d-on");
-    }
-  }catch(e){}
-})();
 </script>
 
-  <div id="gate">
-    <h1>EXPERIMENTAL ARCHIVE</h1>
-    <button id="startVR">
-      <div id="led"></div>
       <span>Initialize System</span>
     </button>
   </div>
@@ -376,8 +337,28 @@ async function requestGyroPermission(){
   const canvas = document.getElementById("renderCanvas");
   const engine = new BABYLON.Engine(canvas, true);
   let scene;
+  let camera = null;
+
+  // Shared VR state (needed for auto-start after init)
+  let motionBtn = null;
+  let motionEnabled = false;
+  let motionPermissionGranted = false;
+  let enableMotion = null;
+  let disableMotion = null;
 
   const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
+
+  function setLoaderStatus(msg){
+    const s = document.getElementById("status");
+    if (s) s.textContent = msg;
+  }
+  async function importMeshWithTimeout(url, timeoutMs=20000){
+    setLoaderStatus("loading geometry");
+    return await Promise.race([
+      BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene),
+      new Promise((_, rej)=>setTimeout(()=>rej(new Error("Model load timeout after "+timeoutMs+"ms: "+url)), timeoutMs))
+    ]);
+  }
 
   async function createScene(){
     scene = new BABYLON.Scene(engine);
@@ -391,7 +372,7 @@ async function requestGyroPermission(){
     keyLight.intensity = 1.1;
 
     // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
-const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
+camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
 camera.attachControl(canvas, true);
 // Keep framing consistent across desktop/mobile aspect ratios
 camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
@@ -405,11 +386,14 @@ camera.setTarget(new BABYLON.Vector3(0, 15, 0));
 camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
 // --- VR TOGGLE BUTTON (GIROSCOPIO MANUAL CORREGIDO) ---
-const motionBtn = document.getElementById("motionBtn");
+motionBtn = document.getElementById("motionBtn");
+
+// ===== Motion state (shared) =====
+
 if (isMobile() && motionBtn) {
     motionBtn.style.display = "flex";
     
-    let motionEnabled = false;
+
     let initialCameraQuat = new BABYLON.Quaternion();
     let sensorZeroQuat = new BABYLON.Quaternion();
     let currentDeviceQuat = new BABYLON.Quaternion();
@@ -552,68 +536,103 @@ if (camera.rotationQuaternion) {
 }
     };
 
-    motionBtn.addEventListener("click", async () => {
-        console.log("VR button clicked, motionEnabled:", motionEnabled);
-        
-        if (!motionEnabled) {
-            // Verificar HTTPS (requerido para iOS)
-            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                console.error("HTTPS required for gyroscope on iOS");
-                alert("Se requiere HTTPS para usar el giroscopio en iOS");
-                return;
-            }
+    
+    // Unified enable/disable so auto-start can reuse without re-prompting.
+    enableMotion = async (opts) => {
+        const assumeGranted = !!(opts && opts.assumeGranted);
+        console.log("enableMotion()", { assumeGranted, motionEnabled });
 
+        if (motionEnabled) return true;
+
+        // HTTPS check (iOS requirement)
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            console.error("HTTPS required for gyroscope on iOS");
+            alert("Se requiere HTTPS para usar el giroscopio en iOS");
+            return false;
+        }
+
+        if (!assumeGranted) {
             const ok = await requestGyroPermission();
+            motionPermissionGranted = ok;
             console.log("Permission result:", ok);
-            
+            if (ok) { try { localStorage.setItem("gyroPermissionGranted","1"); } catch(e) {} }
+
             if (!ok) {
                 console.log("Permission denied or failed");
-                return;
+                return false;
             }
-
-            // Asegurar que la cámara usa quaterniones
-            if (!camera.rotationQuaternion) {
-                console.log("Converting camera to quaternion mode");
-                camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-            }
-            
-            // Guardar la rotación actual como base
-            initialCameraQuat.copyFrom(camera.rotationQuaternion);
-            console.log("Initial camera quaternion saved:", initialCameraQuat.toString());
-            
-            // Resetear estado del sensor
-            firstRead = true;
-            eventCount = 0;
-            motionEnabled = true;
-
-            // Registrar listener del sensor
-            window.addEventListener("deviceorientation", handleMotion, true);
-            console.log("Device orientation listener added");
-
-            // En iOS, a veces el primer evento tarda, forzar un render
-            setTimeout(() => {
-                if (eventCount === 0) {
-                    console.warn("No orientation events received after 2 seconds");
-                    console.log("Device info:", navigator.userAgent);
-                }
-            }, 2000);
-
-            motionBtn.classList.add("active");
-            motionBtn.querySelector(".vrLabel").textContent = "VR ON";
-            
         } else {
-            console.log("Disabling VR mode");
-            motionEnabled = false;
-            window.removeEventListener("deviceorientation", handleMotion, true);
-            
-            motionBtn.classList.remove("active");
-            motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+            motionPermissionGranted = true;
+        }
+
+        // Ensure camera uses quaternions
+        if (!camera.rotationQuaternion) {
+            console.log("Converting camera to quaternion mode");
+            camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+        }
+
+        // Save current camera rotation as base (no jump)
+        initialCameraQuat.copyFrom(camera.rotationQuaternion);
+
+        // Reset sensor state
+        firstRead = true;
+        eventCount = 0;
+        motionEnabled = true;
+
+        // Start listening
+        window.addEventListener("deviceorientation", handleMotion, true);
+        console.log("Device orientation listener added (assumeGranted=", assumeGranted, ")");
+
+        // If no events arrive, we can report in console (helps debugging)
+        setTimeout(() => {
+            if (eventCount === 0) {
+                console.warn("No orientation events received after 2 seconds");
+                console.log("Device info:", navigator.userAgent);
+            }
+        }, 2000);
+
+        motionBtn.classList.add("active");
+        motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+        return true;
+    };
+
+    disableMotion = () => {
+        if (!motionEnabled) return;
+        console.log("Disabling VR mode");
+        motionEnabled = false;
+        window.removeEventListener("deviceorientation", handleMotion, true);
+
+        motionBtn.classList.remove("active");
+        motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+    };
+
+    motionBtn.addEventListener("click", async () => {
+        console.log("VR button clicked, motionEnabled:", motionEnabled);
+        if (!motionEnabled) {
+            await enableMotion();
+        } else {
+            disableMotion();
         }
     });
 }
 
     
-const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
+let res;
+try {
+  // Try model load with timeout so the loader never gets stuck forever.
+  res = await importMeshWithTimeout(modelUrl, 25000);
+} catch (e) {
+  console.error("GLB load failed:", e);
+  setLoaderStatus("geometry failed");
+  // Fallback placeholder so the experience still runs (gyro/VR can be tested).
+  const fallback = BABYLON.MeshBuilder.CreateBox("fallbackBox", {size: 8}, scene);
+  fallback.position = new BABYLON.Vector3(0, 6, 0);
+  const mat = new BABYLON.StandardMaterial("fallbackMat", scene);
+  mat.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.12);
+  mat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05);
+  fallback.material = mat;
+  res = { meshes: [fallback] };
+}
     res.meshes.forEach(mesh => {
       if (mesh && mesh.getTotalVertices() > 0) {
         mesh.isVisible = true;
@@ -866,20 +885,96 @@ try {
       }
 
       if (L) await L.done();
-    }catch(err){
+    }
+    catch(err){
       console.error(err);
+      if (L) {
+        try { L.fail(String(err && err.message ? err.message : err)); } catch(e) {}
+        // Ensure loader disappears even on error
+        setTimeout(()=>{
+          const loader = document.getElementById("loader");
+          if (loader) loader.setAttribute("aria-hidden","true");
+        }, 900);
+      }
     }
   }
 
-  document.getElementById("startVR").addEventListener("click", async () => {
-    await initSystem({ withLoader: true });
-  });
+  // === AUTO INIT (no gate) ===
+  // We always initialize the scene on load.
+  // For gyro auto-enable:
+  // - We probe deviceorientation briefly; if events arrive, we assume permission is available this session.
+  // - If so, we set motionPermissionGranted=true and auto-click the VR button AFTER init (so camera direction is preserved).
 
-  if (localStorage.getItem("JA_INIT_DONE_v1") === "1") {
-    requestAnimationFrame(() => { initSystem({ withLoader: false }); });
+  async function probeGyroPermission(timeoutMs=900){
+    return await new Promise((resolve)=>{
+      let gotEvent = false;
+      const handler = (e)=>{
+        // We consider it "working" if we get any numeric beta/gamma (alpha may be null on some devices)
+        const ok = (typeof e.beta === "number") || (typeof e.gamma === "number") || (typeof e.alpha === "number");
+        if(ok){
+          gotEvent = true;
+          cleanup();
+          resolve(true);
+        }
+      };
+      const cleanup = ()=>{
+        window.removeEventListener("deviceorientation", handler, true);
+        clearTimeout(t);
+      };
+      window.addEventListener("deviceorientation", handler, true);
+      const t = setTimeout(()=>{
+        cleanup();
+        resolve(false);
+      }, timeoutMs);
+    });
   }
 
-  window.addEventListener("resize", () => engine.resize());
+  (async ()=> {
+    // Start system immediately
+    await initSystem({ withLoader: true });
+
+    if (!isMobile()) return;
+
+    let storedGranted = false;
+    try { storedGranted = localStorage.getItem("gyroPermissionGranted") === "1"; } catch(e) {}
+    if (!storedGranted) return;
+
+    const DOE = window.DeviceOrientationEvent;
+    const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
+
+    const attemptAuto = async () => {
+      if (!motionBtn || typeof enableMotion !== "function") return;
+      if (motionEnabled) return;
+
+      // If navigation carries active user gesture (click from previous page),
+      // iOS can accept requestPermission() here.
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        await enableMotion(); // will request if needed
+        return;
+      }
+
+      // If orientation events are already flowing, enable without prompting.
+      const hasGyro = await probeGyroPermission(700);
+      if (hasGyro) {
+        await enableMotion({ assumeGranted: true });
+        return;
+      }
+
+      // iOS fallback: arm first gesture on this page.
+      if (needsGesture) {
+        const once = async () => {
+          document.removeEventListener("pointerdown", once, true);
+          document.removeEventListener("touchstart", once, true);
+          await enableMotion();
+        };
+        document.addEventListener("pointerdown", once, true);
+        document.addEventListener("touchstart", once, true);
+      }
+    };
+
+    requestAnimationFrame(() => { attemptAuto(); });
+  })();
+window.addEventListener("resize", () => engine.resize());
 })();
 </script>
 
