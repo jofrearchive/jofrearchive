@@ -368,8 +368,21 @@ async function requestGyroPermission(){
   const canvas = document.getElementById("renderCanvas");
   const engine = new BABYLON.Engine(canvas, true);
   let scene;
+  let camera = null;
 
   const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
+
+  function setLoaderStatus(msg){
+    const s = document.getElementById("status");
+    if (s) s.textContent = msg;
+  }
+  async function importMeshWithTimeout(url, timeoutMs=20000){
+    setLoaderStatus("loading geometry");
+    return await Promise.race([
+      BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene),
+      new Promise((_, rej)=>setTimeout(()=>rej(new Error("Model load timeout after "+timeoutMs+"ms: "+url)), timeoutMs))
+    ]);
+  }
 
   async function createScene(){
     scene = new BABYLON.Scene(engine);
@@ -399,210 +412,237 @@ camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 // --- VR TOGGLE BUTTON (GIROSCOPIO MANUAL CORREGIDO) ---
 const motionBtn = document.getElementById("motionBtn");
 
-// ===== Shared motion state (outer-scope so INIT can auto-enable VR) =====
-let camera = null;                 // set inside createScene()
+// ===== Motion state (must be outer-scope so INIT can auto-enable VR) =====
 let motionEnabled = false;
+// Permission state for this session. If INIT granted permission, VR won't re-prompt.
 let motionPermissionGranted = false;
+// If INIT granted permission, we auto-enable VR once camera is ready.
 let autoEnableMotionAfterInit = false;
-
-// Internal handler refs so we can add/remove cleanly
-let _handleMotion = null;
-let _initialCameraQuat = null;
-let _sensorZeroQuat = null;
-let _currentDeviceQuat = null;
-let _smoothedDeviceQuat = null;
-let _firstRead = true;
-let _activationPose = "upright";
-let _eventCount = 0;
-
-// Smoothing factor (0.0 - 1.0). Lower = smoother but more lag
-const SMOOTHING_FACTOR = 0.12;
-
-function setVrButtonState(on){
-  if (!motionBtn) return;
-  motionBtn.classList.toggle("active", !!on);
-  const label = motionBtn.querySelector(".vrLabel");
-  if (label) label.textContent = on ? "VR ON" : "VR OFF";
-}
-
-function ensureCameraQuaternion(){
-  if (!camera) return;
-  if (!camera.rotationQuaternion) {
-    camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-  }
-}
-
-function enableMotion(){
-  if (!camera) return false;
-
-  // iOS: require HTTPS except localhost (already checked at INIT/btn)
-  ensureCameraQuaternion();
-
-  // Save current camera rotation as base
-  _initialCameraQuat = camera.rotationQuaternion.clone();
-
-  // Reset sensor state
-  _firstRead = true;
-  _eventCount = 0;
-  _activationPose = "upright";
-
-  _sensorZeroQuat = new BABYLON.Quaternion();
-  _currentDeviceQuat = new BABYLON.Quaternion();
-  _smoothedDeviceQuat = new BABYLON.Quaternion();
-
-  // Build handler once
-  _handleMotion = (event) => {
-    if (!motionEnabled || !camera) return;
-
-    _eventCount++;
-
-    const alpha = (event.alpha === null) ? 0 : BABYLON.Tools.ToRadians(event.alpha);
-    const beta  = (event.beta  === null) ? 0 : BABYLON.Tools.ToRadians(event.beta);
-    const gamma = (event.gamma === null) ? 0 : BABYLON.Tools.ToRadians(event.gamma);
-
-    // Detect activation pose only on first read
-    if (_firstRead) {
-      const bDeg = (event.beta  ?? 0);
-      const gDeg = (event.gamma ?? 0);
-
-      const isFlatLike = Math.abs(gDeg) < 35;
-      const isFlatUp   = isFlatLike && (Math.abs(bDeg) < 35);
-      const isFlatDown = isFlatLike && (Math.abs(Math.abs(bDeg) - 180) < 35);
-
-      if (isFlatUp) _activationPose = "flatUp";
-      else if (isFlatDown) _activationPose = "flatDown";
-      else _activationPose = "upright";
-    }
-
-    const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
-      ? screen.orientation.angle
-      : (typeof window.orientation === 'number' ? window.orientation : 0);
-    const orient = BABYLON.Tools.ToRadians(orientDeg);
-    const isPortrait = (Math.abs(orientDeg) % 180) === 0;
-
-    // Base mapping (upright)
-    let yaw   = alpha;
-    let pitch = beta;
-    let roll  = gamma;
-
-    // Portrait sign corrections (as in your working mapping)
-    if (isPortrait) {
-      yaw   = -yaw;
-      pitch = -pitch;
-      roll  = -roll;
-    }
-
-    // Flat pose swap yaw<->roll (fixed at activation)
-    if (_activationPose === "flatUp" || _activationPose === "flatDown") {
-      const tmp = yaw; yaw = roll; roll = tmp;
-      roll = -roll;
-
-      if (_activationPose === "flatDown") {
-        // extra flip below
-      }
-    }
-
-    const qYaw   = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, yaw);
-    const qPitch = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, pitch);
-    const qRoll  = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, roll);
-
-    qYaw.multiplyToRef(qPitch, _currentDeviceQuat);
-    _currentDeviceQuat.multiplyInPlace(qRoll);
-
-    // device -> world conversion (-PI/2 X)
-    if (!enableMotion._q1) {
-      const s = Math.sqrt(0.5);
-      enableMotion._q1 = new BABYLON.Quaternion(-s, 0, 0, s);
-    }
-    _currentDeviceQuat.multiplyInPlace(enableMotion._q1);
-
-    // screen rotation compensation
-    const qScreen = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -orient);
-    _currentDeviceQuat.multiplyInPlace(qScreen);
-
-    if (_activationPose === "flatDown") {
-      const qFlip = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, Math.PI);
-      _currentDeviceQuat.multiplyInPlace(qFlip);
-    }
-
-    // Smooth
-    if (_firstRead) {
-      _smoothedDeviceQuat.copyFrom(_currentDeviceQuat);
-    } else {
-      BABYLON.Quaternion.SlerpToRef(_smoothedDeviceQuat, _currentDeviceQuat, SMOOTHING_FACTOR, _smoothedDeviceQuat);
-    }
-
-    if (_firstRead) {
-      _sensorZeroQuat.copyFrom(_smoothedDeviceQuat);
-      _sensorZeroQuat.invertInPlace();
-      _firstRead = false;
-    }
-
-    const deviceRelative = _smoothedDeviceQuat.multiply(_sensorZeroQuat);
-
-    // Apply relative rotation on top of base camera rotation
-    if (camera.rotationQuaternion && _initialCameraQuat) {
-      _initialCameraQuat.multiplyToRef(deviceRelative, camera.rotationQuaternion);
-    }
-  };
-
-  motionEnabled = true;
-  window.addEventListener("deviceorientation", _handleMotion, true);
-  setVrButtonState(true);
-
-  // safety: warn if no events
-  setTimeout(() => {
-    if (motionEnabled && _eventCount === 0) console.warn("No orientation events received (2s).");
-  }, 2000);
-
-  return true;
-}
-
-function disableMotion(){
-  motionEnabled = false;
-  if (_handleMotion) window.removeEventListener("deviceorientation", _handleMotion, true);
-  _handleMotion = null;
-  setVrButtonState(false);
-  return true;
-}
 
 if (isMobile() && motionBtn) {
     motionBtn.style.display = "flex";
+    
 
+    let initialCameraQuat = new BABYLON.Quaternion();
+    let sensorZeroQuat = new BABYLON.Quaternion();
+    let currentDeviceQuat = new BABYLON.Quaternion();
+    let smoothedDeviceQuat = new BABYLON.Quaternion();
+    let firstRead = true;
+    let activationPose = "upright"; // "upright" | "flatUp" | "flatDown" // "upright" | "flat" (fixed at activation)
+    let eventCount = 0;
+    
+    // Smoothing factor (0.0 - 1.0). Lower = smoother but more lag
+    const SMOOTHING_FACTOR = 0.12;
+    
     // Debug info
     console.log("Mobile detected, VR button visible");
     console.log("Protocol:", window.location.protocol);
     console.log("DeviceOrientationEvent available:", 'DeviceOrientationEvent' in window);
 
+    // Handler manual para el sensor con debugging
+    const handleMotion = (event) => {
+        if (!motionEnabled) {
+            console.log("Event received but motion not enabled");
+            return;
+        }
+
+        eventCount++;
+        if (eventCount % 60 === 0) { // Log cada ~1 segundo a 60fps
+            console.log("Orientation event #", eventCount, "alpha:", event.alpha, "beta:", event.beta, "gamma:", event.gamma);
+        }
+
+        // Manejar valores null (iOS sin magnetómetro)
+        const alpha = (event.alpha === null) ? 0 : BABYLON.Tools.ToRadians(event.alpha);
+        const beta = (event.beta === null) ? 0 : BABYLON.Tools.ToRadians(event.beta);
+        const gamma = (event.gamma === null) ? 0 : BABYLON.Tools.ToRadians(event.gamma);
+
+        // Detectar la pose en el moment d'activació (només 1 cop)
+        if (firstRead) {
+            const bDeg = (event.beta  ?? 0);
+            const gDeg = (event.gamma ?? 0);
+
+            // Heurística: en "flat" (pantalla plana mirant amunt), beta i gamma solen estar prop de 0.
+            // En "upright" (telèfon dret), beta sol estar prop de ±90.
+            const isFlat = Math.abs(bDeg) < 35 && Math.abs(gDeg) < 35;
+            
+  const isFlatLike = Math.abs(gDeg) < 35;
+  const isFlatUp   = isFlatLike && (Math.abs(bDeg) < 35);
+  const isFlatDown = isFlatLike && (Math.abs(Math.abs(bDeg) - 180) < 35);
+
+  if (isFlatUp) activationPose = "flatUp";
+  else if (isFlatDown) activationPose = "flatDown";
+  else activationPose = "upright";
+
+        }
+
+
+        // Construir cuaternión del dispositivo evitando gimbal lock (orden Y * X * Z)
+// y compensando la orientación de pantalla (portrait/landscape).
+const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
+    ? screen.orientation.angle
+    : (typeof window.orientation === 'number' ? window.orientation : 0);
+const orient = BABYLON.Tools.ToRadians(orientDeg);
+
+// Ajustes de eixos / UX:
+// - La compensació de pantalla (portrait/landscape) es manté via orientDeg/orient.
+// - El mapping principal (upright vs flat) es fixa NOMÉS en activar el gyro.
+const isPortrait = (Math.abs(orientDeg) % 180) === 0;
+
+// 1) base mapping (upright)
+let yaw   = alpha;
+let pitch = beta;
+let roll  = gamma;
+
+// 2) correccions de signe que ja tenies en portrait (si et funcionen)
+if (isPortrait) {
+    yaw   = -yaw;
+    pitch = -pitch;
+    roll  = -roll;
+}
+
+// 3) si s'activa en "flat", fem el swap yaw<->roll (manté UX natural en pantalla plana)
+if (activationPose === "flatUp" || activationPose === "flatDown") {
+    const tmp = yaw;
+    yaw = roll;
+    roll = tmp;
+
+    if (activationPose === "flatUp") {
+      roll = -roll;
+    } else if (activationPose === "flatDown") {
+      // yaw direction fix (do NOT invert)
+      // yaw = yaw;
+      roll = -roll;
+    }
+}
+// q = qY(yaw) * qX(pitch) * qZ(roll)  (orden YXZ)
+const qYaw = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, yaw);
+const qPitch = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, pitch);
+const qRoll = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, roll);
+
+qYaw.multiplyToRef(qPitch, currentDeviceQuat);   // currentDeviceQuat = qYaw * qPitch
+currentDeviceQuat.multiplyInPlace(qRoll);        // currentDeviceQuat = (qYaw*qPitch) * qRoll
+
+// Convertir de coords del dispositivo a coords del mundo/cámara (equivalente a -PI/2 en X)
+if (!handleMotion._q1) {
+    const s = Math.sqrt(0.5);
+    handleMotion._q1 = new BABYLON.Quaternion(-s, 0, 0, s);
+}
+currentDeviceQuat.multiplyInPlace(handleMotion._q1);
+
+// Compensar la rotación de la pantalla (para que portrait/landscape no cambie el mapeo)
+const qScreen = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -orient);
+currentDeviceQuat.multiplyInPlace(qScreen);
+
+    if (activationPose === "flatDown") {
+      const qFlip = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, Math.PI);
+      currentDeviceQuat.multiplyInPlace(qFlip);
+    }
+
+        // Suavizado (smoothing)
+        if (firstRead) {
+            smoothedDeviceQuat.copyFrom(currentDeviceQuat);
+        } else {
+            BABYLON.Quaternion.SlerpToRef(smoothedDeviceQuat, currentDeviceQuat, SMOOTHING_FACTOR, smoothedDeviceQuat);
+        }
+
+        if (firstRead) {
+            console.log("First sensor read, establishing zero point");
+            sensorZeroQuat.copyFrom(smoothedDeviceQuat);
+            sensorZeroQuat.invertInPlace();
+            firstRead = false;
+        }
+
+        // Calcular rotación relativa desde el punto cero
+        const deviceRelative = smoothedDeviceQuat.multiply(sensorZeroQuat);
+
+        // Aplicar sobre la rotación inicial de la cámara
+// Importante: para mantener los ejes intuitivos con una cámara ya inclinada,
+// aplicamos el delta del dispositivo DESPUÉS de la orientación base (post-multiply).
+if (camera.rotationQuaternion) {
+    initialCameraQuat.multiplyToRef(deviceRelative, camera.rotationQuaternion);
+} else {
+    console.warn("Camera has no rotationQuaternion");
+}
+    };
+
     motionBtn.addEventListener("click", async () => {
         console.log("VR button clicked, motionEnabled:", motionEnabled);
-
+        
         if (!motionEnabled) {
+            // Verificar HTTPS (requerido para iOS)
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                 console.error("HTTPS required for gyroscope on iOS");
                 alert("Se requiere HTTPS para usar el giroscopio en iOS");
                 return;
             }
 
-            // Ask permission only if we don't already have it this session
             const ok = motionPermissionGranted ? true : await requestGyroPermission();
             motionPermissionGranted = ok;
             console.log("Permission result:", ok);
-
+            
             if (!ok) {
-                setVrButtonState(false);
+                console.log("Permission denied or failed");
                 return;
             }
 
-            enableMotion();
+            // Asegurar que la cámara usa quaterniones
+            if (!camera.rotationQuaternion) {
+                console.log("Converting camera to quaternion mode");
+                camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+            }
+            
+            // Guardar la rotación actual como base
+            initialCameraQuat.copyFrom(camera.rotationQuaternion);
+            console.log("Initial camera quaternion saved:", initialCameraQuat.toString());
+            
+            // Resetear estado del sensor
+            firstRead = true;
+            eventCount = 0;
+            motionEnabled = true;
+
+            // Registrar listener del sensor
+            window.addEventListener("deviceorientation", handleMotion, true);
+            console.log("Device orientation listener added");
+
+            // En iOS, a veces el primer evento tarda, forzar un render
+            setTimeout(() => {
+                if (eventCount === 0) {
+                    console.warn("No orientation events received after 2 seconds");
+                    console.log("Device info:", navigator.userAgent);
+                }
+            }, 2000);
+
+            motionBtn.classList.add("active");
+            motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+            
         } else {
-            disableMotion();
+            console.log("Disabling VR mode");
+            motionEnabled = false;
+            window.removeEventListener("deviceorientation", handleMotion, true);
+            
+            motionBtn.classList.remove("active");
+            motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
         }
     });
 }
 
     
-const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
+let res;
+try {
+  // Try model load with timeout so the loader never gets stuck forever.
+  res = await importMeshWithTimeout(modelUrl, 25000);
+} catch (e) {
+  console.error("GLB load failed:", e);
+  setLoaderStatus("geometry failed");
+  // Fallback placeholder so the experience still runs (gyro/VR can be tested).
+  const fallback = BABYLON.MeshBuilder.CreateBox("fallbackBox", {size: 8}, scene);
+  fallback.position = new BABYLON.Vector3(0, 6, 0);
+  const mat = new BABYLON.StandardMaterial("fallbackMat", scene);
+  mat.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.12);
+  mat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05);
+  fallback.material = mat;
+  res = { meshes: [fallback] };
+}
     res.meshes.forEach(mesh => {
       if (mesh && mesh.getTotalVertices() > 0) {
         mesh.isVisible = true;
@@ -855,12 +895,20 @@ try {
       }
 
       if (L) await L.done();
-    }catch(err){
+    }
+    catch(err){
       console.error(err);
+      if (L) {
+        try { L.fail(String(err && err.message ? err.message : err)); } catch(e) {}
+        // Ensure loader disappears even on error
+        setTimeout(()=>{
+          const loader = document.getElementById("loader");
+          if (loader) loader.setAttribute("aria-hidden","true");
+        }, 900);
+      }
     }
   }
-
-  document.getElementById("startVR").addEventListener("click", async () => {
+document.getElementById("startVR").addEventListener("click", async () => {
     // IMPORTANT: iOS requires a user gesture for gyro permission.
     // INIT is the canonical place where we ask for it.
     if (isMobile()) {
@@ -876,10 +924,23 @@ try {
     await initSystem({ withLoader: true });
 
     // Auto-enable VR after init if permission was granted via INIT.
+    // Wait until Babylon camera exists, then trigger the same VR toggle logic (no extra permission prompt).
     if (autoEnableMotionAfterInit && !motionEnabled) {
       autoEnableMotionAfterInit = false;
-      // camera is assigned inside createScene(), so after initSystem it should exist.
-      enableMotion();
+
+      const t0 = performance.now();
+      const maxWaitMs = 5000;
+
+      const tryEnable = () => {
+        // camera is defined in the same closure as the VR toggle handler
+        if (typeof camera !== "undefined" && camera) {
+          try { motionBtn.click(); } catch(e) {}
+          return;
+        }
+        if (performance.now() - t0 > maxWaitMs) return;
+        requestAnimationFrame(tryEnable);
+      };
+      requestAnimationFrame(tryEnable);
     }
 
   });
