@@ -770,6 +770,81 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   z-index: 100000 !important;
 }
 
+
+/* ===============================
+   VIRTUAL KEYBOARD (custom)
+   Basic EN / CA / ES
+=================================*/
+#vkbd{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  z-index:100002;
+  display:none;
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(10,10,10,.92);
+  border-top:1px solid rgba(232,226,214,.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#vkbd.open{ display:block; }
+
+#vkbd .vkTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+  font-family: var(--mono);
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  font-size:10px;
+  opacity:.92;
+}
+#vkbd .vkTop .vkHint{opacity:.75;}
+#vkbd .vkClose{
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(232,226,214,.22);
+  color: var(--ink);
+  padding:8px 10px;
+  font-family: var(--mono);
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  cursor:pointer;
+}
+#vkbd .vkClose:active{ transform: translateY(1px); }
+
+#vkbd .vkRow{ display:flex; gap:8px; justify-content:center; margin:8px 0; flex-wrap:nowrap; }
+#vkbd .vkKey{
+  flex:0 0 auto;
+  min-width: 28px;
+  padding: 12px 10px;
+  border: 1px solid rgba(232,226,214,.20);
+  background: rgba(255,255,255,.03);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing:.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+#vkbd .vkKey.wide{ min-width: 86px; }
+#vkbd .vkKey.xwide{ min-width: 150px; }
+#vkbd .vkKey:active{ background: rgba(255,255,255,.07); transform: translateY(1px); }
+#vkbd .vkKey.dim{ opacity:.78; }
+
+@media (max-width: 520px){
+  #vkbd{ padding:10px 8px calc(10px + env(safe-area-inset-bottom)); }
+  #vkbd .vkKey{ padding: 12px 9px; min-width: 26px; }
+  #vkbd .vkKey.wide{ min-width: 78px; }
+  #vkbd .vkKey.xwide{ min-width: 140px; }
+}
+
+
+/* Prevent iOS focus-zoom on form controls */
+input, textarea{ font-size:16px; }
 </style>
 
 <script>
@@ -922,7 +997,185 @@ function escapeHtml(str){
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
-function nl2br(str){ return escapeHtml(str).replace(/\n/g,'<br>'); }
+function nl2br(str){
+
+/* ===============================
+   VIRTUAL KEYBOARD (append-only)
+   - avoids OS keyboard
+   - writes into #typed after typewriter completes
+=================================*/
+let __VK_READY = false;
+let __VK_OPEN = false;
+let __VK_SHIFT = false;
+let __VK_PENDING_AFTER_TYPE = false;
+
+// Key layouts: rows of tokens
+const __VK_LAYOUT = [
+  ["q","w","e","r","t","y","u","i","o","p"],
+  ["a","s","d","f","g","h","j","k","l","ñ","ç"],
+  ["shift","z","x","c","v","b","n","m","back"],
+  ["acc","space","enter","dot","comma","apost","dash","quest","bang"]
+];
+
+// Accents palette (tap to insert)
+const __VK_ACCENTS = ["á","à","ä","â","é","è","ë","ê","í","ì","ï","î","ó","ò","ö","ô","ú","ù","ü","û","·"];
+
+function __vkTokenLabel(tok){
+  if(tok === "shift") return "shift";
+  if(tok === "back") return "⌫";
+  if(tok === "space") return "space";
+  if(tok === "enter") return "enter";
+  if(tok === "acc") return "á";
+  if(tok === "dot") return ".";
+  if(tok === "comma") return ",";
+  if(tok === "apost") return "'";
+  if(tok === "dash") return "-";
+  if(tok === "quest") return "?";
+  if(tok === "bang") return "!";
+  const ch = String(tok);
+  return __VK_SHIFT ? ch.toUpperCase() : ch;
+}
+
+function __vkAppendText(text){
+  const el = document.getElementById("typed");
+  if(!el) return;
+
+  // Ensure editor is editable only when we want to write
+  el.setAttribute("contenteditable","true");
+
+  // Append at end (simple + stable)
+  el.textContent = (el.textContent || "") + text;
+
+  // Keep scroll anchored to end
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __vkBackspace(){
+  const el = document.getElementById("typed");
+  if(!el) return;
+  el.setAttribute("contenteditable","true");
+  const t = el.textContent || "";
+  el.textContent = t.slice(0, -1);
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __vkHandle(tok){
+  if(tok === "shift"){ __VK_SHIFT = !__VK_SHIFT; __vkRender(); return; }
+  if(tok === "back"){ __vkBackspace(); return; }
+  if(tok === "space"){ __vkAppendText(" "); return; }
+  if(tok === "enter"){ __vkAppendText("\n"); return; }
+  if(tok === "acc"){ __vkShowAccents(); return; }
+  if(tok === "dot"){ __vkAppendText("."); return; }
+  if(tok === "comma"){ __vkAppendText(","); return; }
+  if(tok === "apost"){ __vkAppendText("'"); return; }
+  if(tok === "dash"){ __vkAppendText("-"); return; }
+  if(tok === "quest"){ __vkAppendText("?"); return; }
+  if(tok === "bang"){ __vkAppendText("!"); return; }
+
+  __vkAppendText(__VK_SHIFT ? String(tok).toUpperCase() : String(tok));
+  // optional: auto-unshift after one letter
+  if(__VK_SHIFT){ __VK_SHIFT = false; __vkRender(); }
+}
+
+function __vkKeyEl(tok){
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "vkKey";
+  btn.dataset.tok = tok;
+  btn.textContent = __vkTokenLabel(tok);
+
+  if(tok === "space") btn.classList.add("xwide");
+  if(tok === "enter" || tok === "shift" || tok === "back" || tok === "acc") btn.classList.add("wide");
+  if(tok === "acc") btn.classList.add("dim");
+
+  // Use pointerdown to feel immediate on mobile
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    __vkHandle(tok);
+  }, { passive:false });
+
+  return btn;
+}
+
+function __vkRender(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+
+  const rows = wrap.querySelectorAll(".vkRow");
+  rows.forEach(r => r.innerHTML = "");
+
+  for(let i=0;i<__VK_LAYOUT.length;i++){
+    const row = wrap.querySelector(`.vkRow[data-row="${i+1}"]`);
+    if(!row) continue;
+    __VK_LAYOUT[i].forEach(tok => row.appendChild(__vkKeyEl(tok)));
+  }
+}
+
+function __vkShowAccents(){
+  // Simple overlay row replacement: show accents in row 4 temporarily
+  const wrap = document.getElementById("vkbd");
+  const row4 = wrap && wrap.querySelector('.vkRow[data-row="4"]');
+  if(!row4) return;
+
+  row4.innerHTML = "";
+  // Back to main keys
+  const backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "vkKey wide dim";
+  backBtn.textContent = "back";
+  backBtn.addEventListener("pointerdown",(e)=>{
+    e.preventDefault(); e.stopPropagation();
+    __vkRender();
+  }, { passive:false });
+  row4.appendChild(backBtn);
+
+  __VK_ACCENTS.forEach(ch=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vkKey";
+    b.textContent = ch;
+    b.addEventListener("pointerdown",(e)=>{
+      e.preventDefault(); e.stopPropagation();
+      __vkAppendText(ch);
+    }, { passive:false });
+    row4.appendChild(b);
+  });
+}
+
+function __vkOpen(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+  wrap.classList.add("open");
+  wrap.setAttribute("aria-hidden","false");
+  __VK_OPEN = true;
+}
+
+function __vkClose(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+  wrap.classList.remove("open");
+  wrap.setAttribute("aria-hidden","true");
+  __VK_OPEN = false;
+}
+
+function __vkInit(){
+  if(__VK_READY) return;
+  __VK_READY = true;
+  __vkRender();
+
+  const closeBtn = document.getElementById("vkClose");
+  if(closeBtn){
+    closeBtn.addEventListener("click",(e)=>{
+      e.preventDefault(); e.stopPropagation();
+      __vkClose();
+    });
+  }
+}
+
+ return escapeHtml(str).replace(/\n/g,'<br>'); }
 
 function shouldAutoType(key, packet){
   if(!packet || packet.type !== "text") return false;
@@ -1012,8 +1265,6 @@ Graph.enableNavigationControls(true);
 
 const controls = Graph.controls();
 if (controls) {
-  // Enable ONLY zoom (no rotate, no pan)
-  controls.enabled = true;
   controls.enableRotate = false;
   controls.enableZoom = true;
   controls.enablePan = false;
@@ -1269,12 +1520,9 @@ const ensureDome = () => {
       smoothedDeviceQ.identity();
       window.__VR_DELTAQ.identity();
 
-      // Restore default desktop state (zoom-only)
+      // Restore default desktop state (disabled)
       const controls = Graph.controls();
-      controls.enabled = true;
-      controls.enableRotate = false;
-      controls.enablePan = false;
-      controls.enableZoom = true;
+      controls.enabled = false;
     }
   };
 
@@ -2083,6 +2331,20 @@ btnErase.addEventListener("click", async () => {
   </div>
 
 </div>
+</div>
+
+
+<!-- Virtual Keyboard (custom / basic EN-CA-ES) -->
+<div id="vkbd" aria-hidden="true">
+  <div class="vkTop">
+    <div class="vkHint">keyboard · basic en/ca/es</div>
+    <button class="vkClose" id="vkClose" type="button">close</button>
+  </div>
+
+  <div class="vkRow" data-row="1"></div>
+  <div class="vkRow" data-row="2"></div>
+  <div class="vkRow" data-row="3"></div>
+  <div class="vkRow" data-row="4"></div>
 </div>
 
 </body>
