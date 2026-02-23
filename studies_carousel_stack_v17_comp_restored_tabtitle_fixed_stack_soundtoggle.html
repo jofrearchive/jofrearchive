@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Jofre Archive — Studies (Carousel Stack v10)</title>
+
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --ink2: rgba(232,226,214,0.75);
+  --ink3: rgba(232,226,214,0.6);
+
+  --panel: rgba(15,15,15,0.78);
+  --border: rgba(232,226,214,0.16);
+  --gridline: rgba(232,226,214,0.04);
+
+  --s8: 8px;
+  --s16: 16px;
+  --s24: 24px;
+
+  --serif: 'EB Garamond', serif;
+  --mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; background:var(--bg); color:var(--ink); }
+body{
+  overflow:hidden;
+  font-family: var(--serif);
+  background-image: radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 60%);
+}
+a{ color:inherit; text-decoration:none; }
+button{ font:inherit; color:inherit; background:transparent; border:0; padding:0; }
+button:disabled{ opacity:.35; cursor:not-allowed; }
+
+.shell{ height:100%; width:100%; position:relative; overflow:hidden; }
+.shell::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(255,255,255,0.012), rgba(255,255,255,0.012)),
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.018), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.018), transparent 45%);
+  opacity: .9;
+}
+
+/* Header */
+.header{
+  position:fixed; top:0; left:0; right:0;
+  height: 78px;
+  display:flex; align-items:center; justify-content:center;
+  z-index: 20;
+  pointer-events:none;
+}
+.logo{ pointer-events:auto; height:40px; width:240px; display:flex; align-items:center; justify-content:center; opacity:.95; }
+.logo img{ height:28px; width:auto; display:block; }
+
+/* Layout */
+.main{
+  position:absolute;
+  inset: 78px 0 0 0;
+  padding: var(--s24);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  overflow: visible;
+}
+.grid{
+  width: min(1280px, 100%);
+  display:grid;
+  grid-template-columns: 300px 1fr 360px;
+  gap: var(--s16);
+  align-items:stretch;
+  overflow: visible;
+}
+
+@media (max-width: 980px){
+  body{ overflow:auto; }
+  .main{ position:relative; inset:auto; padding-top: 96px; }
+  .grid{ grid-template-columns: 1fr; }
+  .header{ position:sticky; }
+}
+
+/* Panels */
+.panel{
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  position:relative;
+  overflow:hidden;
+}
+.panel.gridOverlay::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(var(--gridline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gridline) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: .55;
+}
+.panelHead{
+  position:relative;
+  padding: var(--s16);
+  border-bottom: 1px solid var(--border);
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap: var(--s16);
+}
+.kicker, .hint{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  white-space:nowrap;
+}
+.kicker{ color: var(--ink3); }
+.hint{ color: rgba(232,226,214,0.45); }
+.panelBody{ position:relative; padding: var(--s16); }
+
+.divider{ height:1px; background: rgba(232,226,214,0.12); margin: var(--s16) 0; }
+.microCopy{ font-size:14px; line-height:1.45; color: var(--ink2); margin:0; max-width: 44ch; }
+
+/* Buttons + Search */
+.btn{
+  border: 1px solid rgba(232,226,214,0.16);
+  background: rgba(0,0,0,0.18);
+  padding: 9px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  cursor:pointer;
+  user-select:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  white-space:nowrap;
+}
+.btn:hover{ border-color: rgba(232,226,214,0.24); color: var(--ink); background: rgba(0,0,0,0.26); }
+.btn.on{ border-color: rgba(232,226,214,0.30); background: rgba(0,0,0,0.30); color: var(--ink); }
+
+.searchBox{
+  display:flex; align-items:center; gap:10px;
+  border: 1px solid rgba(232,226,214,0.16);
+  background: rgba(0,0,0,0.14);
+  padding: 8px 10px;
+}
+.searchBox input{
+  width:100%; border:0; outline:none; background:transparent;
+  color: var(--ink2);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.searchBox input::placeholder{ color: rgba(232,226,214,0.35); }
+
+/* LEFT: categories + project list */
+.indexList{ display:flex; flex-direction:column; gap: 2px; }
+.navItem{
+  display:flex; align-items:center; justify-content:space-between; gap: var(--s16);
+  padding: 10px 10px;
+  border: 1px solid rgba(232,226,214,0.0);
+  background: rgba(0,0,0,0.14);
+  cursor:pointer; user-select:none;
+}
+.navItem:hover{ border-color: rgba(232,226,214,0.16); background: rgba(0,0,0,0.22); }
+.navItem.active{ border-color: rgba(232,226,214,0.28); background: rgba(0,0,0,0.28); }
+.navLeft{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.navLabel{
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.navMeta{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.45);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.navCount{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  border: 1px solid rgba(232,226,214,0.16);
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.10);
+  flex: 0 0 auto;
+}
+.filterRow{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+
+/* CENTER: whole column has perspective (no stage plane) */
+.carouselPanel{ overflow: visible; padding:0; position:relative; }
+.carouselPanel::after{
+  content:"";
+  position:absolute;
+  inset: 0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(232,226,214,0.14), transparent 48%),
+    radial-gradient(circle at 50% 88%, rgba(232,226,214,0.08), transparent 58%),
+    linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.62));
+  opacity: 1;
+}
+.carouselPanel .panelBody{ position:relative; z-index:1; padding: 12px; height:100%; }
+.carouselColumn{
+  display:flex;
+  flex-direction:column;
+  gap: 0;
+  height: 100%;
+  perspective: 2800px;
+  perspective-origin: 50% 70%;
+  transform-style: preserve-3d;
+}
+
+.carouselHUD{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(232,226,214,0.16);
+  background: rgba(0,0,0,0.12);
+}
+.chLeft{ min-width:0; }
+.chTitle{
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.05;
+  margin:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.chMeta{
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.chRight{
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+  align-items:flex-end;
+}
+.chSmall{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.45);
+}
+
+.carouselTopPad{ height: 54px; }
+
+.carouselScene{
+  flex: 1;
+  min-height: 820px;
+  position:relative;
+  overflow: visible;
+  transform-style: preserve-3d;
+}
+@media (max-width: 980px){
+  .carouselScene{ min-height: 78vh; }
+  .chTitle{ white-space:normal; }
+  .chMeta{ white-space:normal; }
+}
+
+.carousel3d{
+  position:absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.carouselRig{
+  position:absolute;
+  left:50%;
+  top: 26px;
+  transform: translateX(-50%) rotateX(-26deg) rotateZ(0deg);
+  transform-style: preserve-3d;
+  width: min(820px, 96%);
+  height: 720px;
+}
+
+
+.card{
+  position:absolute;
+  left: 50%;
+  top: 0;
+  width: 100%;
+  height: 660px;
+  transform-style: preserve-3d;
+  border: 1px solid rgba(232,226,214,0.18);
+  background: rgba(10,10,10,0.96);
+  box-shadow: 0 30px 90px rgba(0,0,0,0.45);
+  border-radius: 2px;
+  overflow:hidden;
+  will-change: transform, opacity, filter;
+  transition: transform 260ms ease, opacity 260ms ease, filter 260ms ease;
+  cursor:pointer;
+  user-select:none;
+}
+
+.cardTab{
+  position:absolute;
+  left: 14px;
+  top: -1px;
+  height: 30px;
+  max-width: calc(100% - 28px);
+  display:flex;
+  align-items:center;
+  padding: 0 12px;
+  border: 1px solid rgba(232,226,214,0.16);
+  border-bottom:0;
+  background: rgba(0,0,0,0.62);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.88);
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  pointer-events:none;
+}
+
+.cardNotch{
+  position:absolute;
+  left: 14px;
+  top: 29px;
+  width: 58px;
+  height: 10px;
+  border-left: 1px solid rgba(232,226,214,0.14);
+  border-right: 1px solid rgba(232,226,214,0.14);
+  border-bottom: 1px solid rgba(232,226,214,0.10);
+  background: rgba(0,0,0,0.12);
+  opacity: .75;
+  pointer-events:none;
+}
+
+.cardHero{
+  height: 280px;
+  border-bottom: 1px solid rgba(232,226,214,0.12);
+  background: rgba(0,0,0,0.22);
+  position:relative;
+}
+.cardHeroMedia{
+  position:absolute; inset:0;
+  background-size: cover;
+  background-position: center;
+  filter: contrast(1.02) saturate(.95);
+  opacity: .92;
+}
+.cardHeroBar{
+  position:absolute; left:0; right:0; bottom:0;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.70));
+  display:flex; justify-content:space-between; gap:12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.62);
+}
+.cardBody{ padding: 12px 14px 14px 14px; }
+.cardTitle{
+  margin: 0;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.1;
+  letter-spacing: .01em;
+}
+.cardMeta{
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  display:flex;
+  justify-content:space-between;
+  gap: var(--s16);
+  flex-wrap:wrap;
+}
+.cardDesc{
+  margin: 10px 0 0 0;
+  color: var(--ink2);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 80ch;
+}
+.cardTags{ display:flex; flex-wrap:wrap; gap: 8px; margin-top: 12px; }
+.cardTag{
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  border: 1px solid rgba(232,226,214,0.14);
+  background: rgba(0,0,0,0.12);
+  padding: 6px 8px;
+}
+
+.card.isBack .cardDesc,
+.card.isBack .cardTags{ display:none; }
+.card.isBack .cardHeroMedia{ opacity: .82; filter: contrast(1.0) saturate(.90); }
+.card.isBack{ box-shadow: 0 18px 60px rgba(0,0,0,0.38); }
+
+/* Controls */
+.controls{
+  position:absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 14px;
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  z-index: 50;
+}
+
+/* RIGHT: meta/detail */
+.detailTitle{ margin:0; font-weight:600; font-size:18px; line-height:1.15; letter-spacing:.01em; }
+.detailMeta{
+  margin-top:8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  display:flex;
+  justify-content:space-between;
+  gap: var(--s16);
+  flex-wrap:wrap;
+}
+.detailBlock{ margin-top: var(--s16); border-top: 1px solid rgba(232,226,214,0.12); padding-top: var(--s16); }
+.detailK{ font-family: var(--mono); font-size: 10px; letter-spacing:.18em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; }
+.detailP{ margin:0; font-size:14px; line-height:1.55; color: var(--ink2); }
+.list{ margin:0; padding-left:18px; color: var(--ink2); font-size:14px; line-height:1.55; }
+.docRow{ display:flex; flex-wrap:wrap; gap: 10px; margin-top:10px; }
+</style>
+</head>
+
+<body>
+<div class="shell">
+
+  <header class="header">
+    <a class="logo" href="https://jofrearchive.com" aria-label="Home">
+      <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive"/>
+    </a>
+  </header>
+
+  <main class="main">
+    <div class="grid">
+
+      <!-- LEFT -->
+      <section class="panel gridOverlay" aria-label="Studies Classification">
+        <div class="panelHead">
+          <div class="kicker">Studies</div>
+          <div class="hint">Classification</div>
+        </div>
+        <div class="panelBody">
+          <div class="indexList" id="catList"></div>
+
+          <div class="divider"></div>
+
+          <div class="kicker" style="margin-bottom:10px; color: rgba(232,226,214,0.60);">Loaded Projects</div>
+          <div class="indexList" id="projList"></div>
+
+          <div class="divider"></div>
+
+          <div class="filterRow" aria-label="Filters">
+            <button class="btn on" id="fAll" type="button">All</button>
+            <button class="btn" id="fActive" type="button">Active</button>
+            <button class="btn" id="fResearch" type="button">Research</button>
+            <button class="btn" id="fInstall" type="button">Installations</button>
+            <button class="btn on" id="fYearDesc" type="button">Year ↓</button>
+            <button class="btn" id="fYearAsc" type="button">Year ↑</button>
+            <button class="btn" id="fReset" type="button">Reset</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="searchBox" role="search">
+            <input id="search" type="text" placeholder="Search project / tag / year" autocomplete="off" />
+          </div>
+
+          <div class="divider"></div>
+
+          <p class="microCopy">
+            Control: rueda (desktop), swipe (móvil), Prev/Next. La pila central es el carrusel 3D.
+          </p>
+        </div>
+      </section>
+
+      <!-- CENTER -->
+      <section class="panel gridOverlay carouselPanel" aria-label="Project Carousel">
+        <div class="panelBody carouselColumn">
+            </div>
+            <div class="chRight">
+              <div class="chSmall" id="chIndex">—</div>
+              <div class="chSmall" id="chCat">—</div>
+            </div>
+          </div>
+
+          <div class="carouselTopPad"></div>
+
+          <div class="carouselScene" id="stage">
+            <div class="carousel3d" id="carousel">
+              <div class="carouselRig" id="rig"></div>
+            </div>
+
+            <div class="controls" aria-label="Carousel controls">
+              <button class="btn" id="prevBtn" type="button">Prev</button>
+              <button class="btn" id="nextBtn" type="button">Next</button>
+              <button class="btn" id="randBtn" type="button">Random</button>
+              <button class="btn" id="soundBtn" type="button">Sound: Off</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="panel gridOverlay" aria-label="Project Data">
+        <div class="panelHead">
+          <div class="kicker">Project Data</div>
+          <div class="hint">Loaded selection</div>
+        </div>
+        <div class="panelBody" id="detail">
+          <h3 class="detailTitle">No file loaded</h3>
+          <div class="detailMeta"><span>select</span><span>use carousel</span></div>
+          <div class="detailBlock">
+            <div class="detailK">Purpose</div>
+            <p class="detailP">
+              Este panel muestra la ficha completa del proyecto activo.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+</div>
+
+<script>
+(function(){
+  // === Demo projects (visible, real titles, categories) ===
+  const ALL = [
+    { id:"S-001", title:"Mycelium Sculpture Series I", year:2024, category:"BioSystems", type:"Installation", status:"Prototype",
+      image:null,
+      abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.",
+      tags:["mycelium","biotech","sculpture","living material"],
+      materials:["mycelium spawn","cellulose substrate","humidity enclosure"],
+      technologies:["time-based growth","controlled decay"],
+      axis:["interspecies","autonomy","infrastructure"],
+      docs:{ pdf:false, images:true, video:true, network:true }
+    },
+    { id:"S-002", title:"Transparent Solar Leaf Panels", year:2024, category:"BioSystems", type:"Research", status:"Ongoing",
+      image:null,
+      abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.",
+      tags:["solar","screen printing","biomimicry","cellulose"],
+      materials:["translucent cellulose base","conductive inks","p/n layers"],
+      technologies:["layered printing","thin-film experimentation"],
+      axis:["energy","bio-infrastructure","material politics"],
+      docs:{ pdf:true, images:true, video:false, network:true }
+    },
+    { id:"S-003", title:"Interspecies Archaeology / Living Relics", year:2025, category:"BioSystems", type:"Research", status:"Draft",
+      image:null,
+      abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.",
+      tags:["interspecies","archive","mycelium","nanotech"],
+      materials:["biomass","substrates","lab notes"],
+      technologies:["growth protocols","micro documentation"],
+      axis:["agency","taxonomy","time"],
+      docs:{ pdf:true, images:true, video:true, network:false }
+    },
+    { id:"S-004", title:"Carnival Society / Dystopic Pop Artifact", year:2023, category:"Dystopic Pop Art", type:"Concept", status:"Draft",
+      image:null,
+      abstract:"Modern society as carnival: lights, attractions, control — depth replaced by spectacle. Interface as critique.",
+      tags:["critique","spectacle","authority","interface"],
+      materials:["text","graphic system","archive UI"],
+      technologies:["indexing","controlled navigation"],
+      axis:["authority","identity","bureaucracy"],
+      docs:{ pdf:true, images:false, video:false, network:false }
+    },
+    { id:"S-005", title:"Frequency Plate / Cymatics Study", year:2022, category:"Cymatics", type:"Research", status:"Built",
+      image:null,
+      abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry as archive units.",
+      tags:["cymatics","frequency","pattern","plate"],
+      materials:["plate","speaker","tone generator"],
+      technologies:["signal control","documentation"],
+      axis:["measurement","ritual","structure"],
+      docs:{ pdf:false, images:true, video:true, network:true }
+    },
+    { id:"S-006", title:"Public Installation / Palestine Structure", year:2025, category:"Public Art", type:"Installation", status:"Planned",
+      image:null,
+      abstract:"A sculptural installation addressing Palestine through infrastructural language: witnessing, memory, public space.",
+      tags:["public art","memory","structure","palestine"],
+      materials:["site-specific","public constraints","structure"],
+      technologies:["planning","permits"],
+      axis:["memory","authority","public space"],
+      docs:{ pdf:true, images:false, video:false, network:false }
+    },
+    { id:"S-007", title:"Landscape Archive / Field Fragments", year:2021, category:"Landscape", type:"Research", status:"Archived",
+      image:null,
+      abstract:"Field notes and fragments: terrain as database; classification as a lens over land and extraction.",
+      tags:["field","landscape","archive","fragments"],
+      materials:["text","photos","mapping"],
+      technologies:["indexing","taxonomy"],
+      axis:["extraction","mapping","control"],
+      docs:{ pdf:true, images:true, video:false, network:false }
+    }
+  ];
+
+  // Elements
+  const catList = document.getElementById("catList");
+  const projList = document.getElementById("projList");
+  const rig = document.getElementById("rig");
+  const search = document.getElementById("search");
+  const detail = document.getElementById("detail");
+
+  const chTitle = document.getElementById("chTitle");
+  const chMeta  = document.getElementById("chMeta");
+  const chIndex = document.getElementById("chIndex");
+  const chCat   = document.getElementById("chCat");
+
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const randBtn = document.getElementById("randBtn");
+  const soundBtn = document.getElementById("soundBtn");
+  const stage   = document.getElementById("stage");
+
+
+  // --- Wheel click sound (iPod-like) ---
+  let audioCtx = null;
+  let soundOn = false;
+
+  function ensureAudio(){
+    if(audioCtx) return audioCtx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return null;
+    audioCtx = new AC();
+    return audioCtx;
+  }
+
+  function clickSound(){
+    if(!soundOn) return;
+    const ctx = ensureAudio();
+    if(!ctx) return;
+    if(ctx.state === "suspended"){ ctx.resume().catch(()=>{}); }
+
+    const t0 = ctx.currentTime;
+    const dur = 0.018;
+
+    // Noise tick
+    const noiseBuf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for(let i=0;i<data.length;i++){
+      const env = Math.exp(-i/(data.length/3));
+      data[i] = (Math.random()*2-1) * env * 0.75;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(1800, t0);
+    bp.Q.setValueAtTime(6, t0);
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.16, t0 + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+    noise.connect(bp);
+    bp.connect(g);
+    g.connect(ctx.destination);
+
+    noise.start(t0);
+    noise.stop(t0 + dur);
+
+    // Tiny tonal click
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(1200, t0);
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.0001, t0);
+    g2.gain.exponentialRampToValueAtTime(0.04, t0 + 0.0015);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.010);
+    osc.connect(g2);
+    g2.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.012);
+  }
+
+
+  // State
+  let activeCategory = "All";
+  let filterActive = false;
+  let filterType = null; // "Research" | "Installation"
+  let sortMode = "yearDesc";
+  let query = "";
+  let activeIndex = 0;
+
+  // Helpers
+  function isActiveStatus(p){
+    return (p.status === "Ongoing" || p.status === "Prototype" || p.status === "Built" || p.status === "Planned");
+  }
+  function matchSearch(p, q){
+    if(!q) return true;
+    const hay = [
+      p.id, p.title, String(p.year), p.category, p.type, p.status,
+      (p.tags||[]).join(" "),
+      (p.materials||[]).join(" "),
+      (p.technologies||[]).join(" "),
+      (p.axis||[]).join(" ")
+    ].join(" ").toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }
+  function fileGradient(p){
+    const n = (p.id || "S-000").split("-")[1] || "0";
+    const k = parseInt(n, 10) || 0;
+    const a = (k * 41) % 360;
+    const b = (a + 80) % 360;
+    return `radial-gradient(circle at 30% 25%, hsla(${a}, 30%, 72%, .18), transparent 45%),
+            radial-gradient(circle at 70% 60%, hsla(${b}, 30%, 72%, .14), transparent 50%),
+            linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.50))`;
+  }
+
+  function getFiltered(){
+    let list = ALL.slice();
+
+    if(activeCategory !== "All"){
+      list = list.filter(p => p.category === activeCategory);
+    }
+    if(filterActive){
+      list = list.filter(p => isActiveStatus(p));
+    }
+    if(filterType === "Research"){
+      list = list.filter(p => p.type === "Research");
+    } else if(filterType === "Installation"){
+      list = list.filter(p => p.type === "Installation");
+    }
+
+    list = list.filter(p => matchSearch(p, query));
+    list.sort((a,b) => sortMode === "yearAsc" ? (a.year - b.year) : (b.year - a.year));
+    return list;
+  }
+
+  function categoriesFrom(list){
+    const set = new Set(list.map(p => p.category));
+    return Array.from(set).sort((a,b) => a.localeCompare(b));
+  }
+  function countByCategory(cat){
+    if(cat === "All") return ALL.length;
+    return ALL.filter(p => p.category === cat).length;
+  }
+
+  // Left UI
+  function renderCategories(){
+    catList.innerHTML = "";
+    function addCatRow(cat, meta){
+      const el = document.createElement("div");
+      el.className = "navItem" + (activeCategory === cat ? " active" : "");
+      el.innerHTML = `
+        <div class="navLeft">
+          <div class="navLabel">${cat === "All" ? "All Studies" : cat}</div>
+          <div class="navMeta">${meta}</div>
+        </div>
+        <div class="navCount">${countByCategory(cat === "All" ? "All" : cat)}</div>
+      `;
+      el.addEventListener("click", () => {
+        activeCategory = cat;
+        activeIndex = 0;
+        renderCategories();
+        renderCarousel();
+      });
+      catList.appendChild(el);
+    }
+    addCatRow("All", "Full index");
+    categoriesFrom(ALL).forEach(cat => addCatRow(cat, "Category / taxonomy"));
+  }
+
+  function renderProjectList(){
+    const list = getFiltered();
+    projList.innerHTML = "";
+    if(!list.length){
+      const el = document.createElement("div");
+      el.className = "navItem";
+      el.innerHTML = `
+        <div class="navLeft">
+          <div class="navLabel">No results</div>
+          <div class="navMeta">reset filters / search</div>
+        </div>
+        <div class="navCount">0</div>
+      `;
+      projList.appendChild(el);
+      return;
+    }
+    list.slice(0, 14).forEach((p, idx) => {
+      const el = document.createElement("div");
+      el.className = "navItem" + (idx === activeIndex ? " active" : "");
+      el.innerHTML = `
+        <div class="navLeft">
+          <div class="navLabel">${p.title}</div>
+          <div class="navMeta">${p.category} — ${p.year}</div>
+        </div>
+        <div class="navCount">${p.id}</div>
+      `;
+      el.addEventListener("click", () => {
+        clickSound();
+        activeIndex = idx;
+        renderCarousel();
+      });
+      projList.appendChild(el);
+    });
+  }
+
+  // Right UI
+  function renderDetail(p){
+    if(!p){
+      detail.innerHTML = `
+        <h3 class="detailTitle">No results</h3>
+        <div class="detailMeta"><span>filters</span><span>empty</span></div>
+        <div class="detailBlock">
+          <div class="detailK">Action</div>
+          <p class="detailP">Reset filters, change category or search query.</p>
+        </div>
+      `;
+      return;
+    }
+    detail.innerHTML = `
+      <h3 class="detailTitle">${p.title}</h3>
+      <div class="detailMeta">
+        <span>${p.category} — ${p.year}</span>
+        <span>${p.type} / ${p.status}</span>
+      </div>
+
+      <div class="detailBlock">
+        <div class="detailK">Description</div>
+        <p class="detailP">
+          ${p.abstract}
+          <br><br>
+          (PLACEHOLDER) Aquí irá tu texto largo del proyecto (metodología, contexto, outputs).
+        </p>
+      </div>
+
+      <div class="detailBlock">
+        <div class="detailK">Technical Structure</div>
+        <ul class="list">
+          <li><b>Materials</b>: ${(p.materials||[]).join(", ") || "—"}</li>
+          <li><b>Technologies</b>: ${(p.technologies||[]).join(", ") || "—"}</li>
+          <li><b>Identifier</b>: ${p.id}</li>
+        </ul>
+      </div>
+
+      <div class="detailBlock">
+        <div class="detailK">Conceptual Axis</div>
+        <ul class="list">
+          ${(p.axis||["—"]).map(x => `<li>${x}</li>`).join("")}
+        </ul>
+      </div>
+
+      <div class="detailBlock">
+        <div class="detailK">Documentation</div>
+        <div class="docRow">
+          <button class="btn" type="button" ${p.docs?.pdf ? "" : "disabled"}>PDF</button>
+          <button class="btn" type="button" ${p.docs?.images ? "" : "disabled"}>Images</button>
+          <button class="btn" type="button" ${p.docs?.video ? "" : "disabled"}>Video</button>
+          <button class="btn" type="button" ${p.docs?.network ? "" : "disabled"}>Network</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Card DOM
+  function cardEl(p){
+    const el = document.createElement("div");
+    el.className = "card";
+    el.dataset.id = p.id;
+    el.innerHTML = `
+      <div class="cardTab">${p.id}  /  ${p.title}  —  ${p.category} ${p.year}  /  ${p.type} ${p.status}</div>
+      <div class="cardNotch"></div>
+
+      <div class="cardHero">
+        <div class="cardHeroMedia" style="background-image:${p.image ? `url('${p.image}')` : fileGradient(p)}"></div>
+        <div class="cardHeroBar">
+          <span style="max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.category} — ${p.year}</span>
+          <span style="max-width:38%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:right; color: rgba(232,226,214,0.48);">${p.type} / ${p.status}</span>
+        </div>
+      </div>
+
+      <div class="cardBody">
+        <h3 class="cardTitle">${p.title}</h3>
+        <div class="cardMeta">
+          <span>${p.category} — ${p.year}</span>
+          <span>${p.type} / ${p.status}</span>
+        </div>
+        <p class="cardDesc">${p.abstract}</p>
+        <div class="cardTags">
+          ${(p.tags||[]).slice(0,6).map(t => `<span class="cardTag">${t}</span>`).join("")}
+        </div>
+      </div>
+    `;
+    el.addEventListener("click", () => {
+      const list = getFiltered();
+      const idx = list.findIndex(x => x.id === p.id);
+      if(idx >= 0){ clickSound(); activeIndex = idx; renderCarousel(); }
+    });
+    return el;
+  }
+
+  // Carousel core
+  function updateHUD(list){
+    const p = list[activeIndex];
+    if(!p){
+      chTitle.textContent = "No results";
+      chMeta.textContent = "Reset filters / change category / search";
+      chIndex.textContent = "—";
+      chCat.textContent = (activeCategory === "All" ? "All categories" : activeCategory) + " • wheel/swipe";
+      renderDetail(null);
+      return;
+    }
+    chTitle.textContent = p.title;
+    chMeta.textContent = `${p.category} — ${p.year}   /   ${p.type}  /  ${p.status}`;
+    chIndex.textContent = `${activeIndex+1} / ${list.length}`;
+    chCat.textContent = (activeCategory === "All" ? "All categories" : activeCategory) + " • wheel/swipe";
+    renderDetail(p);
+  }
+
+  function clampIndex(list){
+    if(!list.length){ activeIndex = 0; return; }
+    if(activeIndex < 0) activeIndex = list.length - 1;
+    if(activeIndex >= list.length) activeIndex = 0;
+  }
+
+  function renderCarousel(){
+    const list = getFiltered();
+    clampIndex(list);
+    rig.innerHTML = "";
+
+    const windowSize = 9;
+    const start = Math.max(0, activeIndex - windowSize);
+    const end = Math.min(list.length - 1, activeIndex + windowSize);
+
+    const visibles = [];
+    for(let i=start;i<=end;i++){
+      const el = cardEl(list[i]);
+      rig.appendChild(el);
+      visibles.push({ el, i });
+    }
+
+    visibles.forEach(({el, i}) => {
+      const offset = i - activeIndex;
+      const abs = Math.abs(offset);
+
+            // Drawer layout: files stacked into depth, seen from above
+      const x = 0 + offset * 22;                 // slight lateral separation
+      const y = abs * 26;                       // gentle upward step
+      const z = -abs * 320;                      // drawer depth
+      const ry = offset * -4;                    // tiny fan
+      const rx = 0;                              // rig already tilts top-down
+      const rz = offset * 0.35;                  // micro skew
+      const s  = 1 - abs * 0.025;                // keep almost same size
+
+      if(abs >= 1) el.classList.add("isBack"); else el.classList.remove("isBack");
+
+      el.style.transform = `translateX(-50%) translate3d(${x}px, ${y}px, ${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${s})`;
+      el.style.zIndex = String(100 - abs);
+      el.style.filter = abs ? `brightness(${0.92 - abs*0.04})` : "none";
+      el.style.opacity = abs > 9 ? 0 : (1 - abs*0.055);
+      el.style.pointerEvents = abs > 6 ? "none" : "auto";
+    });
+
+    updateHUD(list);
+    renderProjectList();
+
+    prevBtn.disabled = list.length < 2;
+    nextBtn.disabled = list.length < 2;
+  }
+
+  function next(){ const list=getFiltered(); if(list.length<2) return; clickSound(); activeIndex++; renderCarousel(); }
+  function prev(){ const list=getFiltered(); if(list.length<2) return; clickSound(); activeIndex--; renderCarousel(); }
+
+  prevBtn.addEventListener("click", prev);
+  nextBtn.addEventListener("click", next);
+  soundBtn.addEventListener("click", async () => {
+    soundOn = !soundOn;
+    soundBtn.textContent = soundOn ? "Sound: On" : "Sound: Off";
+    // try to unlock audio on first user gesture
+    if(soundOn){
+      const ctx = ensureAudio();
+      if(ctx && ctx.state === "suspended"){ try{ await ctx.resume(); }catch(e){} }
+      clickSound();
+    }
+  });
+
+  randBtn.addEventListener("click", () => {
+    const list = getFiltered();
+    if(!list.length) return;
+    clickSound();
+    activeIndex = Math.floor(Math.random()*list.length);
+    renderCarousel();
+  });
+
+  // Wheel + touch
+  let wheelLock = false;
+  stage.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    if(wheelLock) return;
+    wheelLock = true;
+    const dy = e.deltaY || 0;
+    if(dy > 0) next(); else prev();
+    setTimeout(() => wheelLock = false, 140);
+  }, { passive:false });
+
+  let touchY = null;
+  stage.addEventListener("touchstart", (e) => {
+    if(!e.touches || !e.touches[0]) return;
+    touchY = e.touches[0].clientY;
+  }, { passive:true });
+
+  stage.addEventListener("touchend", (e) => {
+    if(touchY == null) return;
+    const endY = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : touchY;
+    const dy = endY - touchY;
+    touchY = null;
+    if(Math.abs(dy) < 26) return;
+    if(dy < 0) next(); else prev();
+  }, { passive:true });
+
+  // Filters
+  function setBtn(id, on){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.classList.toggle("on", !!on);
+  }
+  function syncButtons(){
+    setBtn("fAll", !(filterActive || filterType));
+    setBtn("fActive", filterActive);
+    setBtn("fResearch", filterType === "Research");
+    setBtn("fInstall", filterType === "Installation");
+    setBtn("fYearDesc", sortMode === "yearDesc");
+    setBtn("fYearAsc", sortMode === "yearAsc");
+  }
+
+  document.getElementById("fAll").addEventListener("click", () => { filterActive=false; filterType=null; syncButtons(); activeIndex=0; renderCarousel(); });
+  document.getElementById("fActive").addEventListener("click", () => { filterActive=!filterActive; syncButtons(); activeIndex=0; renderCarousel(); });
+  document.getElementById("fResearch").addEventListener("click", () => { filterType = (filterType==="Research") ? null : "Research"; syncButtons(); activeIndex=0; renderCarousel(); });
+  document.getElementById("fInstall").addEventListener("click", () => { filterType = (filterType==="Installation") ? null : "Installation"; syncButtons(); activeIndex=0; renderCarousel(); });
+  document.getElementById("fYearDesc").addEventListener("click", () => { sortMode="yearDesc"; syncButtons(); activeIndex=0; renderCarousel(); });
+  document.getElementById("fYearAsc").addEventListener("click", () => { sortMode="yearAsc"; syncButtons(); activeIndex=0; renderCarousel(); });
+
+  document.getElementById("fReset").addEventListener("click", () => {
+    activeCategory="All";
+    filterActive=false;
+    filterType=null;
+    sortMode="yearDesc";
+    query="";
+    search.value="";
+    syncButtons();
+    renderCategories();
+    activeIndex=0;
+    renderCarousel();
+  });
+
+  search.addEventListener("input", () => { query=(search.value||"").trim(); activeIndex=0; renderCarousel(); });
+
+  // Init
+  renderCategories();
+  syncButtons();
+  renderCarousel();
+})();
+</script>
+</body>
+</html>
