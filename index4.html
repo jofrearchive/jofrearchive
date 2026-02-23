@@ -1008,12 +1008,12 @@ const Graph = ForceGraph3D()(document.getElementById("graph"))
   .onNodeClick(node => { if (node.title) openPanel(node.title); });
 
 Graph.enableNodeDrag(false);
-Graph.enableNavigationControls(false);
+Graph.enableNavigationControls(true);
 
 const controls = Graph.controls();
 if (controls) {
   controls.enableRotate = false;
-  controls.enableZoom = false;
+  controls.enableZoom = true;
   controls.enablePan = false;
 }
 
@@ -1160,6 +1160,52 @@ if (controls) {
     window.__VR_DELTAQ.multiplyQuaternions(deviceQ0Inv, smoothedDeviceQ);
   };
 
+
+  // AUTO START VR IF PERMISSION ALREADY GRANTED
+  async function tryAutoStartVR(){
+    // Only attempt on devices that support orientation events
+    if (!('DeviceOrientationEvent' in window)) return;
+
+    let permissionGranted = true;
+
+    // iOS: permission API exists
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try{
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== 'granted') permissionGranted = false;
+      }catch(e){
+        permissionGranted = false;
+      }
+    }
+
+    if (!permissionGranted) return;
+
+    // If already active, do nothing
+    if (window.__VR_ACTIVE) return;
+
+    // Activate VR (same init path as the button, without TOUCH fallback)
+    vrTouchMode = false;
+
+    deviceQ0Inv = null;
+    window.__VR_DELTAQ.identity();
+    firstRead = true;
+    smoothedDeviceQ.identity();
+
+    window.__VR_ACTIVE = true;
+    btn.classList.add('active');
+    btnText.textContent = 'VR ON';
+
+    ensureDome();
+    Graph.scene().add(dome);
+
+    const controls = Graph.controls();
+    controls.enabled = false;
+
+    window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+  }
+
+
 const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
@@ -1226,6 +1272,13 @@ const ensureDome = () => {
       controls.enabled = false;
     }
   };
+
+  // Auto-enable VR on load if permission is already granted
+  // (iOS: this will only succeed if the user previously granted permission for this origin)
+  window.addEventListener('load', () => {
+    setTimeout(() => { tryAutoStartVR(); }, 250);
+  });
+
 })();
 
 Graph.d3Force("charge").strength(-58 * SCALE);
