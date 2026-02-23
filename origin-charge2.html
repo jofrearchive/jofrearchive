@@ -339,10 +339,13 @@ async function requestGyroPermission(){
   let scene;
   let camera = null;
 
-  // === VR / Gyro shared state (outer-scope) ===
-  // (moved) const motionBtn = document.getElementById("motionBtn");
+  // Shared VR state (needed for auto-start after init)
+  let motionBtn = null;
   let motionEnabled = false;
   let motionPermissionGranted = false;
+  let enableMotion = null;
+  let disableMotion = null;
+
   const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
 
   function setLoaderStatus(msg){
@@ -383,11 +386,10 @@ camera.setTarget(new BABYLON.Vector3(0, 15, 0));
 camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
 
 // --- VR TOGGLE BUTTON (GIROSCOPIO MANUAL CORREGIDO) ---
-// (moved) const motionBtn = document.getElementById("motionBtn");
+motionBtn = document.getElementById("motionBtn");
 
-// ===== Motion state (outer-scope; declared above) =====
-// motionEnabled, motionPermissionGranted
-let autoEnableMotionAfterInit = false;
+// ===== Motion state (shared) =====
+
 if (isMobile() && motionBtn) {
     motionBtn.style.display = "flex";
     
@@ -534,64 +536,82 @@ if (camera.rotationQuaternion) {
 }
     };
 
-    motionBtn.addEventListener("click", async () => {
-        console.log("VR button clicked, motionEnabled:", motionEnabled);
-        
-        if (!motionEnabled) {
-            // Verificar HTTPS (requerido para iOS)
-            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                console.error("HTTPS required for gyroscope on iOS");
-                alert("Se requiere HTTPS para usar el giroscopio en iOS");
-                return;
-            }
+    
+    // Unified enable/disable so auto-start can reuse without re-prompting.
+    enableMotion = async (opts) => {
+        const assumeGranted = !!(opts && opts.assumeGranted);
+        console.log("enableMotion()", { assumeGranted, motionEnabled });
 
+        if (motionEnabled) return true;
+
+        // HTTPS check (iOS requirement)
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            console.error("HTTPS required for gyroscope on iOS");
+            alert("Se requiere HTTPS para usar el giroscopio en iOS");
+            return false;
+        }
+
+        if (!assumeGranted) {
             const ok = await requestGyroPermission();
             motionPermissionGranted = ok;
-            try { if (ok) localStorage.setItem("gyroPermissionGranted", "1"); } catch(e) {}
             console.log("Permission result:", ok);
-            
+            if (ok) { try { localStorage.setItem("gyroPermissionGranted","1"); } catch(e) {} }
+
             if (!ok) {
                 console.log("Permission denied or failed");
-                return;
+                return false;
             }
-
-            // Asegurar que la cámara usa quaterniones
-            if (!camera.rotationQuaternion) {
-                console.log("Converting camera to quaternion mode");
-                camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-            }
-            
-            // Guardar la rotación actual como base
-            initialCameraQuat.copyFrom(camera.rotationQuaternion);
-            console.log("Initial camera quaternion saved:", initialCameraQuat.toString());
-            
-            // Resetear estado del sensor
-            firstRead = true;
-            eventCount = 0;
-            motionEnabled = true;
-
-            // Registrar listener del sensor
-            window.addEventListener("deviceorientation", handleMotion, true);
-            console.log("Device orientation listener added");
-
-            // En iOS, a veces el primer evento tarda, forzar un render
-            setTimeout(() => {
-                if (eventCount === 0) {
-                    console.warn("No orientation events received after 2 seconds");
-                    console.log("Device info:", navigator.userAgent);
-                }
-            }, 2000);
-
-            motionBtn.classList.add("active");
-            motionBtn.querySelector(".vrLabel").textContent = "VR ON";
-            
         } else {
-            console.log("Disabling VR mode");
-            motionEnabled = false;
-            window.removeEventListener("deviceorientation", handleMotion, true);
-            
-            motionBtn.classList.remove("active");
-            motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+            motionPermissionGranted = true;
+        }
+
+        // Ensure camera uses quaternions
+        if (!camera.rotationQuaternion) {
+            console.log("Converting camera to quaternion mode");
+            camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+        }
+
+        // Save current camera rotation as base (no jump)
+        initialCameraQuat.copyFrom(camera.rotationQuaternion);
+
+        // Reset sensor state
+        firstRead = true;
+        eventCount = 0;
+        motionEnabled = true;
+
+        // Start listening
+        window.addEventListener("deviceorientation", handleMotion, true);
+        console.log("Device orientation listener added (assumeGranted=", assumeGranted, ")");
+
+        // If no events arrive, we can report in console (helps debugging)
+        setTimeout(() => {
+            if (eventCount === 0) {
+                console.warn("No orientation events received after 2 seconds");
+                console.log("Device info:", navigator.userAgent);
+            }
+        }, 2000);
+
+        motionBtn.classList.add("active");
+        motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+        return true;
+    };
+
+    disableMotion = () => {
+        if (!motionEnabled) return;
+        console.log("Disabling VR mode");
+        motionEnabled = false;
+        window.removeEventListener("deviceorientation", handleMotion, true);
+
+        motionBtn.classList.remove("active");
+        motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+    };
+
+    motionBtn.addEventListener("click", async () => {
+        console.log("VR button clicked, motionEnabled:", motionEnabled);
+        if (!motionEnabled) {
+            await enableMotion();
+        } else {
+            disableMotion();
         }
     });
 }
@@ -910,50 +930,51 @@ try {
   }
 
   (async ()=> {
-  // Start system immediately
-  await initSystem({ withLoader: true });
+    // Start system immediately
+    await initSystem({ withLoader: true });
 
-  if (!isMobile() || !motionBtn) return;
+    if (!isMobile()) return;
 
-  // If a previous page already granted permission, we want VR to start automatically.
-  // Android/Chrome can start immediately. iOS requires a user-activation context.
-  let storedGranted = false;
-  try { storedGranted = localStorage.getItem("gyroPermissionGranted") === "1"; } catch(e) {}
+    let storedGranted = false;
+    try { storedGranted = localStorage.getItem("gyroPermissionGranted") === "1"; } catch(e) {}
+    if (!storedGranted) return;
 
-  if (!storedGranted) return;
+    const DOE = window.DeviceOrientationEvent;
+    const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
 
-  const DOE = window.DeviceOrientationEvent;
-  const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
+    const attemptAuto = async () => {
+      if (!motionBtn || typeof enableMotion !== "function") return;
+      if (motionEnabled) return;
 
-  const enableViaButton = () => {
-    if (!motionEnabled) {
-      try { motionBtn.click(); } catch(e) {}
-    }
-  };
+      // If navigation carries active user gesture (click from previous page),
+      // iOS can accept requestPermission() here.
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        await enableMotion(); // will request if needed
+        return;
+      }
 
-  if (!needsGesture) {
-    // Android / browsers without requestPermission gate
-    requestAnimationFrame(enableViaButton);
-    return;
-  }
+      // If orientation events are already flowing, enable without prompting.
+      const hasGyro = await probeGyroPermission(700);
+      if (hasGyro) {
+        await enableMotion({ assumeGranted: true });
+        return;
+      }
 
-  // iOS: try immediately if we still have transient activation (e.g., arriving via a click-navigation)
-  // Otherwise arm the first touch on THIS page.
-  try {
-    if (navigator.userActivation && navigator.userActivation.isActive) {
-      requestAnimationFrame(enableViaButton);
-      return;
-    }
-  } catch(e) {}
+      // iOS fallback: arm first gesture on this page.
+      if (needsGesture) {
+        const once = async () => {
+          document.removeEventListener("pointerdown", once, true);
+          document.removeEventListener("touchstart", once, true);
+          await enableMotion();
+        };
+        document.addEventListener("pointerdown", once, true);
+        document.addEventListener("touchstart", once, true);
+      }
+    };
 
-  const once = () => {
-    document.removeEventListener("pointerdown", once, true);
-    document.removeEventListener("touchstart", once, true);
-    requestAnimationFrame(enableViaButton);
-  };
-  document.addEventListener("pointerdown", once, true);
-  document.addEventListener("touchstart", once, true);
-})();})();window.addEventListener("resize", () => engine.resize());
+    requestAnimationFrame(() => { attemptAuto(); });
+  })();
+window.addEventListener("resize", () => engine.resize());
 })();
 </script>
 
