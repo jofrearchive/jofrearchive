@@ -636,12 +636,49 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 /* FULL WIDTH IMAGE */
 
 .communityHeaderImage{
-  flex:0 0 48%;
+  /* In the COMMUNITY panel this is the media area above the META */
+  flex: 0 0 auto;
   width:100%;
   background:#000;
   border-bottom:1px solid rgba(232,226,214,.12);
   overflow:hidden;
+
+  /* desktop/tablet default size */
+  height: 34vh;
+  min-height: 260px;
+  max-height: 420px;
 }
+
+.communityHeaderImage video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.communityHeaderImage img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+@media (max-width: 860px){
+  .communityHeaderImage{
+    height: 30vh;
+    min-height: 220px;
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 520px){
+  .communityHeaderImage{
+    height: 26vh;
+    min-height: 200px;
+    max-height: 320px;
+  }
+}
+
 
 .communityHeaderImage video{width:100%;height:100%;object-fit:cover;display:block;}
 
@@ -651,6 +688,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   object-fit:cover;
   display:block;
 }
+
+
 
 /* BODY */
 
@@ -732,7 +771,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   z-index: 99999;
   background: rgba(10, 10, 10, 0.85);
   border: 1px solid rgba(232, 226, 214, 0.2);
-  border-radius: 30px;
+  border-radius: 0;
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -770,6 +809,205 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   z-index: 100000 !important;
 }
 
+
+/* ===============================
+   VIRTUAL KEYBOARD (custom)
+   Basic EN / CA / ES
+=================================*/
+#vkbd{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  z-index:100002;
+  display:none;
+  padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(10,10,10,.92);
+  border-top:1px solid rgba(232,226,214,.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#vkbd.open{ display:block; }
+
+#vkbd .vkTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+  font-family: var(--mono);
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  font-size:10px;
+  opacity:.92;
+}
+#vkbd .vkTop .vkHint{opacity:.75;}
+#vkbd .vkClose{
+  background: rgba(255,255,255,.03);
+  border:1px solid rgba(232,226,214,.22);
+  color: var(--ink);
+  padding:8px 10px;
+  font-family: var(--mono);
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  cursor:pointer;
+}
+#vkbd .vkClose:active{ transform: translateY(1px); }
+
+#vkbd .vkRow{ display:flex; gap:8px; justify-content:center; margin:8px 0; flex-wrap:nowrap; }
+#vkbd .vkKey{
+  flex:0 0 auto;
+  min-width: 28px;
+  padding: 12px 10px;
+  border: 1px solid rgba(232,226,214,.20);
+  background: rgba(255,255,255,.03);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing:.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+#vkbd .vkKey.wide{ min-width: 86px; }
+#vkbd .vkKey.xwide{ min-width: 150px; }
+#vkbd .vkKey:active{ background: rgba(255,255,255,.07); transform: translateY(1px); }
+#vkbd .vkKey.dim{ opacity:.78; }
+
+@media (max-width: 520px){
+  #vkbd{ padding:10px 8px calc(10px + env(safe-area-inset-bottom)); }
+  #vkbd .vkKey{ padding: 12px 9px; min-width: 26px; }
+  #vkbd .vkKey.wide{ min-width: 78px; }
+  #vkbd .vkKey.xwide{ min-width: 140px; }
+}
+
+
+/* Prevent iOS focus-zoom on form controls */
+input, textarea{ font-size:16px; }
+
+/* --- Prevent iOS keyboard auto-zoom on infopanel typing --- */
+.sheetText[contenteditable="true"]{
+  font-size:16px !important;
+}
+
+
+/* --- Unified background tone (Normal + VR) --- */
+html, body {
+  background-color: #0d0d0d !important;
+}
+
+canvas {
+  background-color: #0d0d0d !important;
+}
+
+
+.communityMeta a{
+  color: rgba(232,226,214,.85);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(232,226,214,.35);
+}
+
+.communityMeta a:hover{
+  opacity: .7;
+}
+
+
+/* --- Hide COMMUNITY text on mobile (show only META) --- */
+@media (max-width: 860px){
+  #communityFullPanel .communityText{
+    display: none !important;
+  }
+  #communityFullPanel .communityBody{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* --- COMMUNITY (mobile): force video visible, centered, and side-cropped by panel margins --- */
+@media (max-width: 860px){
+  #communityFullPanel .panel{
+    width: min(820px, 94vw);
+  }
+
+  .communityHeaderImage{
+    height: 28vh;
+    min-height: 200px;
+    max-height: 320px;
+  }
+
+  .communityHeaderImage video{
+    transform: scale(1.12);          /* crop sides a bit */
+    transform-origin: 50% 50%;
+    object-position: center;
+  }
+}
+
+@media (max-width: 520px){
+  .communityHeaderImage{
+    height: 26vh;
+    min-height: 190px;
+    max-height: 300px;
+  }
+  .communityHeaderImage video{
+    transform: scale(1.18);          /* a bit more crop on very small screens */
+  }
+}
+
+
+
+/* --- COMMUNITY PNG + Screen Interference Effect --- */
+
+.communityHeaderImage{
+  position: relative;
+  width: 100%;
+  height: 30vh;
+  min-height: 220px;
+  max-height: 380px;
+  overflow: hidden;
+  background: #000;
+  border-bottom: 1px solid rgba(232,226,214,.12);
+}
+
+.communityImage{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* Interference layer */
+.screenInterference{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: .25;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.06) 0px,
+      rgba(255,255,255,.06) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  animation: flicker 0.18s infinite;
+}
+
+@keyframes flicker{
+  0%{ opacity:.22; }
+  50%{ opacity:.28; }
+  100%{ opacity:.22; }
+}
+
+@media (max-width: 860px){
+  .communityHeaderImage{
+    height: 26vh;
+    min-height: 200px;
+    max-height: 320px;
+  }
+}
+
 </style>
 
 <script>
@@ -804,9 +1042,9 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 <body>
 
 <header class="siteHeader" role="banner" aria-label="Primary">
-  <a href="https://jofrearchive.com/" target="_self" rel="noopener" aria-label="Home">
-    <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
-  </a>
+  
+    <a href="https://inside.jofrearchive.com/origin/" target="_self" rel="noopener"><img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive"></a>
+  
 </header>
 
 <div id="vitrine-bg" aria-hidden="true"></div>
@@ -922,7 +1160,185 @@ function escapeHtml(str){
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
-function nl2br(str){ return escapeHtml(str).replace(/\n/g,'<br>'); }
+function nl2br(str){
+
+/* ===============================
+   VIRTUAL KEYBOARD (append-only)
+   - avoids OS keyboard
+   - writes into #typed after typewriter completes
+=================================*/
+let __VK_READY = false;
+let __VK_OPEN = false;
+let __VK_SHIFT = false;
+let __VK_PENDING_AFTER_TYPE = false;
+
+// Key layouts: rows of tokens
+const __VK_LAYOUT = [
+  ["q","w","e","r","t","y","u","i","o","p"],
+  ["a","s","d","f","g","h","j","k","l","ñ","ç"],
+  ["shift","z","x","c","v","b","n","m","back"],
+  ["acc","space","enter","dot","comma","apost","dash","quest","bang"]
+];
+
+// Accents palette (tap to insert)
+const __VK_ACCENTS = ["á","à","ä","â","é","è","ë","ê","í","ì","ï","î","ó","ò","ö","ô","ú","ù","ü","û","·"];
+
+function __vkTokenLabel(tok){
+  if(tok === "shift") return "shift";
+  if(tok === "back") return "⌫";
+  if(tok === "space") return "space";
+  if(tok === "enter") return "enter";
+  if(tok === "acc") return "á";
+  if(tok === "dot") return ".";
+  if(tok === "comma") return ",";
+  if(tok === "apost") return "'";
+  if(tok === "dash") return "-";
+  if(tok === "quest") return "?";
+  if(tok === "bang") return "!";
+  const ch = String(tok);
+  return __VK_SHIFT ? ch.toUpperCase() : ch;
+}
+
+function __vkAppendText(text){
+  const el = document.getElementById("typed");
+  if(!el) return;
+
+  // Ensure editor is editable only when we want to write
+  el.setAttribute("contenteditable","true");
+
+  // Append at end (simple + stable)
+  el.textContent = (el.textContent || "") + text;
+
+  // Keep scroll anchored to end
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __vkBackspace(){
+  const el = document.getElementById("typed");
+  if(!el) return;
+  el.setAttribute("contenteditable","true");
+  const t = el.textContent || "";
+  el.textContent = t.slice(0, -1);
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __vkHandle(tok){
+  if(tok === "shift"){ __VK_SHIFT = !__VK_SHIFT; __vkRender(); return; }
+  if(tok === "back"){ __vkBackspace(); return; }
+  if(tok === "space"){ __vkAppendText(" "); return; }
+  if(tok === "enter"){ __vkAppendText("\n"); return; }
+  if(tok === "acc"){ __vkShowAccents(); return; }
+  if(tok === "dot"){ __vkAppendText("."); return; }
+  if(tok === "comma"){ __vkAppendText(","); return; }
+  if(tok === "apost"){ __vkAppendText("'"); return; }
+  if(tok === "dash"){ __vkAppendText("-"); return; }
+  if(tok === "quest"){ __vkAppendText("?"); return; }
+  if(tok === "bang"){ __vkAppendText("!"); return; }
+
+  __vkAppendText(__VK_SHIFT ? String(tok).toUpperCase() : String(tok));
+  // optional: auto-unshift after one letter
+  if(__VK_SHIFT){ __VK_SHIFT = false; __vkRender(); }
+}
+
+function __vkKeyEl(tok){
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "vkKey";
+  btn.dataset.tok = tok;
+  btn.textContent = __vkTokenLabel(tok);
+
+  if(tok === "space") btn.classList.add("xwide");
+  if(tok === "enter" || tok === "shift" || tok === "back" || tok === "acc") btn.classList.add("wide");
+  if(tok === "acc") btn.classList.add("dim");
+
+  // Use pointerdown to feel immediate on mobile
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    __vkHandle(tok);
+  }, { passive:false });
+
+  return btn;
+}
+
+function __vkRender(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+
+  const rows = wrap.querySelectorAll(".vkRow");
+  rows.forEach(r => r.innerHTML = "");
+
+  for(let i=0;i<__VK_LAYOUT.length;i++){
+    const row = wrap.querySelector(`.vkRow[data-row="${i+1}"]`);
+    if(!row) continue;
+    __VK_LAYOUT[i].forEach(tok => row.appendChild(__vkKeyEl(tok)));
+  }
+}
+
+function __vkShowAccents(){
+  // Simple overlay row replacement: show accents in row 4 temporarily
+  const wrap = document.getElementById("vkbd");
+  const row4 = wrap && wrap.querySelector('.vkRow[data-row="4"]');
+  if(!row4) return;
+
+  row4.innerHTML = "";
+  // Back to main keys
+  const backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "vkKey wide dim";
+  backBtn.textContent = "back";
+  backBtn.addEventListener("pointerdown",(e)=>{
+    e.preventDefault(); e.stopPropagation();
+    __vkRender();
+  }, { passive:false });
+  row4.appendChild(backBtn);
+
+  __VK_ACCENTS.forEach(ch=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "vkKey";
+    b.textContent = ch;
+    b.addEventListener("pointerdown",(e)=>{
+      e.preventDefault(); e.stopPropagation();
+      __vkAppendText(ch);
+    }, { passive:false });
+    row4.appendChild(b);
+  });
+}
+
+function __vkOpen(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+  wrap.classList.add("open");
+  wrap.setAttribute("aria-hidden","false");
+  __VK_OPEN = true;
+}
+
+function __vkClose(){
+  const wrap = document.getElementById("vkbd");
+  if(!wrap) return;
+  wrap.classList.remove("open");
+  wrap.setAttribute("aria-hidden","true");
+  __VK_OPEN = false;
+}
+
+function __vkInit(){
+  if(__VK_READY) return;
+  __VK_READY = true;
+  __vkRender();
+
+  const closeBtn = document.getElementById("vkClose");
+  if(closeBtn){
+    closeBtn.addEventListener("click",(e)=>{
+      e.preventDefault(); e.stopPropagation();
+      __vkClose();
+    });
+  }
+}
+
+ return escapeHtml(str).replace(/\n/g,'<br>'); }
 
 function shouldAutoType(key, packet){
   if(!packet || packet.type !== "text") return false;
@@ -1008,12 +1424,12 @@ const Graph = ForceGraph3D()(document.getElementById("graph"))
   .onNodeClick(node => { if (node.title) openPanel(node.title); });
 
 Graph.enableNodeDrag(false);
-Graph.enableNavigationControls(false);
+Graph.enableNavigationControls(true);
 
 const controls = Graph.controls();
 if (controls) {
   controls.enableRotate = false;
-  controls.enableZoom = false;
+  controls.enableZoom = true;
   controls.enablePan = false;
 }
 
@@ -1160,6 +1576,52 @@ if (controls) {
     window.__VR_DELTAQ.multiplyQuaternions(deviceQ0Inv, smoothedDeviceQ);
   };
 
+
+  // AUTO START VR IF PERMISSION ALREADY GRANTED
+  async function tryAutoStartVR(){
+    // Only attempt on devices that support orientation events
+    if (!('DeviceOrientationEvent' in window)) return;
+
+    let permissionGranted = true;
+
+    // iOS: permission API exists
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try{
+        const res = await DeviceOrientationEvent.requestPermission();
+        if (res !== 'granted') permissionGranted = false;
+      }catch(e){
+        permissionGranted = false;
+      }
+    }
+
+    if (!permissionGranted) return;
+
+    // If already active, do nothing
+    if (window.__VR_ACTIVE) return;
+
+    // Activate VR (same init path as the button, without TOUCH fallback)
+    vrTouchMode = false;
+
+    deviceQ0Inv = null;
+    window.__VR_DELTAQ.identity();
+    firstRead = true;
+    smoothedDeviceQ.identity();
+
+    window.__VR_ACTIVE = true;
+    btn.classList.add('active');
+    btnText.textContent = 'VR ON';
+
+    ensureDome();
+    Graph.scene().add(dome);
+
+    const controls = Graph.controls();
+    controls.enabled = false;
+
+    window.addEventListener('deviceorientation', handleDeviceOrientation, true);
+  }
+
+
 const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
@@ -1226,6 +1688,13 @@ const ensureDome = () => {
       controls.enabled = false;
     }
   };
+
+  // Auto-enable VR on load if permission is already granted
+  // (iOS: this will only succeed if the user previously granted permission for this origin)
+  window.addEventListener('load', () => {
+    setTimeout(() => { tryAutoStartVR(); }, 250);
+  });
+
 })();
 
 Graph.d3Force("charge").strength(-58 * SCALE);
@@ -1697,7 +2166,7 @@ function switchMode(mode) {
 
 
 function setMeta(key){
-  const META = {"MANIFESTO": {"index": "M-0001", "class": "SYNERGISTIC", "origin": "ADMIN", "state": "ACTIVE"}, "MEMORY": {"index": "O-∞", "class": "SYNERGISTIC", "origin": "COLLECTIVE", "state": "ACTIVE"}, "UTOPIA": {"index": "AX-001", "class": "AXIOM", "origin": "ADMIN", "state": "ACTIVE"}, "STATEMENT": {"index": "R-0002", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "BIOGRAPHY": {"index": "R-0001", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "TRAJECTORY": {"index": "R-2012-2025", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "COMMUNITY": {"index": "R-0005", "class": "NODE", "origin": "FIELD", "state": "RETRIEVED"}, "COSMOGONY": {"index": "P-0001", "class": "POETRY", "origin": "ADMIN", "state": "RETRIEVED"}, "METHODOLOGY": {"index": "R-0003", "class": "PROTOCOL", "origin": "ADMIN", "state": "RETRIEVED"}, "RUINS": {"index": "E-0001", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "SOVEREIGNTY": {"index": "E-0002", "class": "PROTOCOL", "origin": "ADMIN", "state": "RETRIEVED"}, "CONSCIOUSNESS": {"index": "E-0003", "class": "DOCUMENT", "origin": "ADMIN", "state": "RETRIEVED"}, "IDENTITY": {"index": "E-0003", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "SYMBOLOGY": {"index": "P-0002", "class": "POETRY", "origin": "ADMIN", "state": "RETRIEVED"}, "ALTERITY": {"index": "E-0004", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "FRAGMENT": {"index": "AX-0002", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}, "THOUGHT": {"index": "AX-0003", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}, "REFLECTION": {"index": "AX-0004", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}};
+  const META = {"MANIFESTO": {"index": "M-0001", "class": "SYNERGISTIC", "origin": "ADMIN", "state": "ACTIVE"}, "MEMORY": {"index": "O-∞", "class": "SYNERGISTIC", "origin": "COLLECTIVE", "state": "ACTIVE"}, "UTOPIA": {"index": "AX-001", "class": "AXIOM", "origin": "ADMIN", "state": "ACTIVE"}, "STATEMENT": {"index": "R-0002", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "BIOGRAPHY": {"index": "R-0001", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "TRAJECTORY": {"index": "R-2012-2025", "class": "RECORD", "origin": "ADMIN", "state": "RETRIEVED"}, "COMMUNITY": {"index": "R-0005", "origin": "KONVENT", "state": "RETRIEVED"}, "COSMOGONY": {"index": "P-0001", "class": "POETRY", "origin": "ADMIN", "state": "RETRIEVED"}, "METHODOLOGY": {"index": "R-0003", "class": "PROTOCOL", "origin": "ADMIN", "state": "RETRIEVED"}, "RUINS": {"index": "E-0001", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "SOVEREIGNTY": {"index": "E-0002", "class": "PROTOCOL", "origin": "ADMIN", "state": "RETRIEVED"}, "CONSCIOUSNESS": {"index": "E-0003", "class": "DOCUMENT", "origin": "ADMIN", "state": "RETRIEVED"}, "IDENTITY": {"index": "E-0003", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "SYMBOLOGY": {"index": "P-0002", "class": "POETRY", "origin": "ADMIN", "state": "RETRIEVED"}, "ALTERITY": {"index": "E-0004", "class": "ESSAY", "origin": "ADMIN", "state": "RETRIEVED"}, "FRAGMENT": {"index": "AX-0002", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}, "THOUGHT": {"index": "AX-0003", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}, "REFLECTION": {"index": "AX-0004", "class": "THOUGHT", "origin": "ADMIN", "state": "RETRIEVED"}};
   const m = META[key] || { index: "AR-0000", class: "DOCUMENT", origin: "ADMIN", state: "RETRIEVED" };
   metaIndex.textContent = m.index;
   metaClass.textContent = m.class;
@@ -1721,9 +2190,19 @@ function openPanel(key){
     // Ensure the video starts reliably when the panel becomes visible
     const vid = document.getElementById("communityVid");
     if(vid){
+      try{ vid.muted = true; vid.playsInline = true; }catch(e){}
       try{ vid.currentTime = 0; }catch(e){}
-      const p = vid.play && vid.play();
-      if(p && p.catch) p.catch(()=>{});
+      try{ vid.load && vid.load(); }catch(e){}
+      const tryPlay = () => {
+        try{
+          const p = vid.play && vid.play();
+          if(p && p.catch) p.catch(()=>{});
+        }catch(e){}
+      };
+      // iOS Safari sometimes needs a couple of frames after display:flex
+      requestAnimationFrame(tryPlay);
+      setTimeout(tryPlay, 80);
+      setTimeout(tryPlay, 220);
     }
     return;
   }
@@ -1964,7 +2443,7 @@ btnErase.addEventListener("click", async () => {
   const cPanel = document.getElementById('communityFullPanel');
   if(!cPanel) return;
 
-  function closeCommunity(){ cPanel.classList.remove('open'); }
+  function close<a href="https://inside.jofrearchive.com/origin/" target="_self" style="text-decoration:none;color:inherit;">Community</a>(){ cPanel.classList.remove('open'); }
 
   const closeBtn = cPanel.querySelector('.close-btn');
   if(closeBtn) closeBtn.addEventListener('click', closeCommunity);
@@ -1994,25 +2473,28 @@ btnErase.addEventListener("click", async () => {
   <div class="panel">
 
   <div class="header">
-    <div>Community</div>
+    <div><a href="https://inside.jofrearchive.com/origin/" style="text-decoration:none;color:inherit;">Community</a></div>
     <button class="close-btn">Close</button>
   </div>
 
-  <div class="communityHeaderImage">
-    <video id="communityVid" autoplay muted loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;display:block;">
-      <source src="https://inside.jofrearchive.com/assets/video/konvent.mp4" type="video/mp4">
-    </video>
-  </div>
+  
+<div class="communityHeaderImage">
+    <img src="https://inside.jofrearchive.com/assets/images/konvent.png"
+         alt="Konvent"
+         class="communityImage">
+    <div class="screenInterference"></div>
+</div>
+
 
   <div class="communityBody">
 
     <div class="communityMeta">
       Index: R-0005<br>
-      Class: NODE<br>
-      Origin: FIELD<br>
-      State: TRANSFORM<br>
+      Origin: KONVENT<br>
+            State: TRANSFORM<br>
       Location: Catalonia<br>
-      Type: Art residency
+      Type: Art residency<br>
+      SOURCE: <a href="https://konventzero.com/" target="_blank" rel="noopener">WEBSITE</a><br>
     </div>
 
     <div class="communityText">
@@ -2027,5 +2509,28 @@ btnErase.addEventListener("click", async () => {
 </div>
 </div>
 
+
+<!-- Virtual Keyboard (custom / basic EN-CA-ES) -->
+<div id="vkbd" aria-hidden="true">
+  <div class="vkTop">
+    <div class="vkHint">keyboard · basic en/ca/es</div>
+    <button class="vkClose" id="vkClose" type="button">close</button>
+  </div>
+
+  <div class="vkRow" data-row="1"></div>
+  <div class="vkRow" data-row="2"></div>
+  <div class="vkRow" data-row="3"></div>
+  <div class="vkRow" data-row="4"></div>
+</div>
+
+<script>
+
+</script>
+<script>
+
+</script>
+<script>
+
+</script>
 </body>
 </html>
