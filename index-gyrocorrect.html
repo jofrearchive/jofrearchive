@@ -1025,11 +1025,7 @@ if (controls) {
   let activationPose = "upright"; // "upright" | "flatUp" | "flatDown" (fixed at activation)
   let vrTouchMode = false;
 
-  
-  let activationIsPortrait = null; // fixed at first sensor read
-  let lastAngles = null; // {yaw,pitch,roll} for deadzone
-  const ANGLE_DEADZONE_RAD = THREE.MathUtils.degToRad(0.12); // reduce micro jitter when still
-const btn = document.getElementById('vr-toggle');
+  const btn = document.getElementById('vr-toggle');
   const btnText = document.getElementById('vr-text');
 
   
@@ -1071,49 +1067,37 @@ const btn = document.getElementById('vr-toggle');
 
     const orientDeg = getScreenAngleDeg();
     const orient = THREE.MathUtils.degToRad(orientDeg);
+    const isPortrait = (Math.abs(orientDeg) % 180) === 0;
 
-    // Fix the mode at activation time (prevents portrait/landscape re-mapping mid-session)
-    if (activationIsPortrait === null) {
-      activationIsPortrait = (window.innerHeight >= window.innerWidth);
+    // 1) base mapping (upright)
+    let yaw   = alpha;
+    let pitch = beta;
+    let roll  = gamma;
+
+    // 2) portrait sign fixes (keeps UX consistent with your Babylon mapping)
+    if (isPortrait) {
+      yaw   = -yaw;
+      pitch = -pitch;
+      roll  = -roll;
     }
-    const isPortrait = activationIsPortrait;
-    // Fix the mode at activation time (prevents portrait/landscape re-mapping mid-session)
-if (activationIsPortrait === null) {
-  // iOS can report screen orientation unreliably at the exact moment permissions are granted.
-  // Using viewport aspect at activation is the most stable.
-  activationIsPortrait = (window.innerHeight >= window.innerWidth);
-}
-const isPortrait = activationIsPortrait;
 
-// Build absolute orientation quaternion using the same convention as THREE.DeviceOrientationControls:
-// alpha (Z), beta (X), gamma (Y) with screen orientation compensation applied later.
-//
-// Requested axis corrections:
-// - Pitch always inverted  -> invert beta
-// - Portrait: roll inverted -> invert gamma *before* applying the "-gamma" in the Euler formula
-let a = alpha;
-let b = -beta;     // pitch inverted (always)
-let g = gamma;
+    // 3) if activated flat, swap yaw<->roll so flat mode feels natural
+    if (activationPose === "flatUp" || activationPose === "flatDown") {
+      const tmp = yaw; yaw = roll; roll = tmp;
+      // keep the same roll sign fix used in origin-gyrocorrect
+      roll = -roll;
+    }
 
-if (isPortrait) {
-  g = -g;          // roll inverted (portrait)
-}
+    // q = qY(yaw) * qX(pitch) * qZ(roll)  (order YXZ)
+    const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), yaw);
+    const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), pitch);
+    const qRoll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), roll);
 
-// Deadzone to avoid micro-movements when the phone is still (applies to raw sensor angles)
-if (!lastAngles) {
-  lastAngles = { a, b, g };
-} else {
-  if (Math.abs(a - lastAngles.a) < ANGLE_DEADZONE_RAD) a = lastAngles.a;
-  if (Math.abs(b - lastAngles.b) < ANGLE_DEADZONE_RAD) b = lastAngles.b;
-  if (Math.abs(g - lastAngles.g) < ANGLE_DEADZONE_RAD) g = lastAngles.g;
-  lastAngles.a = a; lastAngles.b = b; lastAngles.g = g;
-}
+    const q = new THREE.Quaternion();
+    q.multiplyQuaternions(qYaw, qPitch);
+    q.multiply(qRoll);
 
-// THREE convention: Euler(beta, alpha, -gamma, 'YXZ')
-const euler = new THREE.Euler(b, a, -g, "YXZ");
-const q = new THREE.Quaternion().setFromEuler(euler);
-
-// Device -> world/camera coords (equivalent to -PI/2 on X)
+    // Device -> world/camera coords (equivalent to -PI/2 on X)
     const s = Math.sqrt(0.5);
     const q1 = new THREE.Quaternion(-s, 0, 0, s);
     q.multiply(q1);
