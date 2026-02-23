@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>VITRINE — Line Tunnel</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#070707;
+    --ink:#e8e2d6;
+    --muted:rgba(232,226,214,.65);
+    --border:rgba(255,255,255,.16);
+  }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 900px at 50% 35%, rgba(255,255,255,.05), rgba(0,0,0,0) 55%),
+      radial-gradient(900px 700px at 20% 85%, rgba(255,255,255,.035), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, #050505, #0a0a0a 55%, #050505);
+    color:var(--ink);
+    overflow:hidden;
+  }
+
+  .stage{ position:fixed; inset:0; }
+
+  /* subtle noise */
+  .stage::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+    opacity:.12;
+    pointer-events:none;
+  }
+  /* scanlines + vignette */
+  .stage::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,.0) 0px, rgba(255,255,255,.0) 2px, rgba(255,255,255,.03) 3px),
+      radial-gradient(closest-side at 50% 50%, rgba(0,0,0,0) 70%, rgba(0,0,0,.55) 100%);
+    opacity:.45;
+    pointer-events:none;
+  }
+
+  canvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    display:block;
+  }
+
+  .glass{
+    position:absolute; inset:20px;
+    border:1px solid var(--border);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 35%),
+      radial-gradient(900px 400px at 40% 10%, rgba(255,255,255,.07), rgba(255,255,255,0) 60%),
+      radial-gradient(700px 500px at 82% 30%, rgba(255,255,255,.05), rgba(255,255,255,0) 65%),
+      rgba(0,0,0,.10);
+    pointer-events:none;
+  }
+
+  .hud{
+    position:absolute; inset:20px;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    pointer-events:none;
+  }
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    padding:14px 14px 8px 14px;
+    align-items:flex-end;
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .kicker{
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .title{
+    font-family:"EB Garamond", ui-serif, serif;
+    font-weight:600;
+    font-size:28px;
+    letter-spacing:.02em;
+    line-height:1;
+  }
+  .rightmeta{
+    text-align:right;
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  .bottombar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:10px 14px 14px 14px;
+    gap:16px;
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.0));
+    backdrop-filter: blur(6px);
+  }
+  .dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background:rgba(232,226,214,.85);
+    box-shadow:0 0 12px rgba(232,226,214,.55);
+  }
+
+  @media (max-width: 640px){
+    .glass, .hud{ inset:14px; }
+    .title{ font-size:22px; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="stage">
+    <canvas id="tunnel" aria-label="line tunnel canvas"></canvas>
+    <div class="glass" aria-hidden="true"></div>
+
+    <div class="hud">
+      <div class="topbar">
+        <div class="brand">
+          <div class="kicker">vitrine / line tunnel</div>
+          <div class="title">Adaptive Corridor</div>
+        </div>
+        <div class="rightmeta">
+          <div>geometry: screen-rect</div>
+          <div>motion: depth flow</div>
+          <div>palette: dark→light</div>
+        </div>
+      </div>
+
+      <div></div>
+
+      <div class="bottombar">
+        <div class="pill"><span class="dot"></span> live lines</div>
+        <div class="pill">center dark → edges bright</div>
+        <div class="pill">© jofre archive / ui prototype</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('tunnel');
+  const ctx = canvas.getContext('2d', { alpha:true });
+
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width  = Math.floor(canvas.clientWidth  * dpr);
+    canvas.height = Math.floor(canvas.clientHeight * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // --- Aesthetic parameters (fixed) ---
+  const LINES = 170;          // how many rectangles in the tunnel
+  const SPEED = 0.010;        // forward flow
+  const GAP_JITTER = 0.14;    // intermittent spacing variation
+  const PERSIST = 0.18;       // trail (lower = longer trails)
+
+  // deterministic texture
+  let seed = 1337;
+  const rng = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  const lineBias = new Float32Array(LINES);
+  const gapBias  = new Float32Array(LINES);
+  for(let i=0;i<LINES;i++){
+    lineBias[i] = rng();                // tone variance
+    gapBias[i]  = (rng()*2 - 1) * 1.0;  // spacing variance
+  }
+
+  function fadeFrame(){
+    ctx.fillStyle = `rgba(0,0,0,${PERSIST})`;
+    ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+  }
+
+  function strokeRectGlow(x,y,w,h,alpha,blur,lw){
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.lineJoin = 'miter';
+    ctx.lineCap  = 'butt';
+
+    // glow pass
+    ctx.strokeStyle = `rgba(232,226,214,${alpha*0.30})`;
+    ctx.lineWidth = lw + 1.0;
+    ctx.shadowColor = 'rgba(232,226,214,0.55)';
+    ctx.shadowBlur = blur;
+    ctx.strokeRect(x,y,w,h);
+
+    // core pass
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(232,226,214,${alpha})`;
+    ctx.lineWidth = lw;
+    ctx.strokeRect(x,y,w,h);
+
+    ctx.restore();
+  }
+
+  // initial
+  ctx.fillStyle = 'rgba(0,0,0,1)';
+  ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+
+  let phase = 0;
+
+  function loop(){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    fadeFrame();
+
+    // center & base rectangle: always matches screen aspect
+    const cx = w*0.5, cy = h*0.52;
+
+    // Depth feel adapts to aspect: wide screens get slightly deeper
+    const aspect = w / Math.max(1, h);
+    const depth = 1.10 + Math.min(0.55, Math.abs(aspect - 1) * 0.35);
+
+    // base rect size relative to screen (tunnel starts small)
+    const baseScale = 0.07; // small far plane
+    const maxScale  = 1.16; // beyond edges for glow
+
+    phase = (phase + SPEED) % 1;
+
+    // Draw far -> near
+    for(let i=0;i<LINES;i++){
+      // “intermittent spacing”: non-uniform z distribution
+      const u = (i / (LINES-1));
+
+      // create gaps by warping the z coordinate
+      const warp = u + (Math.sin((u*10 + phase*2.0) * Math.PI*2) * 0.004) + gapBias[i]*GAP_JITTER*0.0025;
+      let z = (warp + phase) % 1;            // 0 far, 1 near
+
+      // perspective curve (strong tunnel)
+      const p = Math.pow(z, 2.35);
+
+      // map to scale
+      const s = (baseScale + p*(maxScale - baseScale)) * depth;
+
+      const rw = w * s;
+      const rh = h * s;
+      const x = cx - rw*0.5;
+      const y = cy - rh*0.5;
+
+      // --- dark center, bright edges ---
+      // measure how close the rectangle is to edges: bigger rectangles get brighter
+      const corner = Math.hypot(rw*0.5, rh*0.5);
+      const maxCorner = Math.hypot(w*0.5, h*0.5);
+      const edgeFactor = Math.pow(Math.min(1, corner / (maxCorner*0.92)), 1.35); // 0..1
+
+      // alpha increases with depth (near) + edgeFactor
+      const baseA = (0.010 + p*0.18) * (0.80 + lineBias[i]*0.30);
+      const alpha = baseA * (0.22 + 1.05*edgeFactor);
+
+      // thickness grows slightly as it comes near
+      const lw = (0.7 + p*1.4);
+      const blur = 6 + p*18 + edgeFactor*10;
+
+      // additional "gap feel": occasionally skip a line to create breathing
+      const skip = ((i + Math.floor(phase*1000)) % 13 === 0) && (p < 0.55);
+      if(!skip){
+        strokeRectGlow(x, y, rw, rh, alpha, blur, lw);
+      }
+    }
+
+    // reinforce center darkness with a soft radial mask
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(w,h)*0.62);
+    grd.addColorStop(0.00, 'rgba(0,0,0,0.62)');
+    grd.addColorStop(0.55, 'rgba(0,0,0,0.16)');
+    grd.addColorStop(1.00, 'rgba(0,0,0,0.00)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,w,h);
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

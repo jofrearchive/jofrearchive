@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>VITRINE — Invisible Globe Waves (v2)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#070707;
+    --ink:#e8e2d6;
+    --muted:rgba(232,226,214,.62);
+    --border:rgba(255,255,255,.16);
+  }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 900px at 50% 35%, rgba(255,255,255,.05), rgba(0,0,0,0) 55%),
+      radial-gradient(900px 700px at 20% 85%, rgba(255,255,255,.035), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, #050505, #0a0a0a 55%, #050505);
+    color:var(--ink);
+    overflow:hidden;
+  }
+  .stage{ position:fixed; inset:0; }
+
+  .stage::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+    opacity:.12;
+    pointer-events:none;
+  }
+  .stage::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,.0) 0px, rgba(255,255,255,.0) 2px, rgba(255,255,255,.03) 3px),
+      radial-gradient(closest-side at 50% 50%, rgba(0,0,0,0) 68%, rgba(0,0,0,.60) 100%);
+    opacity:.45;
+    pointer-events:none;
+  }
+
+  canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  .glass{
+    position:absolute; inset:20px;
+    border:1px solid var(--border);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 35%),
+      radial-gradient(900px 400px at 40% 10%, rgba(255,255,255,.07), rgba(255,255,255,0) 60%),
+      radial-gradient(700px 500px at 82% 30%, rgba(255,255,255,.05), rgba(255,255,255,0) 65%),
+      rgba(0,0,0,.10);
+    pointer-events:none;
+  }
+
+  .hud{
+    position:absolute; inset:20px;
+    display:grid;
+    grid-template-rows:auto 1fr auto;
+    pointer-events:none;
+  }
+  .topbar{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    padding:14px 14px 8px 14px;
+    align-items:flex-end;
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .kicker{
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .title{
+    font-family:"EB Garamond", ui-serif, serif;
+    font-weight:600;
+    font-size:28px;
+    letter-spacing:.02em;
+    line-height:1;
+  }
+  .rightmeta{
+    text-align:right;
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+    line-height:1.6;
+  }
+
+  .bottombar{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:10px 14px 14px 14px;
+    gap:16px;
+    font-family:"Source Code Pro", ui-monospace, monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.0));
+    backdrop-filter: blur(6px);
+  }
+  .dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background:rgba(232,226,214,.85);
+    box-shadow:0 0 12px rgba(232,226,214,.55);
+  }
+
+  @media (max-width: 640px){
+    .glass, .hud{ inset:14px; }
+    .title{ font-size:22px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="stage">
+  <canvas id="c"></canvas>
+  <div class="glass" aria-hidden="true"></div>
+
+  <div class="hud">
+    <div class="topbar">
+      <div class="brand">
+        <div class="kicker">vitrine / invisible sphere</div>
+        <div class="title">Shockfield</div>
+      </div>
+      <div class="rightmeta">
+        <div>globe: hidden</div>
+        <div>sources: simulated</div>
+        <div>active: <span id="k">0</span></div>
+      </div>
+    </div>
+
+    <div></div>
+
+    <div class="bottombar">
+      <div class="pill"><span class="dot"></span> rings persist across rotation</div>
+      <div class="pill">no epicenter dots</div>
+      <div class="pill">click on the sphere area</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { alpha:true });
+  const kEl = document.getElementById('k');
+
+  function resize(){
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width  = Math.floor(canvas.clientWidth  * dpr);
+    canvas.height = Math.floor(canvas.clientHeight * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  const TAU = Math.PI*2;
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+
+  function vec3(x=0,y=0,z=0){ return {x,y,z}; }
+  function add(a,b){ return {x:a.x+b.x, y:a.y+b.y, z:a.z+b.z}; }
+  function sub(a,b){ return {x:a.x-b.x, y:a.y-b.y, z:a.z-b.z}; }
+  function mul(a,s){ return {x:a.x*s, y:a.y*s, z:a.z*s}; }
+  function dot(a,b){ return a.x*b.x + a.y*b.y + a.z*b.z; }
+  function cross(a,b){ return {x:a.y*b.z-a.z*b.y, y:a.z*b.x-a.x*b.z, z:a.x*b.y-a.y*b.x}; }
+  function norm(a){
+    const m = Math.hypot(a.x,a.y,a.z) || 1;
+    return {x:a.x/m, y:a.y/m, z:a.z/m};
+  }
+
+  function latLonToVec(latDeg, lonDeg){
+    const lat = latDeg * Math.PI/180;
+    const lon = lonDeg * Math.PI/180;
+    const cl = Math.cos(lat);
+    return norm({
+      x: cl * Math.cos(lon),
+      y: Math.sin(lat),
+      z: cl * Math.sin(lon)
+    });
+  }
+
+  // Rotation helpers + inverses
+  function rotY(v,a){
+    const c=Math.cos(a), s=Math.sin(a);
+    return { x: v.x*c + v.z*s, y:v.y, z:-v.x*s + v.z*c };
+  }
+  function rotX(v,a){
+    const c=Math.cos(a), s=Math.sin(a);
+    return { x:v.x, y:v.y*c - v.z*s, z:v.y*s + v.z*c };
+  }
+  function invRotY(v,a){ return rotY(v, -a); }
+  function invRotX(v,a){ return rotX(v, -a); }
+
+  function project(v,cx,cy,R){ return { x: cx + v.x*R, y: cy - v.y*R, z: v.z }; }
+
+  function fade(alpha){
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+  }
+
+  function strokeGlow(pathFn, alpha, lw, blur){
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.lineJoin = 'miter';
+    ctx.lineCap  = 'butt';
+
+    ctx.strokeStyle = `rgba(232,226,214,${alpha*0.28})`;
+    ctx.lineWidth = lw + 1.2;
+    ctx.shadowColor = 'rgba(232,226,214,0.55)';
+    ctx.shadowBlur = blur;
+    ctx.beginPath(); pathFn(); ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(232,226,214,${alpha})`;
+    ctx.lineWidth = lw;
+    ctx.beginPath(); pathFn(); ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --- foci (only store center + time; no epicenter markers are drawn) ---
+  const foci = [];
+  function addFocusVec(centerWorld, strength=1.0){
+    foci.push({
+      c: norm(centerWorld),
+      s: clamp(strength, 0.30, 3.0),
+      t0: performance.now()
+    });
+    if(foci.length > 18) foci.shift();
+    kEl.textContent = String(foci.length);
+  }
+
+  // Deterministic RNG for autonomous foci
+  let seed = 1337;
+  const rng = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+
+  // seed a few initial waves
+  for(let i=0;i<4;i++){
+    addFocusVec(latLonToVec(lerp(-60,60,rng()), lerp(-180,180,rng())), 0.8 + rng()*1.5);
+  }
+
+  // --- Ring drawing (IMPORTANT CHANGE) ---
+  // Rings persist even if the focus rotates to the far side.
+  // We generate ring points in WORLD space, then rotate each point into VIEW space and clip by z>0.
+  function drawRings(centerWorld, strength, age, rot, cx, cy, R){
+    // tangent basis in world space
+    let up = Math.abs(centerWorld.y) < 0.95 ? vec3(0,1,0) : vec3(1,0,0);
+    let uW = norm(cross(up, centerWorld));
+    let vW = norm(cross(centerWorld, uW));
+
+    // wave params
+    const speed = 0.30 + 0.12*strength;   // radians/sec
+    const life  = 14.0 + 6.0*strength;    // sec
+    const fadeLife = 1 - clamp((age - life*0.62)/(life*0.38), 0, 1);
+
+    const baseAlpha = (0.06 + 0.11*strength) * fadeLife;
+    const a0 = age * speed;
+
+    const ringCount = 7;
+    for(let r=0;r<ringCount;r++){
+      const ar = a0 - r*0.11;
+      if(ar <= 0) continue;
+      if(ar > Math.PI - 0.08) continue; // stop before the antipode to keep it crisp
+
+      const envelope = Math.exp(-Math.pow((r/(ringCount-1)) * 1.7, 2));
+      const ringAlpha = baseAlpha * (0.9 - r*0.09) * envelope;
+      if(ringAlpha < 0.003) continue;
+
+      const lw = 0.8 + 0.25*r + 0.45*strength;
+      const blur = 10 + 4*r + 12*strength;
+
+      const steps = 180;
+      strokeGlow(()=>{
+        let started = false;
+        for(let k=0;k<=steps;k++){
+          const th = (k/steps) * TAU;
+
+          // world-space ring point
+          const dirW = add(mul(uW, Math.cos(th)), mul(vW, Math.sin(th)));
+          let pW = add(mul(centerWorld, Math.cos(ar)), mul(dirW, Math.sin(ar)));
+          pW = norm(pW);
+
+          // rotate to view space
+          let pV = rotX(rotY(pW, rot.y), rot.x);
+
+          // clip to visible hemisphere, but DON'T kill the whole ring if origin is hidden
+          if(pV.z <= 0){
+            started = false;
+            continue;
+          }
+
+          const p2 = project(pV, cx, cy, R);
+          if(!started){
+            ctx.moveTo(p2.x, p2.y);
+            started = true;
+          }else{
+            ctx.lineTo(p2.x, p2.y);
+          }
+        }
+      }, ringAlpha, lw, blur);
+    }
+  }
+
+  // --- Interaction: direct click mapping on the (invisible) sphere ---
+  // Click inside the projected sphere => spawn focus exactly under the cursor on the FRONT hemisphere.
+  // This gives immediate spatial response and avoids "random" feeling.
+  function clickToSpherePoint(clientX, clientY, rot, cx, cy, R){
+    const rect = canvas.getBoundingClientRect();
+    const x = (clientX - rect.left);
+    const y = (clientY - rect.top);
+
+    const dx = x - cx;
+    const dy = y - cy;
+
+    const rr = dx*dx + dy*dy;
+    if(rr > R*R) return null;
+
+    const nx = dx / R;
+    const ny = -dy / R;
+    const nz = Math.sqrt(Math.max(0, 1 - nx*nx - ny*ny));
+
+    // point in VIEW space
+    const pV = norm({x:nx, y:ny, z:nz});
+
+    // convert to WORLD by inverse rotation (so it stays stable as the sphere rotates)
+    let pW = invRotY(invRotX(pV, rot.x), rot.y);
+    pW = norm(pW);
+    return pW;
+  }
+
+  // --- Animation ---
+  let t0 = performance.now();
+  ctx.fillStyle = 'rgba(0,0,0,1)';
+  ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+
+  // store current rot for click mapping
+  let currentRot = {x:-0.25, y:0};
+
+  canvas.addEventListener('pointerdown', (e) => {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const minDim = Math.min(w,h);
+    const R = minDim * 0.33;
+    const cx = w*0.5;
+    const cy = h*0.53;
+
+    const pW = clickToSpherePoint(e.clientX, e.clientY, currentRot, cx, cy, R);
+    if(!pW) return;
+
+    // immediate, stronger response: higher strength and no epicenter dot
+    const strength = 1.0 + rng()*1.6;
+    addFocusVec(pW, strength);
+  }, {passive:true});
+
+  function frame(now){
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+
+    // trails so overlaps feel like interference
+    fade(0.14);
+
+    const minDim = Math.min(w,h);
+    const R = minDim * 0.33;
+    const cx = w*0.5;
+    const cy = h*0.53;
+
+    // rotate sphere slowly
+    const t = (now - t0)/1000;
+    currentRot = {
+      y: t*0.10,
+      x: -0.25 + Math.sin(t*0.06)*0.06
+    };
+
+    // draw & prune
+    for(let i=foci.length-1;i>=0;i--){
+      const f = foci[i];
+      const age = (now - f.t0)/1000;
+      const life = 18 + 6*f.s;
+      if(age > life){
+        foci.splice(i,1);
+        continue;
+      }
+      drawRings(f.c, f.s, age, currentRot, cx, cy, R);
+    }
+
+    // autonomous new foci sometimes (keeps it alive even without clicks)
+    if(foci.length < 7 && (Math.sin(t*0.22) > 0.995)){
+      addFocusVec(latLonToVec(lerp(-70,70,rng()), lerp(-180,180,rng())), 0.8 + rng()*1.8);
+    }
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
