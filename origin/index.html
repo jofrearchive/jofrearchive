@@ -1,1385 +1,887 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-
-<script>
-/* BAB3D early mobile gate: runs before any other scripts */
-(function(){
-  var ua = navigator.userAgent || "";
-  var tp = (navigator.maxTouchPoints || 0);
-
-  function uaMobile(){
-    return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua);
-  }
-
-  // iPadOS can masquerade as Macintosh but still has touch points.
-  var iPadMasq = /Macintosh/i.test(ua) && tp > 1;
-
-  // Avoid activating on desktop OS even if touch-capable (Surface etc.)
-  var desktopOS = (/Windows NT/i.test(ua) || (/Mac OS X/i.test(ua) && !iPadMasq));
-
-  var coarse = false, noHover = false;
-  try{
-    if (window.matchMedia){
-      coarse = window.matchMedia("(pointer: coarse)").matches;
-      noHover = window.matchMedia("(hover: none)").matches;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>JOFRE ARCHIVE — Cloister Point Cloud</title>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Source+Code+Pro:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #0b0b0b;
+      --ivory: #e8e2d6;
+      --led-green: #4ade80;
     }
-  }catch(e){}
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background: var(--bg-deep); }
+    #renderCanvas { width:100%; height:100%; touch-action:none; filter: contrast(110%) brightness(90%); }
 
-  // Robust mobile signal set (no screen-size logic)
-  var mobileSignals = uaMobile() || iPadMasq || coarse || noHover;
+    /* Gate */
+    #gate {
+      position:absolute; inset:0;
+      background: radial-gradient(circle at center, rgba(11,11,11,0.8) 0%, var(--bg-deep) 100%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:10; color:var(--ivory); text-align:center;
+    }
+    .bab3d-on #gate{ display:none; }
 
-  // Final decision: must have touch + mobile signals + not desktop OS
-  var vwMobile = false;
-  try{ vwMobile = window.matchMedia && window.matchMedia("(max-width: 900px)").matches; }catch(e){}
-  // Final decision: touch + signals + not desktop OS, OR small viewport fallback (iOS "Request Desktop Website" edge cases)
-  var isMobile = ((tp > 0) && mobileSignals && !desktopOS) || vwMobile;
+    h1 {
+      font-family:'EB Garamond', serif;
+      font-weight: normal;
+      letter-spacing: .2em;
+      opacity:.9;
+      margin: 0 0 40px 0;
+    }
 
-  if(isMobile){
-    document.documentElement.classList.add("bab3d-ready");
-    document.addEventListener("DOMContentLoaded", function(){
-      document.body.classList.add("bab3d-ready");
-    });
-  }
-})();
-</script>
+    #startVR {
+      background: rgba(0,0,0,.6);
+      border: 1px solid rgba(232,226,214,.2);
+      color: var(--ivory);
+      font-family:'Source Code Pro', monospace;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      padding: 12px 30px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap: 15px;
+      transition: all .3s ease;
+    }
+    #startVR:hover { border-color: rgba(232,226,214,.5); background: rgba(0,0,0,.8); }
+    #led { width:8px; height:8px; background:#222; border-radius:50%; box-shadow: 0 0 0px var(--led-green); transition:.3s; }
+    #startVR:hover #led { background: var(--led-green); box-shadow: 0 0 8px var(--led-green); }
 
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Slide 2</title>
-
-<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
-
-<style>
-:root {
-  --bg:#0b0b0b;
-  --ink:#e8e2d6;
-  --panel: rgba(15,15,15,.74);
-  --border: rgba(255,255,255,.16);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-}
-html,body {
-  margin:0; padding:0;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:'EB Garamond', serif;
-  height:100%;
-  overflow:hidden;
-}
-canvas{display:block;}
-
-/* ===== LIVE CODE BACKGROUND ===== */
-#code-bg{
+    
+/* ===== PANEL ===== */
+#panel{
   position:fixed;
-  inset:0;
-  z-index:1;
-  pointer-events:none;
-  overflow:hidden;
-  opacity:.48;
-  mix-blend-mode: screen;
-}
-#code-bg .codeWrap{
-  position:absolute;
   left:50%;
   top:50%;
-  width: min(900px, 92vw);
-  height: min(62vh, 560px);
   transform: translate(-50%, -50%);
-  padding: 18px 18px 22px 18px;
-  border-radius: 14px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 12px;
-  letter-spacing:.06em;
-  line-height: 1.55;
-  color: rgba(232,226,214,.58);
-  white-space: pre;
-  filter: blur(.05px);
-  mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 62%, rgba(0,0,0,0) 96%);
-}
-#code-bg .cursor{
-  display:inline-block;
-  width: 8px;
-  transform: translateY(1px);
-  border-bottom: 1px solid rgba(232,226,214,.55);
-  animation: blink 1.05s steps(1,end) infinite;
-  opacity:.75;
-}
-@keyframes blink { 50% { opacity: 0; } }
-
-/* ===== VITRINE BACKGROUND ===== */
-#vitrine-bg{
-  position:fixed; inset:-2%;
-  z-index:0; pointer-events:none;
-  background:
-    radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06) 0%, rgba(255,255,255,.00) 58%),
-    radial-gradient(900px 600px at 50% 72%, rgba(232,226,214,.05) 0%, rgba(0,0,0,0) 60%),
-    linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0,.42) 100%),
-    radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.65) 0%, rgba(0,0,0,.0) 55%),
-    radial-gradient(700px 700px at 15% 25%, rgba(255,255,255,.035) 0%, rgba(0,0,0,0) 58%),
-    radial-gradient(700px 700px at 85% 30%, rgba(255,255,255,.03) 0%, rgba(0,0,0,0) 60%),
-    #0b0b0b;
-  filter:saturate(.92) contrast(1.05);
-}
-#vitrine-bg::after{
-  content:"";
-  position:absolute; inset:0;
-  background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.009) 0px, rgba(255,255,255,.009) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 6px);
-  opacity:.25;
-  mix-blend-mode: overlay;
-}
-#vitrine-glass{
-  position:fixed; inset:0;
-  z-index:3; pointer-events:none;
-  background:
-    linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 22%),
-    linear-gradient(245deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 26%),
-    radial-gradient(900px 700px at 60% 25%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 55%);
-  opacity:.34;
-  mix-blend-mode: screen;
-}
-#vitrine-glass::after{
-  content:"";
-  position:absolute; inset:-6%;
-  background:
-    radial-gradient(700px 450px at 20% 15%, rgba(255,255,255,.10) 0%, rgba(255,255,255,0) 55%),
-    radial-gradient(900px 520px at 90% 30%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 60%),
-    linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,255,255,.04) 100%);
-  opacity:.55;
-  mix-blend-mode: screen;
-  filter: blur(.35px);
-}
-#vitrine-frame{
-  position:fixed;
-  inset: clamp(10px, 2.2vw, 22px);
-  z-index:4;
-  pointer-events:none;
-  border-radius: 14px;
-  box-shadow:
-    inset 0 0 0 1px rgba(232,226,214,.10),
-    inset 0 0 0 2px rgba(0,0,0,.55),
-    inset 0 20px 40px rgba(0,0,0,.35),
-    inset 0 -30px 60px rgba(0,0,0,.45);
-  opacity:.7;
-}
-body::after {
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background: radial-gradient(circle at 50% 45%, transparent 38%, rgba(0,0,0,.94) 100%);
-  z-index:2;
-}
-
-/* ===== CURATORIAL PANEL ===== */
-#panel {
-  position:fixed;
-  left: clamp(14px, 4vw, 60px);
-  top:  clamp(14px, 5vh, 60px);
-  width: min(440px, 92vw);
-  background:var(--panel);
-  border:1px solid var(--border);
-  padding: clamp(18px, 3.2vw, 28px);
-  backdrop-filter: blur(10px);
+  width: min(360px, 92vw);
+  background: rgba(10,10,10,.65);
+  border:1px solid rgba(255,255,255,.18);
+  padding: 32px !important; /* Padding restaurado a 32px */
+  backdrop-filter: blur(8px);
   z-index:8;
   opacity:0;
-  transform: translateY(6px);
-  transition: opacity 1.2s ease, transform 1.2s ease;
+  transition: opacity 1.0s ease;
+  display:none;
 }
-#panel.show{ opacity:1; transform:translateY(0); }
+#panel.show{ opacity:1; }
 
-@media (min-width: 821px){
-  #panel{
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, calc(-50% + 6px));
-  }
-  #panel.show{
-    transform: translate(-50%, -50%);
-  }
+#panel #title{
+  font-family:'EB Garamond', serif;
+  font-size: 28px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  margin: 0 0 10px 0;
 }
-
-#title {
-  font-size: clamp(18px, 3vw, 30px);
+#panel #submeta{
+  font-family:'Source Code Pro', monospace;
+  font-size: 10px;
   letter-spacing: .14em;
-  margin-bottom: 10px;
   text-transform: uppercase;
+  opacity:.65;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  color: var(--ivory);
 }
-#submeta {
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 11px;
-  letter-spacing: .12em;
-  opacity: .65;
-  text-transform: uppercase;
-  line-height: 1.55;
-  margin-bottom: 14px;
-}
-.tabs {
+#panel .tabs{
   display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin: 6px 0 14px 0;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
-.tabLink {
-  display:inline-block;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.03);
-  color: var(--ink);
-  padding: 7px 10px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
+#panel .tabLink{
+  flex: 1 1 0;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: var(--ivory);
+  font-family: 'Source Code Pro', monospace;
   font-size: 11px;
-  letter-spacing: .12em;
+  letter-spacing: .14em;
   text-transform: uppercase;
-  text-decoration:none;
-  cursor:pointer;
-  opacity:.85;
-  transition: all 0.3s ease;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
 }
-.tabLink:hover, .tabLink.active {
-  background: rgba(232,226,214,.10);
-  border-color: rgba(232,226,214,.35);
-  opacity:1;
-}
-#dynamicDescription {
-  font-size: clamp(14px, 1.9vw, 16px);
-  line-height: 1.65;
-  opacity: .90;
-  min-height: 60px;
-  transition: opacity 0.3s ease;
-}
-#dynamicDescription.fade {
-  opacity: 0;
+#panel .tabLink:hover, #panel .tabLink.active{
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.36);
+  opacity: 1;
 }
 
-.tabCta{
-  margin-top: 10px;
-  display:inline-flex;
+#dynamicDescription{ display:none; }
+
+/* gate vs system */
+body.bab3d-ready #panel{ display:none; }
+body.bab3d-on #gate{ display:none; }
+body.bab3d-on #panel{ display:block; }
+
+/* ===== LOADER ===== */
+#loader {
+  position:fixed; inset:0;
+  background: var(--bg-deep);
+  z-index:9999;
+  display:flex;
   align-items:center;
-  gap:8px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 11px;
-  letter-spacing: .12em;
+  justify-content:center;
+  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
+           max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+}
+#loader[aria-hidden="true"]{ display:none; }
+.loaderBox {
+  width:min(760px, 92vw);
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(10,10,10,.60);
+  padding: clamp(18px, 4vw, 34px);
+}
+.loaderTitle {
+  font-family:'EB Garamond', serif;
+  font-size: clamp(16px, 2.6vw, 22px);
+  letter-spacing: .24em;
   text-transform: uppercase;
-  color: rgba(232,226,214,.72);
-  text-decoration:none;
-  opacity:.75;
-  border:0;
-  background:transparent;
+  opacity:.92;
+  margin-bottom: 12px;
+  color: var(--ivory);
 }
-.tabCta .arrow{
-  display:inline-block;
-  transform: translateX(0);
-  transition: transform 180ms ease, opacity 180ms ease;
-  opacity:.7;
-}
-.tabCta:hover{
-  color: rgba(232,226,214,.92);
-  opacity:.9;
-}
-.tabCta:hover .arrow{
-  transform: translateX(4px);
-  opacity:1;
-}
-.tabCta .arrow{
-  animation: arrowPulse 2.4s ease-in-out infinite;
-}
-@keyframes arrowPulse{
-  0%,100%{ transform: translateX(0); opacity:.65; }
-  50%{ transform: translateX(2px); opacity:.9; }
-}
-
-#footer {
-  margin-top: 16px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 11px;
-  opacity: .55;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-#panelHandle{ display:none; }
-#panelBody{ display:block; }
-
-@media (max-width: 820px){
-  #panel{
-    left: 10px;
-    right: 10px;
-    top: auto;
-    bottom: 10px;
-    width: auto;
-    padding: 0;
-    overflow:hidden;
-    transform: translateY(6px);
-  }
-  #panel.show{ transform: translateY(0); }
-
-  #panelHandle{
-    display:flex;
-    width:100%;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    padding: 14px 16px;
-    border:0;
-    border-bottom: 1px solid rgba(255,255,255,.12);
-    background: var(--panel);
-    color: var(--ink);
-    cursor:pointer;
-    font-family:'EB Garamond', serif;
-    backdrop-filter: blur(10px);
-  }
-  #panelHandle .handleTitle{
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    font-size: 14px;
-    opacity:.96;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-  #panelHandle .chev{
-    font-family: 'Source Code Pro', var(--mono);
-    font-weight:300;
-    font-size: 14px;
-    opacity:.65;
-    transform: rotate(180deg);
-    transition: transform 240ms ease;
-  }
-  #panelBody{
-    padding: 14px 16px 16px 16px;
-    max-height: 62vh;
-    overflow:auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  #panel.collapsed #panelBody{
-    max-height:0;
-    padding-top:0;
-    padding-bottom:0;
-    overflow:hidden;
-  }
-  #panel.collapsed #panelHandle{
-    border-bottom: 0;
-  }
-  #panel.collapsed #panelHandle .chev{
-    transform: rotate(0deg);
-  }
-  #panel #title{ display:none; }
-  .tabLink{ padding: 9px 11px; }
-}
-@media (max-width: 820px){
-  #panelHandle .handleHint{ display:none; }
-}
-
-#statusStrip{
-  position:fixed;
-  left:50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  width: min(760px, 92vw);
-  z-index:7;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(10,10,10,.35);
-  backdrop-filter: blur(10px);
-  padding: 10px 12px 10px 12px;
+.typeLine {
+  font-family: 'Source Code Pro', monospace;
+  font-size: clamp(12px, 2vw, 14px);
+  letter-spacing: .08em;
   opacity:.78;
+  line-height:1.65;
+  white-space: pre-wrap;
+  min-height: 5.2em;
+  color: var(--ivory);
 }
-.statusLine{
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 11px;
-  letter-spacing:.12em;
-  text-transform: uppercase;
-  opacity:.85;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.statusBarWrap{
-  margin-top: 8px;
-  height: 8px;
-  border:1px solid rgba(255,255,255,.14);
+.barWrap {
+  margin-top: 18px;
+  height: 10px;
+  border:1px solid rgba(255,255,255,.16);
   background: rgba(255,255,255,.03);
 }
-.statusBar{
+.bar {
   height:100%;
-  width:18%;
-  background: rgba(232,226,214,.42);
-  transition: width .22s ease;
+  width:0%;
+  background: rgba(232,226,214,.58);
+  transition: width .08s linear;
 }
-.statusMeta{
+.percentRow {
   display:flex;
   justify-content:space-between;
   gap:12px;
-  margin-top: 8px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 10px;
-  letter-spacing:.14em;
-  opacity:.62;
+  margin-top: 12px;
+  font-family: 'Source Code Pro', monospace;
+  font-size: 12px;
+  letter-spacing: .14em;
+  opacity:.65;
   text-transform: uppercase;
+  color: var(--ivory);
 }
+.fadeOut {
+  opacity:0;
+  pointer-events:none;
+  transition: opacity 1.1s ease;
+}
+
+/* Motion permission mini button (iOS) */
+#motionBtn{
+  position: fixed;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 12;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.45);
+  color: rgba(232,226,214,.55); /* OFF = grey */
+  font-family:'Source Code Pro', monospace;
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: border-color .25s ease, color .25s ease, background .25s ease;
+}
+#motionBtn:hover{
+  border-color: rgba(255,255,255,.30);
+  background: rgba(0,0,0,.60);
+}
+
+#motionDot{
+  width:8px; height:8px; border-radius:50%;
+  background:#222;           /* OFF = grey dot */
+  box-shadow:none;
+  transition:all .25s ease;
+}
+
+#motionBtn.active #motionDot{
+  background: rgba(74,222,128,.95);
+  box-shadow: 0 0 12px rgba(74,222,128,.85);
+}
+
+
+/* Mobile adjustments */
 @media (max-width: 520px){
-  #statusStrip{
-    top: max(12px, env(safe-area-inset-top));
-    bottom: auto;
+  #panel{
+    padding: 14px 14px 8px !important;
   }
 }
+
+
 </style>
 </head>
+<body class="bab3d-ready">
 
-<body>
-  <div id="vitrine-bg" aria-hidden="true"></div>
+<script>
+(function(){
+  try{
+    if (localStorage.getItem("JA_INIT_DONE_v1")==="1") {
+      document.body.classList.remove("bab3d-ready");
+      document.body.classList.add("bab3d-on");
+    }
+  }catch(e){}
+})();
+</script>
 
-  <div id="code-bg" aria-hidden="true">
-    <div class="codeWrap" id="codeWrap"></div>
-  </div>
-
-  <div id="vitrine-glass" aria-hidden="true"></div>
-  <div id="vitrine-frame" aria-hidden="true"></div>
-
-  <div id="panel">
-    <button id="panelHandle" aria-expanded="true" aria-controls="panelBody">
-      <span class="handleTitle" id="handleTitle">TITLE</span>
-      <span class="chev" aria-hidden="true">⌃</span>
+  <div id="gate">
+    <h1>EXPERIMENTAL ARCHIVE</h1>
+    <button id="startVR">
+      <div id="led"></div>
+      <span>Initialize System</span>
     </button>
+  </div>
 
-    <div id="panelBody">
-      <div id="title">TITLE</div>
-      <div id="submeta"></div>
-
-      <div class="tabs" id="tabs"></div>
-      <div id="dynamicDescription"></div>
-
-      <div id="footer"></div>
+  <div id="loader" aria-hidden="true">
+    <div class="loaderBox">
+      <div class="loaderTitle">INITIALIZING SYSTEM</div>
+      <div id="typeLine" class="typeLine">Boot sequence…</div>
+      <div class="barWrap"><div id="bar" class="bar"></div></div>
+      <div class="percentRow">
+        <div id="pct">0%</div>
+        <div id="status">loading geometry</div>
+      </div>
     </div>
   </div>
 
-  <div id="statusStrip" aria-live="polite">
-    <div id="statusLine" class="statusLine">archive active · awaiting input</div>
-    <div class="statusBarWrap"><div id="statusBar" class="statusBar"></div></div>
-    <div class="statusMeta">
-      <span id="statusLeft">index</span>
-      <span id="statusRight">ok</span>
-    </div>
+  <canvas id="renderCanvas"></canvas>
+
+  <button id="motionBtn" type="button" aria-label="Toggle VR">
+  <span id="motionDot" aria-hidden="true"></span>
+  <span class="vrLabel">VR OFF</span>
+</button>
+
+  <div id="panel" aria-hidden="false">
+    <div id="title">JOFRE OLIVERAS</div>
+    <div id="submeta"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="dynamicDescription"></div>
   </div>
 
 <script>
 const PANEL_CONTENT = {
   title: "JOFRE OLIVERAS",
   submeta: [
-    "artist · researcher · explorer",
-    "speculative material practices",
-    "based between disciplines"
+    "ARTIST · EXPLORER · LANDSCAPER",
+    "BASED BETWEEN DISCIPLINES",
+    "EXPERIMENTAL ARCHIVE"
   ],
-  footer: "",
   tabs: [
-    {
-      key: "STUDIES",
-      body: "Catalogue of artistic investigations",
-      ctaLabel: "Access",
-      ctaHref: "https://inside.jofrearchive.com/studies/"
-    },
-    {
-      key: "GENEALOGY",
-      body: "Mapped lineage of influence and transformation",
-      ctaLabel: "Access",
-      ctaHref: "https://inside.jofrearchive.com/genealogy/"
-    },
-    {
-      key: "ARTIFACTS",
-      body: "Selected works available for new custodianship",
-      ctaLabel: "Access",
-      ctaHref: "https://jofrearchive.com/artifacts/"
-    }
+    { key: "STUDIES", ctaHref: "https://inside.jofrearchive.com/studies/" },
+    { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" },
+    { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
   ]
 };
 
 (function initPanel(){
   const panel = document.getElementById("panel");
   const titleEl = document.getElementById("title");
-  const handleTitleEl = document.getElementById("handleTitle");
   const submetaEl = document.getElementById("submeta");
   const tabsEl = document.getElementById("tabs");
-  const descEl = document.getElementById("dynamicDescription");
-  const footerEl = document.getElementById("footer");
 
-  titleEl.textContent = PANEL_CONTENT.title || "";
-  handleTitleEl.textContent = PANEL_CONTENT.title || "";
+  function escapeHtml(s){
+    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
 
-  submetaEl.innerHTML = (PANEL_CONTENT.submeta || [])
-    .map(line => escapeHtml(line))
-    .join("<br>");
-
-  footerEl.textContent = PANEL_CONTENT.footer || "";
+  titleEl.textContent = PANEL_CONTENT.title;
+  submetaEl.innerHTML = PANEL_CONTENT.submeta.map(escapeHtml).join("<br>");
 
   tabsEl.innerHTML = "";
-  
-  function showDescription(index) {
-    const t = PANEL_CONTENT.tabs[index];
-    descEl.classList.add('fade');
-    
-    setTimeout(() => {
-      descEl.innerHTML = '';
-      
-      const p = document.createElement("p");
-      p.textContent = t.body || "";
-      descEl.appendChild(p);
-
-      if (t.ctaHref) {
-        const a = document.createElement("a");
-        a.className = "tabCta";
-        a.href = t.ctaHref;
-        // Sin target="_blank" - se abre en la misma página
-
-        const label = document.createElement("span");
-        label.className = "label";
-        label.textContent = t.ctaLabel || "Access";
-
-        const arrow = document.createElement("span");
-        arrow.className = "arrow";
-        arrow.textContent = "→";
-
-        a.appendChild(label);
-        a.appendChild(arrow);
-        descEl.appendChild(a);
-      }
-      
-      descEl.classList.remove('fade');
-    }, 150);
-  }
-
-  PANEL_CONTENT.tabs.forEach((t, i) => {
-    const link = document.createElement("a");
-    link.className = "tabLink" + (i === 0 ? " active" : "");
-    link.href = t.ctaHref;
-    // Sin target="_blank" - mismo comportamiento que un enlace normal
-    link.textContent = t.key;
-    
-    link.addEventListener('mouseenter', () => {
-      document.querySelectorAll('.tabLink').forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      showDescription(i);
-      if (window.__setIndexing) window.__setIndexing(t.key);
+  PANEL_CONTENT.tabs.forEach((t)=>{
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tabLink";
+    b.textContent = t.key;
+    b.addEventListener("click", ()=>{
+      if (t.ctaHref) window.location.href = t.ctaHref;
     });
-    
-    tabsEl.appendChild(link);
+    tabsEl.appendChild(b);
   });
 
-  showDescription(0);
-
-  const handle = document.getElementById("panelHandle");
-  const setExpanded = (expanded) => {
-    panel.classList.toggle("collapsed", !expanded);
-    handle.setAttribute("aria-expanded", expanded ? "true" : "false");
-  };
-
-  setExpanded(true);
-
-  handle.addEventListener("click", () => {
-    const isCollapsed = panel.classList.contains("collapsed");
-    setExpanded(isCollapsed);
+  const obs = new MutationObserver(() => {
+    if (document.body.classList.contains("bab3d-on")) {
+      panel.classList.add("show");
+      obs.disconnect();
+    }
   });
-
-  const mq = window.matchMedia("(max-width: 820px)");
-  const onMq = () => {
-    handleTitleEl.textContent = PANEL_CONTENT.title || "";
-    if (!mq.matches) {
-      panel.classList.remove("collapsed");
-      handle.setAttribute("aria-expanded", "true");
-    }
-  };
-  mq.addEventListener?.("change", onMq);
-  window.addEventListener("resize", onMq);
-  onMq();
-
-  requestAnimationFrame(() => panel.classList.add("show"));
+  obs.observe(document.body, { attributes:true, attributeFilter:["class"] });
 })();
-
-(function statusStrip(){
-  const lineEl = document.getElementById("statusLine");
-  const barEl = document.getElementById("statusBar");
-  const leftEl = document.getElementById("statusLeft");
-  const rightEl = document.getElementById("statusRight");
-
-  if (!lineEl || !barEl || !leftEl || !rightEl) return;
-
-  const base = [
-    "archive active",
-    "checksum verified",
-    "node map refreshed",
-    "cross-reference attached",
-    "index synced",
-    "listening for updates",
-    "cache warm",
-    "integrity ok"
-  ];
-
-  let tick = 0;
-
-  function setStatus(msg, left, right){
-    if (msg) lineEl.textContent = msg;
-    if (left) leftEl.textContent = left;
-    if (right) rightEl.textContent = right;
-  }
-
-  function randomBase(){
-    return base[Math.floor(Math.random()*base.length)];
-  }
-
-  function runCycle(label){
-    const cycleId = ++tick;
-    const duration = 2200 + Math.floor(Math.random()*1800);
-    const start = performance.now();
-
-    function frame(now){
-      const t = Math.min(1, (now - start) / duration);
-      const pct = Math.round(t * 100);
-      barEl.style.width = pct + "%";
-      rightEl.textContent = pct + "%";
-      if (t < 1){
-        requestAnimationFrame(frame);
-      } else {
-        setStatus((label || randomBase()) + " · refreshed", "stream", "100%");
-        setTimeout(() => {
-          setStatus(randomBase() + " · updating", "stream", "0%");
-          barEl.style.width = "0%";
-          runCycle();
-        }, 260);
-      }
-    }
-    requestAnimationFrame(frame);
-  }
-
-  window.__setIndexing = function(tabLabel){
-    const t = String(tabLabel || "").trim().toLowerCase();
-    setStatus("indexing " + t + " …", "stream", "0%");
-    barEl.style.width = "0%";
-    runCycle("indexing " + t);
-  };
-
-  setStatus("archive active · updating", "stream", "0%");
-  barEl.style.width = "0%";
-  runCycle();
-})();
-
-(function liveCode(){
-  const el = document.getElementById("codeWrap");
-  if (!el) return;
-
-  const fragments = [
-`<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>${PANEL_CONTENT.title}</title>
-
-<style>
-
-/* ===== BABYLON MOBILE VR GATE ===== */
-#babylon-canvas{
-  position:fixed; inset:0;
-  width:100vw; height:100vh;
-  z-index:2147483646;
-  display:none;
-  touch-action:none; /* allow pointer tracking; we selectively prevent default on 2-finger */
-}
-#vr-gate{
-  position:fixed; inset:0;
-  z-index:2147483647;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:#000;
-}
-#vr-gate .gateBtn{
-  appearance:none;
-  border:1px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.06);
-  color: var(--ink);
-  padding: 14px 18px;
-  border-radius: 14px;
-  font-family: 'Source Code Pro', var(--mono);
-  font-weight:300;
-  font-size: 12px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  cursor:pointer;
-  backdrop-filter: blur(10px);
-}
-#vr-gate .gateBtn:active{
-  transform: translateY(1px);
-  background: rgba(232,226,214,.12);
-  border-color: rgba(232,226,214,.35);
-}
-body.bab3d-ready #desktop-root{ display:none !important; }
-html.bab3d-ready #desktop-root{ display:none !important; }
-body.bab3d-on #desktop-root{ display:none !important; }
-html.bab3d-on #desktop-root{ display:none !important; }
-body.bab3d-ready #vr-gate{ display:flex !important; }
-html.bab3d-ready #vr-gate{ display:flex !important; }
-body.bab3d-on #vr-gate{ display:none !important; }
-html.bab3d-on #vr-gate{ display:none !important; }
-body.bab3d-on #babylon-canvas{ display:block !important; }
-html.bab3d-on #babylon-canvas{ display:block !important; }
-
-@media (prefers-reduced-motion: reduce){
-  #vr-gate .gateBtn{ transition:none; }
-}
-
-</style>
-</head>
-<body>
-
-  <div id="desktop-root">
-`,
-`const PANEL_CONTENT = ${JSON.stringify(PANEL_CONTENT, null, 2)};`,
-`function renderPanel(content){
-  // hydrate title, submeta, tabs
-}`,
-`/* hot reload */ 
-window.__specimenClock = Date.now();`,
-`fetch("/api/archive/pulse").then(r=>r.json()).then(p=>console.log("pulse", p));`,
-`// recompute vitrine lighting
-requestAnimationFrame(()=>{/* ... */});`,
-`</body>
-</html>`
-  ];
-
-  function makeStream(){
-    let out = "";
-    for (let i=0;i<18;i++){
-      out += fragments[i % fragments.length] + "\n\n";
-    }
-    return out;
-  }
-
-  let stream = makeStream();
-  let i = 0;
-  const maxLines = 34;
-
-  function tick(){
-    const step = 1 + Math.floor(Math.random()*3);
-    if (Math.random() < 0.08) { }
-    else { i = Math.min(i + step, stream.length); }
-
-    const slice = stream.slice(0, i);
-    const lines = slice.split("\n");
-    const last = lines.slice(Math.max(0, lines.length - maxLines)).join("\n");
-
-    el.innerHTML = escapeHtml(last) + '<span class="cursor"></span>';
-
-    if (i >= stream.length){
-      stream = makeStream();
-      i = 0;
-    }
-    requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-})();
-
-function slug(s){
-  return String(s || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w]+/g,"-")
-    .replace(/^-+|-+$/g,"");
-}
-
-function escapeHtml(str){
-  return String(str ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
 </script>
 
-  </div>
+<script>
+(function(){
 
-  <!-- Mobile-only Babylon.js native GUI VR -->
-  <canvas id="babylon-canvas"></canvas>
-  <div id="vr-gate" aria-hidden="true">
-    <button class="gateBtn" id="enable-vr-btn" type="button">Enable VR</button>
-  </div>
-
-  <!-- Babylon.js -->
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
-
-  <script>
-  (function() {
-    // --- Mobile detection (NOT by screen size only) ---
-    function uaMobile() {
-      const ua = navigator.userAgent || "";
-      // Covers most phones/tablets
-      if (/Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(ua)) return true;
+  
+// iOS motion permission: Safari will show the real system prompt when required.
+async function requestGyroPermission(){
+  const DOE = window.DeviceOrientationEvent;
+  if (!DOE) {
+    console.log("DeviceOrientationEvent not supported");
+    return false;
+  }
+  if (typeof DOE.requestPermission === "function") {
+    try {
+      const res = await DOE.requestPermission();
+      console.log("iOS permission result:", res);
+      return res === "granted";
+    } catch (e) {
+      console.error("iOS permission error:", e);
       return false;
     }
-    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-    const noHover = window.matchMedia && window.matchMedia("(hover: none)").matches;
-    const touchPoints = (navigator.maxTouchPoints || 0);
+  }
+  console.log("No permission needed (non-iOS or old iOS)");
+  return true;
+}
 
-    // iPadOS can masquerade as "Macintosh" but still has touch points.
+  function isMobile(){
     const ua = navigator.userAgent || "";
-    const iPadMasquerade = /Macintosh/i.test(ua) && touchPoints > 1;
+    const tp = navigator.maxTouchPoints || 0;
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/(Macintosh)/i.test(ua) && tp > 1);
+  }
 
-    // We accept mobile if ANY strong mobile signal is present (not screen size).
-    const isMobile = coarse || noHover || uaMobile() || iPadMasquerade || touchPoints > 1;
-// Never activate on desktop.
-    if (!isMobile) {
-      document.body.classList.remove("bab3d-ready","bab3d-on");
-      document.documentElement.classList.remove("bab3d-ready","bab3d-on");
-      return;
+  const canvas = document.getElementById("renderCanvas");
+  const engine = new BABYLON.Engine(canvas, true);
+  let scene;
+
+  const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
+
+  async function createScene(){
+    scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0.043, 0.043, 0.043, 1);
+
+    const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+    hemiLight.intensity = 0.35;
+
+    const keyLight = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(-0.4, -1, -0.6), scene);
+    keyLight.position = new BABYLON.Vector3(3, 6, 4);
+    keyLight.intensity = 1.1;
+
+    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
+const camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
+camera.attachControl(canvas, true);
+// Keep framing consistent across desktop/mobile aspect ratios
+camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+camera.fov = 0.85; // tweak: smaller = tighter, larger = wider
+
+
+// Objetivo de mirada: hacia el centro elevado (mirada ascendente)
+camera.setTarget(new BABYLON.Vector3(0, 15, 0));
+
+// Sin teclado
+camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
+
+// --- VR TOGGLE BUTTON (GIROSCOPIO MANUAL CORREGIDO) ---
+const motionBtn = document.getElementById("motionBtn");
+if (isMobile() && motionBtn) {
+    motionBtn.style.display = "flex";
+    
+    let motionEnabled = false;
+    let initialCameraQuat = new BABYLON.Quaternion();
+    let sensorZeroQuat = new BABYLON.Quaternion();
+    let currentDeviceQuat = new BABYLON.Quaternion();
+    let smoothedDeviceQuat = new BABYLON.Quaternion();
+    let firstRead = true;
+    let activationPose = "upright"; // "upright" | "flatUp" | "flatDown" // "upright" | "flat" (fixed at activation)
+    let eventCount = 0;
+    
+    // Smoothing factor (0.0 - 1.0). Lower = smoother but more lag
+    const SMOOTHING_FACTOR = 0.12;
+    
+    // Debug info
+    console.log("Mobile detected, VR button visible");
+    console.log("Protocol:", window.location.protocol);
+    console.log("DeviceOrientationEvent available:", 'DeviceOrientationEvent' in window);
+
+    // Handler manual para el sensor con debugging
+    const handleMotion = (event) => {
+        if (!motionEnabled) {
+            console.log("Event received but motion not enabled");
+            return;
+        }
+
+        eventCount++;
+        if (eventCount % 60 === 0) { // Log cada ~1 segundo a 60fps
+            console.log("Orientation event #", eventCount, "alpha:", event.alpha, "beta:", event.beta, "gamma:", event.gamma);
+        }
+
+        // Manejar valores null (iOS sin magnetómetro)
+        const alpha = (event.alpha === null) ? 0 : BABYLON.Tools.ToRadians(event.alpha);
+        const beta = (event.beta === null) ? 0 : BABYLON.Tools.ToRadians(event.beta);
+        const gamma = (event.gamma === null) ? 0 : BABYLON.Tools.ToRadians(event.gamma);
+
+        // Detectar la pose en el moment d'activació (només 1 cop)
+        if (firstRead) {
+            const bDeg = (event.beta  ?? 0);
+            const gDeg = (event.gamma ?? 0);
+
+            // Heurística: en "flat" (pantalla plana mirant amunt), beta i gamma solen estar prop de 0.
+            // En "upright" (telèfon dret), beta sol estar prop de ±90.
+            const isFlat = Math.abs(bDeg) < 35 && Math.abs(gDeg) < 35;
+            
+  const isFlatLike = Math.abs(gDeg) < 35;
+  const isFlatUp   = isFlatLike && (Math.abs(bDeg) < 35);
+  const isFlatDown = isFlatLike && (Math.abs(Math.abs(bDeg) - 180) < 35);
+
+  if (isFlatUp) activationPose = "flatUp";
+  else if (isFlatDown) activationPose = "flatDown";
+  else activationPose = "upright";
+
+        }
+
+
+        // Construir cuaternión del dispositivo evitando gimbal lock (orden Y * X * Z)
+// y compensando la orientación de pantalla (portrait/landscape).
+const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
+    ? screen.orientation.angle
+    : (typeof window.orientation === 'number' ? window.orientation : 0);
+const orient = BABYLON.Tools.ToRadians(orientDeg);
+
+// Ajustes de eixos / UX:
+// - La compensació de pantalla (portrait/landscape) es manté via orientDeg/orient.
+// - El mapping principal (upright vs flat) es fixa NOMÉS en activar el gyro.
+const isPortrait = (Math.abs(orientDeg) % 180) === 0;
+
+// 1) base mapping (upright)
+let yaw   = alpha;
+let pitch = beta;
+let roll  = gamma;
+
+// 2) correccions de signe que ja tenies en portrait (si et funcionen)
+if (isPortrait) {
+    yaw   = -yaw;
+    pitch = -pitch;
+    roll  = -roll;
+}
+
+// 3) si s'activa en "flat", fem el swap yaw<->roll (manté UX natural en pantalla plana)
+if (activationPose === "flatUp" || activationPose === "flatDown") {
+    const tmp = yaw;
+    yaw = roll;
+    roll = tmp;
+
+    if (activationPose === "flatUp") {
+      roll = -roll;
+    } else if (activationPose === "flatDown") {
+      // yaw direction fix (do NOT invert)
+      // yaw = yaw;
+      roll = -roll;
+    }
+}
+// q = qY(yaw) * qX(pitch) * qZ(roll)  (orden YXZ)
+const qYaw = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, yaw);
+const qPitch = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, pitch);
+const qRoll = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, roll);
+
+qYaw.multiplyToRef(qPitch, currentDeviceQuat);   // currentDeviceQuat = qYaw * qPitch
+currentDeviceQuat.multiplyInPlace(qRoll);        // currentDeviceQuat = (qYaw*qPitch) * qRoll
+
+// Convertir de coords del dispositivo a coords del mundo/cámara (equivalente a -PI/2 en X)
+if (!handleMotion._q1) {
+    const s = Math.sqrt(0.5);
+    handleMotion._q1 = new BABYLON.Quaternion(-s, 0, 0, s);
+}
+currentDeviceQuat.multiplyInPlace(handleMotion._q1);
+
+// Compensar la rotación de la pantalla (para que portrait/landscape no cambie el mapeo)
+const qScreen = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -orient);
+currentDeviceQuat.multiplyInPlace(qScreen);
+
+    if (activationPose === "flatDown") {
+      const qFlip = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, Math.PI);
+      currentDeviceQuat.multiplyInPlace(qFlip);
     }
 
-    // Initial mobile state: gate screen only.
-    document.body.classList.add("bab3d-ready");
-
-    const gate = document.getElementById("vr-gate");
-    const btn = document.getElementById("enable-vr-btn");
-    const canvas = document.getElementById("babylon-canvas");
-
-    // Keep gate visible even if some desktop elements are absolute/fixed
-    gate.setAttribute("aria-hidden", "false");
-
-    // --- iOS gyro permission helper ---
-    async function requestGyroPermissionIfNeeded() {
-      // iOS 13+ requires a user gesture for DeviceOrientationEvent.requestPermission()
-      try {
-        const DOE = window.DeviceOrientationEvent;
-        if (DOE && typeof DOE.requestPermission === "function") {
-          const res = await DOE.requestPermission();
-          return res === "granted";
-        }
-      } catch (e) {
-        // ignore
-      }
-      // Other platforms: permission not needed / handled by browser settings
-      return true;
-    }
-
-    let engine, scene, camera;
-    let panels = []; // meshes we yaw-face to camera
-    let manual = {
-      active:false,
-      lastMidX:0,
-      lastMidY:0,
-      yaw:0,
-      pitch:0
-    };
-    const pointers = new Map();
-
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-    function setupTwoFingerManualRotation() {
-      // Only intercept when 2 pointers are active
-      function updateMidpoint() {
-        if (pointers.size !== 2) return null;
-        const arr = Array.from(pointers.values());
-        const mx = (arr[0].x + arr[1].x) * 0.5;
-        const my = (arr[0].y + arr[1].y) * 0.5;
-        return {mx, my};
-      }
-
-      canvas.addEventListener("pointerdown", (e) => {
-        pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-        if (pointers.size === 2) {
-          // enter manual rotate mode
-          manual.active = true;
-          const mid = updateMidpoint();
-          if (mid) { manual.lastMidX = mid.mx; manual.lastMidY = mid.my; }
-          // prevent default to avoid page zoom/scroll
-          e.preventDefault();
-        }
-      }, {passive:false});
-
-      canvas.addEventListener("pointermove", (e) => {
-        if (!pointers.has(e.pointerId)) return;
-        pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-        if (manual.active && pointers.size === 2) {
-          const mid = updateMidpoint();
-          if (mid) {
-            const dx = mid.mx - manual.lastMidX;
-            const dy = mid.my - manual.lastMidY;
-            manual.lastMidX = mid.mx; manual.lastMidY = mid.my;
-
-            // Sensitivity tuned for mobile
-            manual.yaw   -= dx * 0.0032;
-            manual.pitch -= dy * 0.0026;
-            manual.pitch = clamp(manual.pitch, -0.9, 0.9);
-          }
-          e.preventDefault();
-        }
-      }, {passive:false});
-
-      function endPointer(e) {
-        pointers.delete(e.pointerId);
-        if (pointers.size < 2) {
-          manual.active = false;
-        }
-      }
-      canvas.addEventListener("pointerup", endPointer, {passive:true});
-      canvas.addEventListener("pointercancel", endPointer, {passive:true});
-      canvas.addEventListener("pointerout", endPointer, {passive:true});
-      canvas.addEventListener("pointerleave", endPointer, {passive:true});
-    }
-
-    function buildScene() {
-      engine = new BABYLON.Engine(canvas, true, {
-        preserveDrawingBuffer: false,
-        stencil: true,
-        disableWebGL2Support: false
-      });
-      scene = new BABYLON.Scene(engine);
-      scene.clearColor = new BABYLON.Color4(0.043, 0.043, 0.043, 1); // ~#0b0b0b
-
-      // Camera: UniversalCamera, height 1.6, looking +Z
-      camera = new BABYLON.UniversalCamera("cam", new BABYLON.Vector3(0, 1.6, 0), scene);
-      camera.setTarget(new BABYLON.Vector3(0, 1.6, 1));
-      camera.minZ = 0.05;
-      camera.speed = 0.0; // no walking
-      camera.angularSensibility = 8000; // not used unless pointer rotates; we do manual
-      camera.attachControl(canvas, true);
-
-      // Soft hemispheric light
-      const hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-      hemi.intensity = 0.55;
-      hemi.diffuse = new BABYLON.Color3(1,1,1);
-      hemi.groundColor = new BABYLON.Color3(0.18,0.18,0.18);
-
-      // Dark dome (skybox sphere with emissive)
-      const dome = BABYLON.MeshBuilder.CreateSphere("dome", {diameter: 64, sideOrientation: BABYLON.Mesh.BACKSIDE}, scene);
-      const domeMat = new BABYLON.StandardMaterial("domeMat", scene);
-      domeMat.emissiveColor = new BABYLON.Color3(0.03,0.03,0.03);
-      domeMat.diffuseColor = new BABYLON.Color3(0,0,0);
-      domeMat.specularColor = new BABYLON.Color3(0,0,0);
-      dome.material = domeMat;
-
-      // Data (sample) — you can replace with your real projects
-      const PROJECTS = [
-        { id:"interspecies-archaeology", title:"Interspecies Archaeology", category:"BioSystems", date:"2025-09-12", desc:"Sculptural mycelium systems as interspecies memory devices." },
-        { id:"micropyramids", title:"Microscopic Pyramids", category:"Cymatics", date:"2025-06-03", desc:"Micro-geometry patterns as resonance and perception interfaces." },
-        { id:"leaf-solar", title:"Leaf Solar Prototypes", category:"Landscape", date:"2024-11-28", desc:"Screen-printed translucent solar membranes inspired by leaf venation." },
-        { id:"dystopic-carousel", title:"Dystopic Pop Carnival", category:"Dystopic Pop Art", date:"2024-10-02", desc:"A critique of modern spectacle: vibrant surface, hollow depth." },
-        { id:"mural-ar", title:"AR Mural Projection Tests", category:"Murals", date:"2025-01-19", desc:"Large-scale mural visualization with mobile AR precomposition." },
-        { id:"public-install", title:"Public Artifact — Prototype", category:"Public Art", date:"2025-03-07", desc:"A public-facing object that negotiates ownership and commons." },
-      ];
-
-      const CATEGORIES = ["All","BioSystems","Landscape","Dystopic Pop Art","Cymatics","Public Art","Murals"];
-
-      let state = {
-        category: "All",
-        selectedId: PROJECTS[0].id
-      };
-
-      function getFiltered() {
-        if (state.category === "All") return PROJECTS;
-        return PROJECTS.filter(p => p.category === state.category);
-      }
-
-      function byId(id) {
-        return PROJECTS.find(p => p.id === id) || PROJECTS[0];
-      }
-
-      // --- Helpers for glass UI ---
-      function glassRect() {
-        const r = new BABYLON.GUI.Rectangle();
-        r.thickness = 1;
-        r.cornerRadius = 22;
-        r.color = "rgba(255,255,255,0.16)";
-        r.background = "rgba(15,15,15,0.82)";
-        r.paddingLeft = "14px";
-        r.paddingRight = "14px";
-        r.paddingTop = "12px";
-        r.paddingBottom = "12px";
-        return r;
-      }
-
-      function headerText(txt) {
-        const t = new BABYLON.GUI.TextBlock();
-        t.text = txt;
-        t.color = "rgba(232,226,214,0.92)";
-        t.fontFamily = "EB Garamond";
-        t.fontSize = 20;
-        t.height = "34px";
-        t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        t.letterSpacing = 6; // spaced headers
-        return t;
-      }
-
-      function metaText(txt) {
-        const t = new BABYLON.GUI.TextBlock();
-        t.text = txt;
-        t.color = "rgba(232,226,214,0.62)";
-        t.fontFamily = "Source Code Pro";
-        t.fontSize = 11;
-        t.height = "18px";
-        t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        return t;
-      }
-
-      function bodyText(txt) {
-        const t = new BABYLON.GUI.TextBlock();
-        t.text = txt;
-        t.color = "rgba(232,226,214,0.88)";
-        t.fontFamily = "EB Garamond";
-        t.fontSize = 15;
-        t.textWrapping = true;
-        t.lineSpacing = 6;
-        t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-        return t;
-      }
-
-      function categoryButton(label) {
-        const b = BABYLON.GUI.Button.CreateSimpleButton("cat_" + label, label);
-        b.height = "34px";
-        b.thickness = 1;
-        b.cornerRadius = 16;
-        b.color = "rgba(255,255,255,0.16)";
-        b.fontFamily = "Source Code Pro";
-        b.fontSize = 11;
-        b.background = "rgba(255,255,255,0.03)";
-        b.paddingTop = "6px";
-        b.paddingBottom = "6px";
-        b.paddingLeft = "0px";
-        b.paddingRight = "0px";
-        b.textBlock.letterSpacing = 2;
-        b.textBlock.color = "rgba(232,226,214,0.84)";
-        return b;
-      }
-
-      function setButtonActive(btn, active) {
-        if (active) {
-          btn.background = "rgba(232,226,214,0.10)";
-          btn.color = "rgba(232,226,214,0.35)";
-          btn.textBlock.color = "rgba(232,226,214,0.96)";
+        // Suavizado (smoothing)
+        if (firstRead) {
+            smoothedDeviceQuat.copyFrom(currentDeviceQuat);
         } else {
-          btn.background = "rgba(255,255,255,0.03)";
-          btn.color = "rgba(255,255,255,0.16)";
-          btn.textBlock.color = "rgba(232,226,214,0.84)";
+            BABYLON.Quaternion.SlerpToRef(smoothedDeviceQuat, currentDeviceQuat, SMOOTHING_FACTOR, smoothedDeviceQuat);
         }
-      }
 
-      // --- Panel meshes in a concave/parabolic arc in front (+Z) ---
-      function makePanelMesh(name, w, h) {
-        const plane = BABYLON.MeshBuilder.CreatePlane(name, {width:w, height:h}, scene);
-        // very subtle material so it reads as "glass in 3D" behind GUI
-        const mat = new BABYLON.StandardMaterial(name+"_mat", scene);
-        mat.diffuseColor = new BABYLON.Color3(0.06,0.06,0.06);
-        mat.emissiveColor = new BABYLON.Color3(0.02,0.02,0.02);
-        mat.alpha = 0.9;
-        mat.specularColor = new BABYLON.Color3(0,0,0);
-        plane.material = mat;
-        plane.isPickable = true;
-        panels.push(plane);
-        return plane;
-      }
-
-      const leftPanel = makePanelMesh("p_left", 1.25, 1.55);
-      const centerPanel = makePanelMesh("p_center", 1.55, 1.75);
-      const rightPanel = makePanelMesh("p_right", 1.25, 1.55);
-
-      // Parabolic placement: center slightly closer
-      leftPanel.position = new BABYLON.Vector3(-1.25, 1.6, 3.05);
-      centerPanel.position = new BABYLON.Vector3(0.0, 1.6, 2.70);
-      rightPanel.position = new BABYLON.Vector3(1.25, 1.6, 3.05);
-
-      // Slight inward yaw so it feels concave even before look-at
-      leftPanel.rotation.y = 0.12;
-      rightPanel.rotation.y = -0.12;
-
-      // --- Left GUI: Categories ---
-      const uiLeft = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(leftPanel, 1024, 1024, false);
-      const leftRoot = glassRect();
-      uiLeft.addControl(leftRoot);
-
-      const leftStack = new BABYLON.GUI.StackPanel();
-      leftStack.isVertical = true;
-      leftStack.width = 0.98;
-      leftStack.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      leftStack.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      leftRoot.addControl(leftStack);
-
-      leftStack.addControl(headerText("CATEGORIES"));
-
-      const catStack = new BABYLON.GUI.StackPanel();
-      catStack.isVertical = true;
-      catStack.spacing = 6;
-      catStack.paddingTop = "6px";
-      leftStack.addControl(catStack);
-
-      const catButtons = new Map();
-      CATEGORIES.forEach((c) => {
-        const b = categoryButton(c);
-        setButtonActive(b, c === state.category);
-        b.onPointerUpObservable.add(() => {
-          state.category = c;
-          // update active states
-          catButtons.forEach((btn, k) => setButtonActive(btn, k === state.category));
-          // rebuild project list
-          rebuildProjectWall();
-        });
-        catButtons.set(c, b);
-        catStack.addControl(b);
-      });
-
-      // --- Center GUI: Project Wall (ScrollViewer with cards) ---
-      const uiCenter = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(centerPanel, 1024, 1024, false);
-      const centerRoot = glassRect();
-      uiCenter.addControl(centerRoot);
-
-      const centerStack = new BABYLON.GUI.StackPanel();
-      centerStack.isVertical = true;
-      centerStack.width = 0.98;
-      centerStack.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      centerStack.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      centerRoot.addControl(centerStack);
-
-      centerStack.addControl(headerText("PROJECT WALL"));
-
-      const scroll = new BABYLON.GUI.ScrollViewer();
-      scroll.width = 1.0;
-      scroll.height = "86%";
-      scroll.thickness = 0;
-      scroll.barSize = 8;
-      scroll.wheelPrecision = 0.02; // doesn't matter much on touch, but safe
-      scroll.background = "transparent";
-      scroll.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      scroll.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      scroll.paddingTop = "6px";
-      centerStack.addControl(scroll);
-
-      const wallStack = new BABYLON.GUI.StackPanel();
-      wallStack.isVertical = true;
-      wallStack.spacing = 8;
-      wallStack.paddingBottom = "8px";
-      scroll.addControl(wallStack);
-
-      function card(p) {
-        const btn = new BABYLON.GUI.Button("card_" + p.id);
-        btn.height = "84px";
-        btn.thickness = 1;
-        btn.cornerRadius = 18;
-        btn.color = "rgba(255,255,255,0.14)";
-        btn.background = "rgba(255,255,255,0.02)";
-        btn.paddingLeft = "10px";
-        btn.paddingRight = "10px";
-        btn.paddingTop = "10px";
-        btn.paddingBottom = "10px";
-
-        const grid = new BABYLON.GUI.Grid();
-        grid.addRowDefinition(0.55, true);
-        grid.addRowDefinition(0.45, true);
-        grid.addColumnDefinition(1.0, true);
-
-        const t = new BABYLON.GUI.TextBlock();
-        t.text = p.title;
-        t.fontFamily = "EB Garamond";
-        t.fontSize = 18;
-        t.color = "rgba(232,226,214,0.92)";
-        t.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        t.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-        t.textWrapping = true;
-
-        const m = new BABYLON.GUI.TextBlock();
-        m.text = (p.category + " · " + p.date);
-        m.fontFamily = "Source Code Pro";
-        m.fontSize = 11;
-        m.color = "rgba(232,226,214,0.62)";
-        m.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-        m.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-
-        grid.addControl(t, 0, 0);
-        grid.addControl(m, 1, 0);
-        btn.addControl(grid);
-
-        function setActive(active) {
-          if (active) {
-            btn.background = "rgba(232,226,214,0.08)";
-            btn.color = "rgba(232,226,214,0.30)";
-          } else {
-            btn.background = "rgba(255,255,255,0.02)";
-            btn.color = "rgba(255,255,255,0.14)";
-          }
+        if (firstRead) {
+            console.log("First sensor read, establishing zero point");
+            sensorZeroQuat.copyFrom(smoothedDeviceQuat);
+            sensorZeroQuat.invertInPlace();
+            firstRead = false;
         }
-        setActive(p.id === state.selectedId);
 
-        btn.onPointerUpObservable.add(() => {
-          state.selectedId = p.id;
-          updateViewer();
-          // refresh card highlights
-          for (const child of wallStack.children) {
-            if (child && child.name && child.name.startsWith("card_")) {
-              const id = child.name.replace("card_","");
-              const active = id === state.selectedId;
-              child.background = active ? "rgba(232,226,214,0.08)" : "rgba(255,255,255,0.02)";
-              child.color = active ? "rgba(232,226,214,0.30)" : "rgba(255,255,255,0.14)";
+        // Calcular rotación relativa desde el punto cero
+        const deviceRelative = smoothedDeviceQuat.multiply(sensorZeroQuat);
+
+        // Aplicar sobre la rotación inicial de la cámara
+// Importante: para mantener los ejes intuitivos con una cámara ya inclinada,
+// aplicamos el delta del dispositivo DESPUÉS de la orientación base (post-multiply).
+if (camera.rotationQuaternion) {
+    initialCameraQuat.multiplyToRef(deviceRelative, camera.rotationQuaternion);
+} else {
+    console.warn("Camera has no rotationQuaternion");
+}
+    };
+
+    motionBtn.addEventListener("click", async () => {
+        console.log("VR button clicked, motionEnabled:", motionEnabled);
+        
+        if (!motionEnabled) {
+            // Verificar HTTPS (requerido para iOS)
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                console.error("HTTPS required for gyroscope on iOS");
+                alert("Se requiere HTTPS para usar el giroscopio en iOS");
+                return;
             }
-          }
-        });
 
-        return btn;
-      }
+            const ok = await requestGyroPermission();
+            console.log("Permission result:", ok);
+            
+            if (!ok) {
+                console.log("Permission denied or failed");
+                return;
+            }
 
-      function rebuildProjectWall() {
-        // clear
-        while (wallStack.children.length) {
-          wallStack.removeControl(wallStack.children[0]);
+            // Asegurar que la cámara usa quaterniones
+            if (!camera.rotationQuaternion) {
+                console.log("Converting camera to quaternion mode");
+                camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
+            }
+            
+            // Guardar la rotación actual como base
+            initialCameraQuat.copyFrom(camera.rotationQuaternion);
+            console.log("Initial camera quaternion saved:", initialCameraQuat.toString());
+            
+            // Resetear estado del sensor
+            firstRead = true;
+            eventCount = 0;
+            motionEnabled = true;
+
+            // Registrar listener del sensor
+            window.addEventListener("deviceorientation", handleMotion, true);
+            console.log("Device orientation listener added");
+
+            // En iOS, a veces el primer evento tarda, forzar un render
+            setTimeout(() => {
+                if (eventCount === 0) {
+                    console.warn("No orientation events received after 2 seconds");
+                    console.log("Device info:", navigator.userAgent);
+                }
+            }, 2000);
+
+            motionBtn.classList.add("active");
+            motionBtn.querySelector(".vrLabel").textContent = "VR ON";
+            
+        } else {
+            console.log("Disabling VR mode");
+            motionEnabled = false;
+            window.removeEventListener("deviceorientation", handleMotion, true);
+            
+            motionBtn.classList.remove("active");
+            motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
         }
-        const list = getFiltered();
-        // keep selected in list; if filtered out, select first.
-        if (!list.some(p => p.id === state.selectedId)) {
-          state.selectedId = (list[0] || PROJECTS[0]).id;
-        }
-        list.forEach(p => wallStack.addControl(card(p)));
-        updateViewer();
-      }
-
-      // --- Right GUI: Viewer ---
-      const uiRight = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(rightPanel, 1024, 1024, false);
-      const rightRoot = glassRect();
-      uiRight.addControl(rightRoot);
-
-      const rightStack = new BABYLON.GUI.StackPanel();
-      rightStack.isVertical = true;
-      rightStack.width = 0.98;
-      rightStack.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-      rightStack.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-      rightRoot.addControl(rightStack);
-
-      rightStack.addControl(headerText("VIEWER"));
-
-      const viewTitle = new BABYLON.GUI.TextBlock();
-      viewTitle.text = "";
-      viewTitle.fontFamily = "EB Garamond";
-      viewTitle.fontSize = 24;
-      viewTitle.color = "rgba(232,226,214,0.96)";
-      viewTitle.height = "46px";
-      viewTitle.textWrapping = true;
-      viewTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-      viewTitle.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-      viewTitle.paddingTop = "6px";
-      rightStack.addControl(viewTitle);
-
-      const viewMeta = metaText("");
-      viewMeta.height = "18px";
-      rightStack.addControl(viewMeta);
-
-      const sep = new BABYLON.GUI.Rectangle();
-      sep.height = "1px";
-      sep.thickness = 0;
-      sep.background = "rgba(255,255,255,0.10)";
-      sep.width = 1.0;
-      sep.paddingTop = "10px";
-      sep.paddingBottom = "10px";
-      rightStack.addControl(sep);
-
-      const viewDesc = bodyText("");
-      viewDesc.height = "72%";
-      rightStack.addControl(viewDesc);
-
-      function updateViewer() {
-        const p = byId(state.selectedId);
-        viewTitle.text = p.title;
-        viewMeta.text = (p.category + " · " + p.date);
-        viewDesc.text = p.desc;
-      }
-
-      rebuildProjectWall();
-
-      // --- Make panels face camera in yaw only (no pitch) ---
-      scene.onBeforeRenderObservable.add(() => {
-        const camPos = camera.position;
-        for (const pm of panels) {
-          const dx = camPos.x - pm.position.x;
-          const dz = camPos.z - pm.position.z;
-          pm.rotation.y = Math.atan2(dx, dz);
-        }
-
-        // Manual rotation (two fingers) overrides camera orientation smoothly
-        if (manual.active) {
-          camera.rotation.y = manual.yaw;
-          camera.rotation.x = manual.pitch;
-        }
-      });
-
-      return scene;
-    }
-
-    async function enableVR() {
-      btn.disabled = true;
-
-      // 1) Permission step (iPhone)
-      const granted = await requestGyroPermissionIfNeeded();
-
-      // 2) Switch body state to 3D
-      document.body.classList.remove("bab3d-ready");
-      document.body.classList.add("bab3d-on");
-      document.documentElement.classList.remove("bab3d-ready");
-      document.documentElement.classList.add("bab3d-on");
-
-      // 3) Build Babylon scene
-      buildScene();
-
-      // 4) Device orientation input (only after permission path)
-      // Babylon's UniversalCamera supports adding device orientation input.
-      try {
-        // Remove mouse input to avoid 1-finger camera rotation; 1-finger is for GUI.
-        camera.inputs.removeByType("FreeCameraMouseInput");
-      } catch(e){}
-
-      if (granted) {
-        try {
-          if (camera && camera.inputs && camera.inputs.addDeviceOrientation) {
-            camera.inputs.addDeviceOrientation();
-          }
-        } catch (e) {
-          // ignore; manual rotation remains available
-        }
-      }
-
-      // 5) Two-finger manual rotation fallback
-      setupTwoFingerManualRotation();
-
-      // 6) Render loop + resize
-      engine.runRenderLoop(() => {
-        if (scene) scene.render();
-      });
-      window.addEventListener("resize", () => {
-        if (engine) engine.resize();
-      }, {passive:true});
-
-      // Prevent browser gesture zoom on iOS Safari while in VR (two fingers handled by us on canvas)
-      document.addEventListener("gesturestart", (e) => e.preventDefault(), {passive:false});
-      document.addEventListener("gesturechange", (e) => e.preventDefault(), {passive:false});
-      document.addEventListener("gestureend", (e) => e.preventDefault(), {passive:false});
-    }
-
-    btn.addEventListener("click", () => {
-      // must be a direct user gesture
-      enableVR().catch((err) => {
-        console.error(err);
-        btn.disabled = false;
-        // if something fails, return to gate
-        document.body.classList.remove("bab3d-on");
-        document.body.classList.add("bab3d-ready");
-        document.documentElement.classList.remove("bab3d-on");
-        document.documentElement.classList.add("bab3d-ready");
-      });
     });
-  })();
-  </script>
+}
+
+    
+const res = await BABYLON.SceneLoader.ImportMeshAsync("", "", modelUrl, scene);
+    res.meshes.forEach(mesh => {
+      if (mesh && mesh.getTotalVertices() > 0) {
+        mesh.isVisible = true;
+        const solidMat = new BABYLON.PBRMaterial("solidMat_"+mesh.name, scene);
+        solidMat.albedoColor = new BABYLON.Color3(0.02, 0.02, 0.02);
+        solidMat.metallic = 0.4;
+        solidMat.roughness = 0.35;
+        mesh.material = solidMat;
+      }
+    });
+// --- MODEL ROOT + SLOW CONSTANT ROTATION (like a calm museum turntable) ---
+// Parent all imported top-level meshes to a single root so we can rotate the whole cloister cleanly.
+const modelRoot = new BABYLON.TransformNode("modelRoot", scene);
+res.meshes.forEach(m => {
+  if (m && m !== modelRoot && !m.parent) m.parent = modelRoot;
+});
+
+// Slow constant rotation speed (radians per second). Tweak to taste:
+const ROT_SPEED = 0.06; // ~3.4 degrees/sec. Try 0.02 for ultra-slow.
+let _lastT = performance.now();
+
+scene.onBeforeRenderObservable.add(() => {
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - _lastT) / 1000); // clamp for tab-switch jumps
+  _lastT = now;
+  modelRoot.rotation.y += ROT_SPEED * dt;
+});
+
+
+    
+
+
+
+
+// --- CAMERA IN CLOISTER VOID CENTER (DISTANCE-FIELD) — finds the largest empty space on XZ near the floor ---
+// Full/trimmed bounding boxes can still be biased. This approach:
+// 1) Samples world vertices (mostly walls/columns) near the floor band.
+// 2) Builds a coarse grid on XZ.
+// 3) Chooses the grid point that maximizes distance to the nearest sampled vertex => center of the largest void.
+//
+// Tweak knobs:
+const FLOOR_BAND = 0.22;        // fraction of total height above minY to consider as "near floor"
+const MAX_SAMPLES = 9000;       // cap of sampled points for speed
+const GRID_N = 45;              // grid resolution per axis (odd is nice)
+const CENTER_DX = 0.0;          // manual micro-offsets
+const CENTER_DZ = 0.0;
+const EYE_MIN = 1.6;            // minimum eye height
+const LOOK_UP = 0.28;           // fraction of height above center to look at
+const FACE_Z_BIAS = 0.0;        // keep 0 for perfectly centered roof
+
+try {
+  // 1) global bounds
+  let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+
+  res.meshes.forEach(m => {
+    if (!m || !m.getBoundingInfo) return;
+    const bi = m.getBoundingInfo();
+    if (!bi || !bi.boundingBox) return;
+    const bmin = bi.boundingBox.minimumWorld;
+    const bmax = bi.boundingBox.maximumWorld;
+
+    min.x = Math.min(min.x, bmin.x); min.y = Math.min(min.y, bmin.y); min.z = Math.min(min.z, bmin.z);
+    max.x = Math.max(max.x, bmax.x); max.y = Math.max(max.y, bmax.y); max.z = Math.max(max.z, bmax.z);
+  });
+
+  const size = max.subtract(min);
+  const floorY = min.y;
+  const bandY = floorY + size.y * FLOOR_BAND;
+
+  // 2) sample points near the floor band (mostly walls/columns edges)
+  const samples = [];
+  let stride = 3; // start stride
+  const pushSample = (x,z) => { samples.push(x, z); };
+
+  const collect = () => {
+    samples.length = 0;
+
+    res.meshes.forEach(m => {
+      if (!m || !m.isVerticesDataPresent || !m.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) return;
+
+      const pos = m.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+      if (!pos || pos.length < 3) return;
+
+      const wm = m.computeWorldMatrix(true);
+      const tmp = new BABYLON.Vector3();
+
+      for (let i = 0; i < pos.length; i += 3 * stride) {
+        tmp.set(pos[i], pos[i+1], pos[i+2]);
+        BABYLON.Vector3.TransformCoordinatesToRef(tmp, wm, tmp);
+
+        if (tmp.y <= bandY) {
+          pushSample(tmp.x, tmp.z);
+          if (samples.length/2 >= MAX_SAMPLES) return;
+        }
+      }
+    });
+  };
+
+  // adaptive stride if too many points
+  for (let attempts = 0; attempts < 4; attempts++) {
+    collect();
+    if ((samples.length/2) <= MAX_SAMPLES) break;
+    stride = Math.min(24, stride * 2);
+  }
+
+  // Fallback: if we got almost nothing, use full bbox center
+  let bestX = (min.x + max.x) * 0.5;
+  let bestZ = (min.z + max.z) * 0.5;
+
+  if (samples.length >= 20) {
+    // 3) grid search for point farthest from nearest sample
+    const pad = 0.06; // keep away from extreme outer bounds
+    const x0 = min.x + size.x * pad, x1 = max.x - size.x * pad;
+    const z0 = min.z + size.z * pad, z1 = max.z - size.z * pad;
+
+    let bestD2 = -1;
+
+    for (let ix = 0; ix < GRID_N; ix++) {
+      const x = x0 + (x1 - x0) * (ix / (GRID_N - 1));
+      for (let iz = 0; iz < GRID_N; iz++) {
+        const z = z0 + (z1 - z0) * (iz / (GRID_N - 1));
+
+        // distance to nearest sample
+        let d2min = Number.POSITIVE_INFINITY;
+        for (let s = 0; s < samples.length; s += 2) {
+          const dx = x - samples[s];
+          const dz = z - samples[s+1];
+          const d2 = dx*dx + dz*dz;
+          if (d2 < d2min) d2min = d2;
+          // early exit if already worse than best
+          if (d2min <= bestD2) break;
+        }
+
+        if (d2min > bestD2) {
+          bestD2 = d2min;
+          bestX = x;
+          bestZ = z;
+        }
+      }
+    }
+  }
+
+  // 4) place camera at void center, face +Z, look upward
+  const eyeH = Math.max(size.y * 0.10, EYE_MIN);
+  const camX = bestX + CENTER_DX;
+  const camZ = bestZ + CENTER_DZ;
+  const camY = floorY + eyeH;
+
+  camera.position.set(camX, camY, camZ);
+
+  const targetY = (min.y + max.y) * 0.5 + size.y * 0.42; // stronger upward target
+  camera.setTarget(new BABYLON.Vector3(camX, targetY, camZ + FACE_Z_BIAS));
+
+  // Center the model rotation axis in the cloister void (XZ void center + vertical midpoint)
+  const voidAxis = new BABYLON.Vector3(camX, (min.y + max.y) * 0.5, camZ);
+  if (typeof modelRoot !== 'undefined' && modelRoot && modelRoot.setPivotPoint) {
+    modelRoot.setPivotPoint(voidAxis, BABYLON.Space.WORLD);
+  }
+
+  // near/far planes
+  const radius = Math.max(size.x, size.z) * 0.5;
+  camera.minZ = Math.max(0.01, radius / 1500);
+  camera.maxZ = Math.max(1000, radius * 60);
+
+} catch (e) {
+  console.warn("Void-center camera failed:", e);
+}
+
+    // XR disabled to prevent black screen issues
+
+    return scene;
+  }
+
+  function startLoader(minMs=2600){
+    const loader = document.getElementById("loader");
+    const bar = document.getElementById("bar");
+    const pct = document.getElementById("pct");
+    const typeLine = document.getElementById("typeLine");
+    const status = document.getElementById("status");
+
+    loader.classList.remove("fadeOut");
+    loader.setAttribute("aria-hidden","false");
+
+    const steps = ["Allocating scene…","Preparing materials…","Building point cloud…","Finalizing render loop…"];
+    let stepIdx = 0;
+    const t0 = performance.now();
+    let v = 0;
+    let raf = 0;
+
+    function tick(){
+      v = Math.min(92, v + (92 - v)*0.035 + 0.25);
+      if (bar) bar.style.width = v.toFixed(1) + "%";
+      if (pct) pct.textContent = Math.floor(v) + "%";
+      if (typeLine && (performance.now()-t0) > (stepIdx+1)*620){
+        typeLine.textContent = steps[Math.min(stepIdx, steps.length-1)];
+        stepIdx = Math.min(stepIdx+1, steps.length-1);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+
+    async function done(){
+      const elapsed = performance.now() - t0;
+      const wait = Math.max(0, minMs - elapsed);
+      if(wait) await new Promise(r=>setTimeout(r, wait));
+
+      cancelAnimationFrame(raf);
+      if (bar) bar.style.width = "100%";
+      if (pct) pct.textContent = "100%";
+      if (status) status.textContent = "ready";
+
+      loader.classList.add("fadeOut");
+      setTimeout(()=>{
+        loader.setAttribute("aria-hidden","true");
+      }, 1100);
+    }
+
+    function fail(msg){
+      cancelAnimationFrame(raf);
+      if (status) status.textContent = "error";
+    }
+
+    return {done, fail};
+  }
+
+  let loopStarted = false;
+  let initializedOnce = false;
+
+  async function initSystem(opts){
+    const { withLoader } = opts || {};
+    const L = withLoader ? startLoader(2600) : null;
+
+    document.body.classList.remove("bab3d-ready");
+    document.body.classList.add("bab3d-on");
+
+    try{
+      if (!initializedOnce){
+        initializedOnce = true;
+        await createScene();
+      }
+
+      if (!loopStarted){
+        loopStarted = true;
+        engine.runRenderLoop(() => { if (scene) scene.render(); });
+      }
+
+      if (scene && scene.executeWhenReady){
+        await new Promise(res => scene.executeWhenReady(res));
+      }
+
+      if (L) await L.done();
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  document.getElementById("startVR").addEventListener("click", async () => {
+    await initSystem({ withLoader: true });
+  });
+
+  if (localStorage.getItem("JA_INIT_DONE_v1") === "1") {
+    requestAnimationFrame(() => { initSystem({ withLoader: false }); });
+  }
+
+  window.addEventListener("resize", () => engine.resize());
+})();
+</script>
 
 </body>
 </html>
