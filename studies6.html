@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Jofre Archive — Studies (VR Smartphone v2)</title>
+
+  <!-- A-Frame (WebXR) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- Typography (Design System v1.0 vibes) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --bg:#0b0b0b;
+      --ink:#e8e2d6;
+      --ink2: rgba(232,226,214,0.72);
+      --ink3: rgba(232,226,214,0.52);
+      --border: rgba(232,226,214,0.16);
+      --panel: rgba(15,15,15,0.78);
+      --panel2: rgba(0,0,0,0.22);
+    }
+    html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); overflow:hidden; }
+    body { font-family:'EB Garamond', serif; }
+
+    /* Minimal 2D HUD (pre-VR + fallback) */
+    .hud{
+      position:fixed; left:0; right:0; top:0;
+      padding: 10px 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      pointer-events:none;
+      z-index: 10;
+    }
+    .hud .logo{
+      pointer-events:auto;
+      display:flex; align-items:center; gap:10px;
+      opacity:.92;
+      text-decoration:none;
+      color:var(--ink);
+      font-family:'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      padding: 8px 10px;
+    }
+    .hud .logo img{ height:18px; width:auto; display:block; }
+    .hud .actions{
+      pointer-events:auto;
+      display:flex; align-items:center; gap:10px;
+    }
+    .btn{
+      border: 1px solid var(--border);
+      background: var(--panel2);
+      padding: 9px 10px;
+      font-family: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(232,226,214,0.80);
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    .hint{
+      position:fixed; left:12px; right:12px; bottom:12px;
+      font-family:'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 10px;
+      letter-spacing:.16em;
+      text-transform: uppercase;
+      color: rgba(232,226,214,0.50);
+      border: 1px solid rgba(232,226,214,0.14);
+      background: var(--panel2);
+      padding: 10px 12px;
+      border-radius: 2px;
+      z-index: 10;
+    }
+    .hint b{ color: rgba(232,226,214,0.82); font-weight:600; }
+  </style>
+</head>
+
+<body>
+  <div class="hud">
+    <a class="logo" href="https://jofrearchive.com" aria-label="Home">
+      <img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive">
+      <span>STUDIES / VR</span>
+    </a>
+    <div class="actions">
+      <button id="prev2d" class="btn" type="button">Prev</button>
+      <button id="next2d" class="btn" type="button">Next</button>
+      <button id="enterVR" class="btn" type="button">Enter VR</button>
+    </div>
+  </div>
+
+  <div class="hint">
+    <b>VR:</b> pulsa <b>Enter VR</b> y mueve la cabeza. Toca botones flotantes o una tarjeta para fijarla.
+    <br/>
+    <b>2D:</b> usa Prev/Next o swipe vertical.
+  </div>
+
+  <a-scene
+    renderer="colorManagement:true; physicallyCorrectLights:true; antialias:true"
+    background="color: #0b0b0b"
+    vr-mode-ui="enabled: true"
+    device-orientation-permission-ui="enabled: true">
+
+    <!-- Lights: cold + controlled -->
+    <a-entity light="type: ambient; intensity: 0.55; color: #e8e2d6"></a-entity>
+    <a-entity light="type: directional; intensity: 0.35; color: #ffffff" position="1 2 1"></a-entity>
+
+    <!-- Floor + ultra-subtle grid -->
+    <a-plane rotation="-90 0 0" position="0 0 -1.2" width="14" height="14"
+      material="color:#0b0b0b; opacity:1; side:double"></a-plane>
+    <a-entity id="grid" position="0 0.001 -1.2"></a-entity>
+
+    <!-- Enclosing sphere -->
+    <a-sphere radius="22" material="color:#0b0b0b; side:back; opacity:1"></a-sphere>
+
+    <!-- Camera rig -->
+    <a-entity id="rig" position="0 1.6 0">
+      <a-camera id="cam"
+        wasd-controls-enabled="false"
+        look-controls="pointerLockEnabled:false; reverseMouseDrag:false">
+        <a-cursor id="cursor"
+          raycaster="objects: .clickable"
+          fuse="false"
+          position="0 0 -1.2"
+          geometry="primitive:ring; radiusInner:0.010; radiusOuter:0.018"
+          material="color:#e8e2d6; opacity:0.75; shader:flat">
+        </a-cursor>
+      </a-camera>
+    </a-entity>
+
+    <!-- Center stage: carousel stack -->
+    <a-entity id="stage" position="0 1.55 -2.35">
+      <!-- header strip -->
+      <a-entity id="stageHeader" position="0 0.66 0">
+        <a-plane width="1.62" height="0.18" material="color:#0f0f0f; opacity:0.78; side:double"></a-plane>
+        <a-entity id="stageHeaderBorder"></a-entity>
+        <a-text id="hudIndex" value="—" position="-0.78 0 0.01" align="left"
+          width="2.0" color="#e8e2d6" opacity="0.72"
+          font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        <a-text id="hudCat" value="—" position="0.78 0 0.01" align="right"
+          width="2.0" color="#e8e2d6" opacity="0.48"
+          font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+      </a-entity>
+
+      <!-- cards -->
+      <a-entity id="cardsRig" rotation="-9 0 0"></a-entity>
+
+      <!-- controls, aligned under stack -->
+      <a-entity id="controls" position="0 -0.70 0">
+        <a-entity id="prevBtn3d" class="clickable" position="-0.62 0 0">
+          <a-plane width="0.56" height="0.16" material="color:#0f0f0f; opacity:0.70; side:double"></a-plane>
+          <a-entity class="btnBorder"></a-entity>
+          <a-text value="Prev" position="0 0 0.01" align="center" width="2"
+            color="#e8e2d6" opacity="0.80"
+            font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        </a-entity>
+
+        <a-entity id="nextBtn3d" class="clickable" position="0 0 0">
+          <a-plane width="0.56" height="0.16" material="color:#0f0f0f; opacity:0.70; side:double"></a-plane>
+          <a-entity class="btnBorder"></a-entity>
+          <a-text value="Next" position="0 0 0.01" align="center" width="2"
+            color="#e8e2d6" opacity="0.80"
+            font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        </a-entity>
+
+        <a-entity id="randBtn3d" class="clickable" position="0.62 0 0">
+          <a-plane width="0.56" height="0.16" material="color:#0f0f0f; opacity:0.58; side:double"></a-plane>
+          <a-entity class="btnBorder"></a-entity>
+          <a-text value="Random" position="0 0 0.01" align="center" width="2"
+            color="#e8e2d6" opacity="0.62"
+            font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+        </a-entity>
+      </a-entity>
+    </a-entity>
+
+    <!-- Left panel: categories (tight, no corner brackets) -->
+    <a-entity id="catPanel" position="-1.55 1.50 -2.25" rotation="0 10 0">
+      <a-plane width="1.10" height="1.16" material="color:#0f0f0f; opacity:0.78; side:double"></a-plane>
+      <a-entity id="catBorder"></a-entity>
+      <a-text value="CLASSIFICATION" position="-0.50 0.52 0.01" align="left"
+        width="1.6" color="#e8e2d6" opacity="0.50"
+        font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+      <a-entity id="catList3d" position="-0.50 0.38 0.02"></a-entity>
+    </a-entity>
+
+    <!-- Right panel: details -->
+    <a-entity id="detailPanel" position="1.55 1.50 -2.25" rotation="0 -10 0">
+      <a-plane width="1.10" height="1.16" material="color:#0f0f0f; opacity:0.78; side:double"></a-plane>
+      <a-entity id="detailBorder"></a-entity>
+
+      <a-text id="dTitle" value="No file loaded" position="-0.50 0.52 0.01" align="left"
+        width="1.25" color="#e8e2d6" opacity="0.88"
+        font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+
+      <a-text id="dMeta" value="select / use carousel" position="-0.50 0.40 0.01" align="left"
+        width="1.40" color="#e8e2d6" opacity="0.50"
+        font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+
+      <a-text id="dBody" value="Este panel muestra la ficha completa del proyecto activo."
+        position="-0.50 0.26 0.01" align="left"
+        width="1.22" color="#e8e2d6" opacity="0.66" wrap-count="46"
+        font="https://cdn.aframe.io/fonts/Roboto-msdf.json"></a-text>
+    </a-entity>
+
+    <script>
+      // ---------- Minimal line-border builder (thin, controlled) ----------
+      function addBorder(parentEl, w, h, z, opacity){
+        const t = 0.006; // border thickness in meters
+        const col = '#e8e2d6';
+        const mat = `color:${col}; opacity:${opacity}; transparent:true; side:double; shader:flat`;
+
+        const top = document.createElement('a-plane');
+        top.setAttribute('width', w);
+        top.setAttribute('height', t);
+        top.setAttribute('position', `0 ${h/2} ${z}`);
+        top.setAttribute('material', mat);
+
+        const bot = document.createElement('a-plane');
+        bot.setAttribute('width', w);
+        bot.setAttribute('height', t);
+        bot.setAttribute('position', `0 ${-h/2} ${z}`);
+        bot.setAttribute('material', mat);
+
+        const left = document.createElement('a-plane');
+        left.setAttribute('width', t);
+        left.setAttribute('height', h);
+        left.setAttribute('position', `${-w/2} 0 ${z}`);
+        left.setAttribute('material', mat);
+
+        const right = document.createElement('a-plane');
+        right.setAttribute('width', t);
+        right.setAttribute('height', h);
+        right.setAttribute('position', `${w/2} 0 ${z}`);
+        right.setAttribute('material', mat);
+
+        parentEl.appendChild(top);
+        parentEl.appendChild(bot);
+        parentEl.appendChild(left);
+        parentEl.appendChild(right);
+      }
+
+      // Borders for static panels
+      addBorder(document.querySelector('#catBorder'),    1.10, 1.16, 0.01, 0.14);
+      addBorder(document.querySelector('#detailBorder'), 1.10, 1.16, 0.01, 0.14);
+      addBorder(document.querySelector('#stageHeaderBorder'), 1.62, 0.18, 0.01, 0.14);
+
+      // Borders for buttons
+      document.querySelectorAll('.btnBorder').forEach(b => addBorder(b, 0.56, 0.16, 0.01, 0.14));
+
+      // ---------- Ultra-subtle grid (no corner brackets, no noise) ----------
+      AFRAME.registerComponent('grid-helper', {
+        schema: { size:{default:14}, divisions:{default:28} },
+        init: function(){
+          const size = this.data.size;
+          const divisions = this.data.divisions;
+          const step = size / divisions;
+          const half = size / 2;
+          const lines = [];
+          const y = 0;
+
+          for(let i=0;i<=divisions;i++){
+            const p = -half + i*step;
+            lines.push([-half, y, p,  half, y, p]);
+            lines.push([p, y, -half,  p, y, half]);
+          }
+
+          const geom = new THREE.BufferGeometry();
+          const positions = new Float32Array(lines.length * 2 * 3);
+          for(let i=0;i<lines.length;i++){
+            const a = lines[i].slice(0,3);
+            const b = lines[i].slice(3,6);
+            positions.set(a, i*6);
+            positions.set(b, i*6 + 3);
+          }
+          geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+          const mat = new THREE.LineBasicMaterial({ color: 0xe8e2d6, transparent:true, opacity:0.03 });
+          const lineSegs = new THREE.LineSegments(geom, mat);
+          this.el.setObject3D('mesh', lineSegs);
+        }
+      });
+      document.querySelector('#grid').setAttribute('grid-helper','');
+
+      // ---------- Data (placeholder; plug your real studies data here) ----------
+      const ALL = [
+        { id:"S-001", title:"Mycelium Sculpture Series I", year:2024, category:"BioSystems", type:"Installation", status:"Prototype",
+          abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.",
+          tags:["mycelium","biotech","sculpture","living material"]
+        },
+        { id:"S-002", title:"Transparent Solar Leaf Panels", year:2024, category:"BioSystems", type:"Research", status:"Ongoing",
+          abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.",
+          tags:["solar","screen printing","biomimicry","cellulose"]
+        },
+        { id:"S-003", title:"Interspecies Archaeology / Living Relics", year:2025, category:"BioSystems", type:"Research", status:"Draft",
+          abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.",
+          tags:["interspecies","archive","mycelium","nanotech"]
+        },
+        { id:"S-004", title:"Carnival Society / Dystopic Pop Artifact", year:2023, category:"Dystopic Pop Art", type:"Concept", status:"Draft",
+          abstract:"Modern society as carnival: lights, attractions, control — depth replaced by spectacle. Interface as critique.",
+          tags:["critique","spectacle","authority","interface"]
+        },
+        { id:"S-005", title:"Frequency Plate / Cymatics Study", year:2022, category:"Cymatics", type:"Research", status:"Built",
+          abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry as archive units.",
+          tags:["cymatics","frequency","pattern","plate"]
+        },
+        { id:"S-006", title:"Public Installation / Palestine Structure", year:2025, category:"Public Art", type:"Installation", status:"Planned",
+          abstract:"A sculptural installation addressing Palestine through infrastructural language: witnessing, memory, public space.",
+          tags:["public art","memory","structure","palestine"]
+        },
+        { id:"S-007", title:"Landscape Archive / Field Fragments", year:2021, category:"Landscape", type:"Research", status:"Archived",
+          abstract:"Field notes and fragments: terrain as database; classification as a lens over land and extraction.",
+          tags:["field","landscape","archive","fragments"]
+        }
+      ];
+
+      // ---------- State ----------
+      let activeCategory = "All";
+      let activeIndex = 0;
+
+      // DOM refs
+      const cardsRig = document.querySelector('#cardsRig');
+      const hudIndex = document.querySelector('#hudIndex');
+      const hudCat   = document.querySelector('#hudCat');
+
+      const dTitle = document.querySelector('#dTitle');
+      const dMeta  = document.querySelector('#dMeta');
+      const dBody  = document.querySelector('#dBody');
+
+      const catList3d = document.querySelector('#catList3d');
+
+      // Helpers
+      function categories(){
+        const set = new Set(ALL.map(p=>p.category));
+        return ["All", ...Array.from(set).sort((a,b)=>a.localeCompare(b))];
+      }
+      function filtered(){
+        const list = (activeCategory === "All") ? ALL.slice() : ALL.filter(p=>p.category===activeCategory);
+        list.sort((a,b)=>b.year-a.year);
+        return list;
+      }
+      function clamp(list){
+        if(!list.length){ activeIndex = 0; return; }
+        if(activeIndex < 0) activeIndex = list.length-1;
+        if(activeIndex >= list.length) activeIndex = 0;
+      }
+
+      function setDetail(p){
+        if(!p){
+          dTitle.setAttribute('value','No results');
+          dMeta.setAttribute('value','filters / empty');
+          dBody.setAttribute('value','Reset category or move in carousel.');
+          return;
+        }
+        dTitle.setAttribute('value', p.title);
+        dMeta.setAttribute('value', `${p.category} — ${p.year}    |    ${p.type} / ${p.status}`);
+        dBody.setAttribute('value', p.abstract);
+      }
+
+      function renderCats(){
+        catList3d.innerHTML = "";
+        const cats = categories();
+        const startY = 0.00;
+        const stepY = 0.105;
+
+        cats.slice(0, 9).forEach((c, idx) => {
+          const row = document.createElement('a-entity');
+          row.setAttribute('class','clickable');
+          row.setAttribute('position', `0 ${startY - idx*stepY} 0`);
+          row.dataset.cat = c;
+
+          const bg = document.createElement('a-plane');
+          bg.setAttribute('width','0.98');
+          bg.setAttribute('height','0.085');
+          bg.setAttribute('material', `color:#0f0f0f; opacity:${c===activeCategory ? 0.86 : 0.62}; side:double`);
+          row.appendChild(bg);
+
+          // thin border
+          const borderHolder = document.createElement('a-entity');
+          row.appendChild(borderHolder);
+          addBorder(borderHolder, 0.98, 0.085, 0.01, c===activeCategory ? 0.16 : 0.10);
+
+          const t = document.createElement('a-text');
+          t.setAttribute('value', c==="All" ? "All Studies" : c);
+          t.setAttribute('position','-0.46 0 0.02');
+          t.setAttribute('align','left');
+          t.setAttribute('width','1.30');
+          t.setAttribute('color','#e8e2d6');
+          t.setAttribute('opacity', c===activeCategory ? 0.82 : 0.52);
+          t.setAttribute('font','https://cdn.aframe.io/fonts/Roboto-msdf.json');
+          row.appendChild(t);
+
+          row.addEventListener('click', () => {
+            activeCategory = c;
+            activeIndex = 0;
+            renderCats();
+            render();
+          });
+
+          catList3d.appendChild(row);
+        });
+      }
+
+      function makeCard(p){
+        const e = document.createElement('a-entity');
+        e.setAttribute('class','clickable');
+        e.dataset.id = p.id;
+
+        const W = 1.46;
+        const H = 0.86;
+
+        // panel body
+        const bg = document.createElement('a-plane');
+        bg.setAttribute('width', W);
+        bg.setAttribute('height', H);
+        bg.setAttribute('material','color:#0f0f0f; opacity:0.78; side:double');
+        e.appendChild(bg);
+
+        // border
+        const b = document.createElement('a-entity');
+        e.appendChild(b);
+        addBorder(b, W, H, 0.01, 0.14);
+
+        // header strip
+        const bar = document.createElement('a-plane');
+        bar.setAttribute('width', W);
+        bar.setAttribute('height','0.12');
+        bar.setAttribute('position','0 0.36 0.01');
+        bar.setAttribute('material','color:#000; opacity:0.20; side:double');
+        e.appendChild(bar);
+
+        const tab = document.createElement('a-text');
+        tab.setAttribute('value', `${p.id} / ${p.category} ${p.year}`);
+        tab.setAttribute('position',`${-W/2+0.05} 0.36 0.02`);
+        tab.setAttribute('align','left');
+        tab.setAttribute('width', W+0.2);
+        tab.setAttribute('color','#e8e2d6');
+        tab.setAttribute('opacity','0.62');
+        tab.setAttribute('font','https://cdn.aframe.io/fonts/Roboto-msdf.json');
+        e.appendChild(tab);
+
+        const title = document.createElement('a-text');
+        title.setAttribute('value', p.title);
+        title.setAttribute('position',`${-W/2+0.05} 0.20 0.02`);
+        title.setAttribute('align','left');
+        title.setAttribute('width', W+0.2);
+        title.setAttribute('color','#e8e2d6');
+        title.setAttribute('opacity','0.88');
+        title.setAttribute('wrap-count','28');
+        title.setAttribute('font','https://cdn.aframe.io/fonts/Roboto-msdf.json');
+        e.appendChild(title);
+
+        const meta = document.createElement('a-text');
+        meta.setAttribute('value', `${p.type} / ${p.status}`);
+        meta.setAttribute('position',`${-W/2+0.05} 0.06 0.02`);
+        meta.setAttribute('align','left');
+        meta.setAttribute('width', W+0.2);
+        meta.setAttribute('color','#e8e2d6');
+        meta.setAttribute('opacity','0.50');
+        meta.setAttribute('font','https://cdn.aframe.io/fonts/Roboto-msdf.json');
+        e.appendChild(meta);
+
+        const desc = document.createElement('a-text');
+        desc.setAttribute('value', p.abstract);
+        desc.setAttribute('position',`${-W/2+0.05} -0.10 0.02`);
+        desc.setAttribute('align','left');
+        desc.setAttribute('width', W+0.1);
+        desc.setAttribute('opacity','0.62');
+        desc.setAttribute('color','#e8e2d6');
+        desc.setAttribute('wrap-count','50');
+        desc.setAttribute('font','https://cdn.aframe.io/fonts/Roboto-msdf.json');
+        e.appendChild(desc);
+
+        e.addEventListener('click', () => {
+          const list = filtered();
+          const idx = list.findIndex(x => x.id === p.id);
+          if(idx >= 0){ activeIndex = idx; render(); }
+        });
+
+        return e;
+      }
+
+      function render(){
+        const list = filtered();
+        clamp(list);
+        cardsRig.innerHTML = "";
+
+        if(!list.length){
+          hudIndex.setAttribute('value','—');
+          hudCat.setAttribute('value', activeCategory === "All" ? "All" : activeCategory);
+          setDetail(null);
+          return;
+        }
+
+        const p = list[activeIndex];
+        hudIndex.setAttribute('value', `${activeIndex+1} / ${list.length}`);
+        hudCat.setAttribute('value', activeCategory === "All" ? "All" : activeCategory);
+        setDetail(p);
+
+        // show 5 cards, centered, with consistent spacing (no “floating gaps”)
+        const windowSize = 2;
+        const start = Math.max(0, activeIndex - windowSize);
+        const end = Math.min(list.length - 1, activeIndex + windowSize);
+
+        const visibles = [];
+        for(let i=start;i<=end;i++){
+          const card = makeCard(list[i]);
+          cardsRig.appendChild(card);
+          visibles.push({card, i});
+        }
+
+        visibles.forEach(({card, i}) => {
+          const offset = i - activeIndex;
+          const abs = Math.abs(offset);
+
+          // centered stack (carousel in the middle)
+          const x = 0;
+          const y = -abs * 0.055;     // tighter vertical step
+          const z = -abs * 0.33;      // depth
+          const s = 1 - abs * 0.028;
+
+          card.setAttribute('position', `${x} ${y} ${z}`);
+          card.setAttribute('rotation', `0 0 0`);
+          card.setAttribute('scale', `${s} ${s} ${s}`);
+
+          // dim behind cards
+          const bg = card.querySelector('a-plane');
+          if(bg){
+            const op = (abs === 0) ? 0.78 : (0.62 - abs*0.08);
+            bg.setAttribute('material', `color:#0f0f0f; opacity:${Math.max(0.28, op)}; side:double`);
+          }
+        });
+      }
+
+      function next(){
+        const list = filtered();
+        if(list.length < 2) return;
+        activeIndex++;
+        render();
+      }
+      function prev(){
+        const list = filtered();
+        if(list.length < 2) return;
+        activeIndex--;
+        render();
+      }
+      function rand(){
+        const list = filtered();
+        if(!list.length) return;
+        activeIndex = Math.floor(Math.random()*list.length);
+        render();
+      }
+
+      // 3D buttons
+      document.querySelector('#prevBtn3d').addEventListener('click', prev);
+      document.querySelector('#nextBtn3d').addEventListener('click', next);
+      document.querySelector('#randBtn3d').addEventListener('click', rand);
+
+      // 2D buttons
+      document.getElementById('prev2d').addEventListener('click', prev);
+      document.getElementById('next2d').addEventListener('click', next);
+
+      // Enter VR
+      document.getElementById('enterVR').addEventListener('click', () => {
+        const scene = document.querySelector('a-scene');
+        if(scene && scene.enterVR) scene.enterVR();
+      });
+
+      // Swipe in 2D
+      let touchY = null;
+      window.addEventListener('touchstart', (e)=>{
+        if(!e.touches || !e.touches[0]) return;
+        touchY = e.touches[0].clientY;
+      }, {passive:true});
+      window.addEventListener('touchend', (e)=>{
+        if(touchY == null) return;
+        const endY = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0].clientY : touchY;
+        const dy = endY - touchY;
+        touchY = null;
+        if(Math.abs(dy) < 24) return;
+        if(dy < 0) next(); else prev();
+      }, {passive:true});
+
+      // Init
+      renderCats();
+      render();
+    </script>
+  </a-scene>
+</body>
+</html>
