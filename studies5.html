@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>Jofre Archive — Studies VR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/effects/StereoEffect.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap');
+
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --ink2: rgba(232,226,214,0.75);
+  --ink3: rgba(232,226,214,0.6);
+  --panel: rgba(15,15,15,0.78);
+  --border: rgba(232,226,214,0.16);
+  --gridline: rgba(232,226,214,0.04);
+  --serif: 'EB Garamond', serif;
+  --mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { 
+  width: 100%; 
+  height: 100%; 
+  background: var(--bg); 
+  color: var(--ink);
+  font-family: var(--serif);
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Shell with radial gradient */
+#shell {
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 60%),
+    linear-gradient(rgba(255,255,255,0.012), rgba(255,255,255,0.012)),
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.018), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,0.018), transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* VR Canvas */
+#vr-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* UI Layer - Three Panel Layout */
+#ui-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  padding: 78px 24px 24px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Grid Layout matching original */
+.vr-grid {
+  width: min(1280px, 100%);
+  display: grid;
+  grid-template-columns: 300px 1fr 360px;
+  gap: 16px;
+  align-items: stretch;
+  height: calc(100vh - 102px);
+}
+
+/* Panels */
+.vr-panel {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Grid overlay */
+.vr-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--gridline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--gridline) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.55;
+}
+
+/* Panel Head */
+.panel-head {
+  position: relative;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  z-index: 2;
+}
+
+.kicker, .hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.kicker { color: var(--ink3); }
+.hint { color: rgba(232,226,214,0.45); }
+
+/* Panel Body */
+.panel-body {
+  position: relative;
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Center panel - Carousel area */
+.carousel-panel {
+  border: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.carousel-panel::before {
+  display: none;
+}
+
+.carousel-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(232,226,214,0.14), transparent 48%),
+    radial-gradient(circle at 50% 88%, rgba(232,226,214,0.08), transparent 58%),
+    linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.62));
+  opacity: 1;
+}
+
+/* Mini HUD */
+.mini-hud {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  margin: 12px;
+  border: 0 !important;
+  background: transparent !important;
+  z-index: 10;
+}
+
+.hud-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+}
+
+/* Carousel Scene */
+.carousel-scene {
+  flex: 1;
+  position: relative;
+  min-height: 600px;
+  perspective: 2800px;
+  perspective-origin: 50% 60%;
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+/* Buttons */
+.btn {
+  border: 1px solid rgba(232,226,214,0.16);
+  background: rgba(0,0,0,0.18);
+  padding: 9px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+}
+
+.btn:hover { 
+  border-color: rgba(232,226,214,0.24); 
+  color: var(--ink); 
+  background: rgba(0,0,0,0.26); 
+}
+
+.btn.on { 
+  border-color: rgba(232,226,214,0.30); 
+  background: rgba(0,0,0,0.30); 
+  color: var(--ink); 
+}
+
+.controls-row {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 14px;
+  z-index: 50;
+}
+
+/* Nav Items */
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px;
+  border: 1px solid rgba(232,226,214,0.0);
+  background: rgba(0,0,0,0.14);
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 2px;
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover { 
+  border-color: rgba(232,226,214,0.16); 
+  background: rgba(0,0,0,0.22); 
+}
+
+.nav-item.active { 
+  border-color: rgba(232,226,214,0.28); 
+  background: rgba(0,0,0,0.28); 
+}
+
+.nav-left { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+  min-width: 0; 
+}
+
+.nav-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.45);
+}
+
+/* Project list grid */
+#projList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#projList .nav-item {
+  height: 28px;
+  aspect-ratio: auto;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+#projList .nav-left,
+#projList .nav-meta { display: none; }
+
+/* Detail panel */
+.detail-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+
+.detail-meta {
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.detail-block {
+  margin-top: 16px;
+  border-top: 1px solid rgba(232,226,214,0.12);
+  padding-top: 16px;
+}
+
+.detail-k {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+
+.detail-p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink2);
+}
+
+/* VR Button */
+#enter-vr {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: rgba(232,226,214,0.1);
+  border: 1px solid rgba(232,226,214,0.3);
+  color: var(--ink);
+  padding: 18px 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  transition: all 0.3s ease;
+}
+
+#enter-vr:hover {
+  background: rgba(232,226,214,0.2);
+  border-color: rgba(232,226,214,0.5);
+}
+
+/* Gaze cursor */
+.gaze-cursor {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(232,226,214,0.6);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.gaze-cursor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: rgba(232,226,214,0.8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.gaze-cursor.focusing {
+  border-color: var(--ink);
+  transform: translate(-50%, -50%) scale(1.5);
+  border-width: 2px;
+}
+
+/* Loaded projects section */
+.loaded-section {
+  margin-top: auto;
+  margin-bottom: 140px;
+}
+
+/* Mobile */
+@media (max-width: 980px) {
+  .vr-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 12px;
+  }
+  
+  .vr-panel {
+    min-height: 300px;
+  }
+  
+  .carousel-scene {
+    min-height: 400px;
+  }
+  
+  #enter-vr {
+    bottom: 20px;
+    padding: 14px 24px;
+    font-size: 11px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="shell"></div>
+<div class="gaze-cursor" id="cursor"></div>
+
+<canvas id="vr-canvas"></canvas>
+
+<div id="ui-layer">
+  <div class="vr-grid">
+    
+    <!-- LEFT: Studies Classification -->
+    <section class="vr-panel" aria-label="Studies Classification">
+      <div class="panel-head">
+        <div class="kicker">Studies</div>
+        <div class="hint">Classification</div>
+      </div>
+      <div class="panel-body">
+        <div id="catList"></div>
+        
+        <div class="loaded-section">
+          <div class="kicker" style="margin-bottom:10px; color: rgba(232,226,214,0.60);">Loaded Projects</div>
+          <div id="projList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER: Project Carousel -->
+    <section class="vr-panel carousel-panel" aria-label="Project Carousel">
+      <div class="mini-hud">
+        <div class="hud-text" id="chIndex">—</div>
+        <div class="hud-text" id="chCat">—</div>
+      </div>
+      
+      <div class="carousel-scene" id="stage">
+        <!-- Three.js renders here -->
+      </div>
+      
+      <div class="controls-row">
+        <button class="btn" id="prevBtn" type="button">Prev</button>
+        <button class="btn" id="nextBtn" type="button">Next</button>
+        <button class="btn" id="randBtn" type="button">Random</button>
+        <button class="btn" id="vrBtn" type="button">VR Mode</button>
+      </div>
+    </section>
+
+    <!-- RIGHT: Project Data -->
+    <section class="vr-panel" aria-label="Project Data">
+      <div class="panel-head">
+        <div class="kicker">Project Data</div>
+        <div class="hint">Loaded selection</div>
+      </div>
+      <div class="panel-body" id="detail">
+        <h3 class="detail-title">No file loaded</h3>
+        <div class="detail-meta"><span>select</span><span>use carousel</span></div>
+        <div class="detail-block">
+          <div class="detail-k">Purpose</div>
+          <p class="detail-p">Este panel muestra la ficha completa del proyecto activo.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<button id="enter-vr">Enter VR Mode</button>
+
+<script>
+// === Data ===
+const ALL = [
+  { id:"S-001", title:"Mycelium Sculpture Series I", year:2024, category:"BioSystems", type:"Installation", status:"Prototype",
+    abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.",
+    tags:["mycelium","biotech","sculpture","living material"],
+    materials:["mycelium spawn","cellulose substrate","humidity enclosure"],
+    technologies:["time-based growth","controlled decay"],
+    axis:["interspecies","autonomy","infrastructure"],
+    docs:{ pdf:false, images:true, video:true, network:true }
+  },
+  { id:"S-002", title:"Transparent Solar Leaf Panels", year:2024, category:"BioSystems", type:"Research", status:"Ongoing",
+    abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.",
+    tags:["solar","screen printing","biomimicry","cellulose"],
+    materials:["translucent cellulose base","conductive inks","p/n layers"],
+    technologies:["layered printing","thin-film experimentation"],
+    axis:["energy","bio-infrastructure","material politics"],
+    docs:{ pdf:true, images:true, video:false, network:true }
+  },
+  { id:"S-003", title:"Interspecies Archaeology / Living Relics", year:2025, category:"BioSystems", type:"Research", status:"Draft",
+    abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.",
+    tags:["interspecies","archive","mycelium","nanotech"],
+    materials:["biomass","substrates","lab notes"],
+    technologies:["growth protocols","micro documentation"],
+    axis:["agency","taxonomy","time"],
+    docs:{ pdf:true, images:true, video:true, network:false }
+  },
+  { id:"S-004", title:"Carnival Society / Dystopic Pop Artifact", year:2023, category:"Dystopic Pop Art", type:"Concept", status:"Draft",
+    abstract:"Modern society as carnival: lights, attractions, control — depth replaced by spectacle. Interface as critique.",
+    tags:["critique","spectacle","authority","interface"],
+    materials:["text","graphic system","archive UI"],
+    technologies:["indexing","controlled navigation"],
+    axis:["authority","identity","bureaucracy"],
+    docs:{ pdf:true, images:false, video:false, network:false }
+  },
+  { id:"S-005", title:"Frequency Plate / Cymatics Study", year:2022, category:"Cymatics", type:"Research", status:"Built",
+    abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry as archive units.",
+    tags:["cymatics","frequency","pattern","plate"],
+    materials:["plate","speaker","tone generator"],
+    technologies:["signal control","documentation"],
+    axis:["measurement","ritual","structure"],
+    docs:{ pdf:false, images:true, video:true, network:true }
+  },
+  { id:"S-006", title:"Public Installation / Palestine Structure", year:2025, category:"Public Art", type:"Installation", status:"Planned",
+    abstract:"A sculptural installation addressing Palestine through infrastructural language: witnessing, memory, public space.",
+    tags:["public art","memory","structure","palestine"],
+    materials:["site-specific","public constraints","structure"],
+    technologies:["planning","permits"],
+    axis:["memory","authority","public space"],
+    docs:{ pdf:true, images:false, video:false, network:false }
+  },
+  { id:"S-007", title:"Landscape Archive / Field Fragments", year:2021, category:"Landscape", type:"Research", status:"Archived",
+    abstract:"Field notes and fragments: terrain as database; classification as a lens over land and extraction.",
+    tags:["field","landscape","archive","fragments"],
+    materials:["text","photos","mapping"],
+    technologies:["indexing","taxonomy"],
+    axis:["extraction","mapping","control"],
+    docs:{ pdf:true, images:true, video:false, network:false }
+  }
+];
+
+// === Three.js Setup ===
+let scene, camera, renderer, effect;
+let carouselRig;
+let cards = [];
+let activeIndex = 0;
+let isVR = false;
+let raycaster, mouse;
+let hoveredCard = null;
+let gazeTimer = null;
+let audioCtx = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audioCtx = new AC();
+}
+
+function clickSound() {
+  const ctx = ensureAudio();
+  if(!ctx) return;
+  if(ctx.state === "suspended"){ ctx.resume().catch(()=>{}); }
+
+  const t0 = ctx.currentTime;
+  const dur = 0.018;
+
+  const noiseBuf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for(let i=0;i<data.length;i++){
+    const env = Math.exp(-i/(data.length/3));
+    data[i] = (Math.random()*2-1) * env * 0.75;
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = noiseBuf;
+
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.setValueAtTime(1800, t0);
+  bp.Q.setValueAtTime(6, t0);
+
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+  noise.connect(bp);
+  bp.connect(g);
+  g.connect(ctx.destination);
+
+  noise.start(t0);
+  noise.stop(t0 + dur);
+
+  const osc = ctx.createOscillator();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(1200, t0);
+  const g2 = ctx.createGain();
+  g2.gain.setValueAtTime(0.0001, t0);
+  g2.gain.exponentialRampToValueAtTime(0.045, t0 + 0.0015);
+  g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.010);
+  osc.connect(g2);
+  g2.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + 0.012);
+}
+
+function ensureAudio(){
+  if(audioCtx) return audioCtx;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if(!AC) return null;
+  audioCtx = new AC();
+  return audioCtx;
+}
+
+function init() {
+  const canvas = document.getElementById('vr-canvas');
+  const container = document.getElementById('stage');
+  const rect = container.getBoundingClientRect();
+  
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0b0b);
+  
+  // Camera - positioned to view the carousel from front
+  camera = new THREE.PerspectiveCamera(50, rect.width / rect.height, 0.1, 100);
+  camera.position.set(0, 0, 8);
+  
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(rect.width, rect.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  
+  // Stereo effect
+  effect = new THREE.StereoEffect(renderer);
+  effect.setSize(rect.width, rect.height);
+  
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambient);
+  
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(2, 5, 5);
+  scene.add(dir);
+  
+  const spot = new THREE.SpotLight(0xe8e2d6, 0.3);
+  spot.position.set(0, 8, 0);
+  spot.angle = Math.PI / 3;
+  spot.penumbra = 0.5;
+  scene.add(spot);
+  
+  // Raycaster
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  
+  // Create carousel rig
+  createCarousel();
+  
+  // Events
+  window.addEventListener('resize', onResize);
+  document.addEventListener('mousemove', onMouseMove);
+  
+  // Controls
+  document.getElementById('prevBtn').addEventListener('click', prev);
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('randBtn').addEventListener('click', random);
+  document.getElementById('vrBtn').addEventListener('click', toggleVR);
+  document.getElementById('enter-vr').addEventListener('click', enterVR);
+  
+  // Touch
+  let touchStartY = 0;
+  canvas.addEventListener('touchstart', (e) => {
+    touchStartY = e.touches[0].clientY;
+  });
+  canvas.addEventListener('touchend', (e) => {
+    const diff = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(diff) > 30) {
+      diff > 0 ? next() : prev();
+    }
+  });
+  
+  // Init UI
+  renderCategories();
+  renderCarousel();
+  
+  // Start loop
+  animate();
+}
+
+function createCardTexture(p, idx) {
+  const c = document.createElement('canvas');
+  c.width = 1024;
+  c.height = 1320;
+  const x = c.getContext('2d');
+  
+  // Background gradient based on ID
+  const n = parseInt(p.id.split('-')[1], 10) || 0;
+  const hue = (n * 41) % 360;
+  const g1 = x.createLinearGradient(0, 0, 0, c.height);
+  g1.addColorStop(0, `hsla(${hue}, 15%, 12%, 0.96)`);
+  g1.addColorStop(1, `hsla(${hue}, 15%, 8%, 0.96)`);
+  x.fillStyle = g1;
+  x.fillRect(0, 0, c.width, c.height);
+  
+  // Border
+  x.strokeStyle = 'rgba(232,226,214,0.18)';
+  x.lineWidth = 3;
+  x.strokeRect(0, 0, c.width, c.height);
+  
+  // Tab
+  x.fillStyle = 'rgba(0,0,0,0.60)';
+  x.fillRect(28, 0, 600, 60);
+  x.strokeStyle = 'rgba(232,226,214,0.16)';
+  x.lineWidth = 1;
+  x.strokeRect(28, 0, 600, 60);
+  
+  // Tab text
+  x.fillStyle = 'rgba(232,226,214,0.86)';
+  x.font = '24px "Source Code Pro", monospace';
+  x.textAlign = 'left';
+  const tabText = `${p.id}  /  ${p.title.substring(0, 35)}${p.title.length > 35 ? '...' : ''}  —  ${p.category} ${p.year}`;
+  x.fillText(tabText, 48, 40);
+  
+  // Notch
+  x.fillStyle = 'rgba(0,0,0,0.12)';
+  x.fillRect(28, 60, 116, 20);
+  x.strokeRect(28, 60, 116, 20);
+  
+  // Hero area with gradient
+  const g2 = x.createRadialGradient(512, 300, 0, 512, 300, 400);
+  g2.addColorStop(0, `hsla(${hue}, 30%, 25%, 0.25)`);
+  g2.addColorStop(1, 'transparent');
+  x.fillStyle = g2;
+  x.fillRect(0, 80, c.width, 400);
+  
+  // Hero bar
+  const grad = x.createLinearGradient(0, 460, 0, 520);
+  grad.addColorStop(0, 'rgba(0,0,0,0.05)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.70)');
+  x.fillStyle = grad;
+  x.fillRect(0, 460, c.width, 60);
+  
+  x.fillStyle = 'rgba(232,226,214,0.62)';
+  x.font = '22px "Source Code Pro", monospace';
+  x.fillText(p.category + ' — ' + p.year, 24, 500);
+  x.textAlign = 'right';
+  x.fillStyle = 'rgba(232,226,214,0.48)';
+  x.fillText(p.type + ' / ' + p.status, 1000, 500);
+  
+  // Title
+  x.textAlign = 'left';
+  x.fillStyle = '#e8e2d6';
+  x.font = '600 48px "EB Garamond", serif';
+  const words = p.title.split(' ');
+  let y = 620;
+  words.forEach(word => {
+    x.fillText(word, 24, y);
+    y += 52;
+  });
+  
+  // Meta
+  x.fillStyle = 'rgba(232,226,214,0.55)';
+  x.font = '20px "Source Code Pro", monospace';
+  x.fillText(`${p.category} — ${p.year}`, 24, y + 20);
+  x.textAlign = 'right';
+  x.fillText(`${p.type} / ${p.status}`, 1000, y + 20);
+  
+  // Abstract
+  x.textAlign = 'left';
+  x.fillStyle = 'rgba(232,226,214,0.9)';
+  x.font = '28px "EB Garamond", serif';
+  y += 80;
+  wrapText(x, p.abstract, 24, y, 976, 36);
+  
+  // Tags
+  y += 120;
+  p.tags.slice(0, 6).forEach((tag, i) => {
+    const tx = 24 + (i * 160);
+    x.strokeStyle = 'rgba(232,226,214,0.14)';
+    x.strokeRect(tx, y, 150, 44);
+    x.fillStyle = 'rgba(232,226,214,0.55)';
+    x.font = '18px "Source Code Pro", monospace';
+    x.textAlign = 'center';
+    x.fillText(tag.toUpperCase(), tx + 75, y + 30);
+  });
+  
+  const tex = new THREE.CanvasTexture(c);
+  tex.minFilter = THREE.LinearFilter;
+  return tex;
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ');
+  let line = '';
+  words.forEach(word => {
+    const test = line + word + ' ';
+    if (ctx.measureText(test).width > maxWidth && line !== '') {
+      ctx.fillText(line, x, y);
+      line = word + ' ';
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  });
+  ctx.fillText(line, x, y);
+}
+
+function createCarousel() {
+  carouselRig = new THREE.Group();
+  carouselRig.rotation.x = -0.45; // Tilt like original
+  scene.add(carouselRig);
+  
+  ALL.forEach((p, i) => {
+    const geo = new THREE.BoxGeometry(4, 5.2, 0.08);
+    const tex = createCardTexture(p, i);
+    
+    const mats = [
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }), // right
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }), // left
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }), // top
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 }), // bottom
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.3, metalness: 0.1 }), // front
+      new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1.0 })  // back
+    ];
+    
+    const card = new THREE.Mesh(geo, mats);
+    card.userData = { index: i, project: p };
+    cards.push(card);
+    carouselRig.add(card);
+  });
+  
+  updateCardPositions();
+}
+
+function updateCardPositions() {
+  cards.forEach((card, i) => {
+    const offset = i - activeIndex;
+    const abs = Math.abs(offset);
+    
+    // EXACT original layout: drawer into depth
+    const x = 0;
+    const y = abs * 0.26;
+    const z = -abs * 3.2;
+    const s = 1 - abs * 0.025;
+    
+    card.position.set(x, y, z);
+    card.scale.set(s, s, s);
+    
+    // Back cards darker
+    if (abs >= 1) {
+      card.material[4].color.setHex(0x888888);
+    } else {
+      card.material[4].color.setHex(0xffffff);
+    }
+    
+    card.visible = abs < 5;
+    card.renderOrder = 100 - abs;
+  });
+  
+  updateHUD();
+  renderDetail(ALL[activeIndex]);
+  renderProjectList();
+}
+
+function updateHUD() {
+  const p = ALL[activeIndex];
+  document.getElementById('chIndex').textContent = `${activeIndex + 1} / ${ALL.length}`;
+  document.getElementById('chCat').textContent = p ? p.category : '—';
+}
+
+function renderCategories() {
+  const catList = document.getElementById('catList');
+  catList.innerHTML = '';
+  
+  const cats = ['All', ...new Set(ALL.map(p => p.category))];
+  
+  cats.forEach(cat => {
+    const el = document.createElement('div');
+    el.className = 'nav-item';
+    const count = cat === 'All' ? ALL.length : ALL.filter(p => p.category === cat).length;
+    el.innerHTML = `
+      <div class="nav-left">
+        <div class="nav-label">${cat === 'All' ? 'All Studies' : cat}</div>
+        <div class="nav-meta">${cat === 'All' ? 'Full index' : 'Category / taxonomy'}</div>
+      </div>
+    `;
+    el.addEventListener('click', () => {
+      clickSound();
+      // Filter logic here if needed
+    });
+    catList.appendChild(el);
+  });
+}
+
+function renderProjectList() {
+  const projList = document.getElementById('projList');
+  projList.innerHTML = '';
+  
+  ALL.slice(0, 16).forEach((p, idx) => {
+    const el = document.createElement('div');
+    el.className = 'nav-item' + (idx === activeIndex ? ' active' : '');
+    el.textContent = p.id;
+    el.addEventListener('click', () => {
+      clickSound();
+      activeIndex = idx;
+      updateCardPositions();
+    });
+    projList.appendChild(el);
+  });
+}
+
+function renderDetail(p) {
+  const detail = document.getElementById('detail');
+  if (!p) {
+    detail.innerHTML = `
+      <h3 class="detail-title">No results</h3>
+      <div class="detail-meta"><span>filters</span><span>empty</span></div>
+    `;
+    return;
+  }
+  
+  detail.innerHTML = `
+    <h3 class="detail-title">${p.title}</h3>
+    <div class="detail-meta">
+      <span>${p.category} — ${p.year}</span>
+      <span>${p.type} / ${p.status}</span>
+    </div>
+    
+    <div class="detail-block">
+      <div class="detail-k">Description</div>
+      <p class="detail-p">${p.abstract}</p>
+    </div>
+    
+    <div class="detail-block">
+      <div class="detail-k">Technical Structure</div>
+      <ul class="detail-p" style="padding-left: 18px;">
+        <li><b>Materials</b>: ${p.materials.join(', ')}</li>
+        <li><b>Technologies</b>: ${p.technologies.join(', ')}</li>
+        <li><b>Identifier</b>: ${p.id}</li>
+      </ul>
+    </div>
+    
+    <div class="detail-block">
+      <div class="detail-k">Conceptual Axis</div>
+      <ul class="detail-p" style="padding-left: 18px;">
+        ${p.axis.map(x => `<li>${x}</li>`).join('')}
+      </ul>
+    </div>
+    
+    <div class="detail-block">
+      <div class="detail-k">Documentation</div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn" ${!p.docs.pdf ? 'disabled' : ''}>PDF</button>
+        <button class="btn" ${!p.docs.images ? 'disabled' : ''}>Images</button>
+        <button class="btn" ${!p.docs.video ? 'disabled' : ''}>Video</button>
+        <button class="btn" ${!p.docs.network ? 'disabled' : ''}>Network</button>
+      </div>
+    </div>
+  `;
+}
+
+function prev() {
+  if (ALL.length < 2) return;
+  clickSound();
+  activeIndex = (activeIndex - 1 + ALL.length) % ALL.length;
+  updateCardPositions();
+}
+
+function next() {
+  if (ALL.length < 2) return;
+  clickSound();
+  activeIndex = (activeIndex + 1) % ALL.length;
+  updateCardPositions();
+}
+
+function random() {
+  clickSound();
+  activeIndex = Math.floor(Math.random() * ALL.length);
+  updateCardPositions();
+}
+
+function toggleVR() {
+  isVR = !isVR;
+  document.getElementById('vrBtn').classList.toggle('on', isVR);
+  if (isVR) {
+    document.body.requestFullscreen().catch(() => {});
+  }
+}
+
+function enterVR() {
+  if (navigator.xr) {
+    navigator.xr.requestSession('immersive-vr').then(session => {
+      renderer.xr.setSession(session);
+      isVR = true;
+      document.getElementById('enter-vr').style.display = 'none';
+    }).catch(() => {
+      toggleVR();
+    });
+  } else {
+    toggleVR();
+  }
+}
+
+function onResize() {
+  const container = document.getElementById('stage');
+  const rect = container.getBoundingClientRect();
+  camera.aspect = rect.width / rect.height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(rect.width, rect.height);
+  effect.setSize(rect.width, rect.height);
+}
+
+function onMouseMove(e) {
+  const container = document.getElementById('stage');
+  const rect = container.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  
+  // Check gaze
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(cards);
+  const cursor = document.getElementById('cursor');
+  
+  if (intersects.length > 0 && intersects[0].object.visible) {
+    const card = intersects[0].object;
+    if (hoveredCard !== card) {
+      hoveredCard = card;
+      cursor.classList.add('focusing');
+      clearTimeout(gazeTimer);
+      gazeTimer = setTimeout(() => {
+        if (hoveredCard === card && card.userData.index !== activeIndex) {
+          activeIndex = card.userData.index;
+          clickSound();
+          updateCardPositions();
+        }
+      }, 1200);
+    }
+  } else {
+    hoveredCard = null;
+    cursor.classList.remove('focusing');
+    clearTimeout(gazeTimer);
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  // Subtle float
+  if (carouselRig) {
+    carouselRig.position.y = Math.sin(Date.now() * 0.001) * 0.05;
+  }
+  
+  const container = document.getElementById('stage');
+  const rect = container.getBoundingClientRect();
+  
+  if (isVR && !renderer.xr.isPresenting) {
+    effect.render(scene, camera);
+  } else {
+    renderer.setViewport(0, 0, rect.width, rect.height);
+    renderer.render(scene, camera);
+  }
+}
+
+// Init
+init();
+</script>
+</body>
+</html>

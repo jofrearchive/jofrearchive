@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Jofre Archive VR — Studies (Fideli-Mode)</title>
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
+</head>
+<body style="background: #0b0b0b; margin: 0; overflow: hidden;">
+
+  <a-scene 
+    renderer="antialias: true; colorManagement: true;"
+    cursor="fuse: false; rayOrigin: mouse;"
+    background="color: #0b0b0b">
+
+    <a-assets>
+      <a-mixin id="panelGlass" material="color: #0f0f0f; opacity: 0.85; transparent: true; metalness: 0.2; roughness: 0.8"></a-mixin>
+      <a-mixin id="label" text="font: https://cdn.aframe.io/fonts/SourceCodePro.fnt; color: #e8e2d6; width: 2; align: left;"></a-mixin>
+    </a-assets>
+
+    <a-entity id="rig" position="0 1.6 3.5">
+      <a-camera look-controls wasd-controls="acceleration: 20">
+        <a-cursor material="color: #e8e2d6; shader: flat" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.015; radiusOuter: 0.02"></a-cursor>
+      </a-camera>
+    </a-entity>
+
+    <a-entity position="-3.2 1.6 -1" rotation="0 25 0">
+      <a-plane width="2.2" height="3" mixin="panelGlass"></a-plane>
+      <a-text value="STUDIES" position="-1 1.3 0.05" scale="0.6 0.6 0.6" mixin="label" color="#b4af9b"></a-text>
+      <a-text value="CLASSIFICATION" position="0.3 1.3 0.05" scale="0.4 0.4 0.4" mixin="label" color="#666" align="right"></a-text>
+      <a-entity line="start: -1 1.2 0.05; end: 1 1.2 0.05; color: #e8e2d6; opacity: 0.2"></a-entity>
+
+      <a-entity id="btn-prev" position="0 -0.8 0.1" class="clickable">
+        <a-plane width="1.6" height="0.3" color="#1a1a1a" material="opacity: 0.5"></a-plane>
+        <a-text value="PREV PROJECT" align="center" scale="0.5 0.5 0.5" mixin="label"></a-text>
+      </a-entity>
+      <a-entity id="btn-next" position="0 -1.2 0.1" class="clickable">
+        <a-plane width="1.6" height="0.3" color="#1a1a1a" material="opacity: 0.5"></a-plane>
+        <a-text value="NEXT PROJECT" align="center" scale="0.5 0.5 0.5" mixin="label"></a-text>
+      </a-entity>
+    </a-entity>
+
+    <a-entity id="carousel-rig" position="0 1.4 -0.5" rotation="-15 0 0">
+      </a-entity>
+
+    <a-entity position="3.2 1.6 -1" rotation="0 -25 0">
+      <a-plane width="2.2" height="3" mixin="panelGlass"></a-plane>
+      <a-text value="PROJECT DATA" position="-1 1.3 0.05" scale="0.6 0.6 0.6" mixin="label" color="#b4af9b"></a-text>
+      <a-entity line="start: -1 1.2 0.05; end: 1 1.2 0.05; color: #e8e2d6; opacity: 0.2"></a-entity>
+      
+      <a-text id="v-title" value="" position="-1 0.9 0.05" width="3.5" font="https://cdn.aframe.io/fonts/EB-Garamond.fnt" color="#e8e2d6"></a-text>
+      
+      <a-text id="v-meta" value="" position="-1 0.6 0.05" scale="0.4 0.4 0.4" mixin="label" color="#888"></a-text>
+
+      <a-text value="PURPOSE / ABSTRACT" position="-1 0.2 0.05" scale="0.35 0.35 0.35" mixin="label" color="#b4af9b"></a-text>
+      <a-text id="v-desc" value="" position="-1 -0.3 0.05" width="1.8" mixin="label" scale="0.8 0.8 0.8"></a-text>
+    </a-entity>
+
+    <a-grid position="0 0 0" rotation="-90 0 0" width="100" height="100" material="color: #e8e2d6; opacity: 0.03; src: #gridPattern"></a-grid>
+  </a-scene>
+
+  <script>
+    const DATA = [
+      { id:"S-001", title:"Mycelium Sculpture Series I", year:2024, category:"BioSystems", abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.", color: "hsla(41, 30%, 72%, .18)" },
+      { id:"S-002", title:"Transparent Solar Leaf Panels", year:2024, category:"BioSystems", abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.", color: "hsla(121, 30%, 72%, .18)" },
+      { id:"S-003", title:"Interspecies Archaeology", year:2025, category:"BioSystems", abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.", color: "hsla(201, 30%, 72%, .18)" },
+      { id:"S-004", title:"Carnival Society", year:2023, category:"Dystopic Pop Art", abstract:"Modern society as carnival: lights, attractions, control — depth replaced by spectacle.", color: "hsla(301, 30%, 72%, .18)" },
+      { id:"S-005", title:"Frequency Plate", year:2022, category:"Cymatics", abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry.", color: "hsla(10, 30%, 72%, .18)" }
+    ];
+
+    let currentIndex = 0;
+    const rig = document.querySelector('#carousel-rig');
+
+    function createCard(p, i) {
+      const card = document.createElement('a-entity');
+      card.setAttribute('id', `card-${i}`);
+      
+      // El cuerpo de la tarjeta (Proporciones originales 1.2 x 1.8)
+      const body = document.createElement('a-plane');
+      body.setAttribute('width', '1.6');
+      body.setAttribute('height', '2.2');
+      body.setAttribute('mixin', 'panelGlass');
+      body.setAttribute('material', 'opacity: 0.98; side: double');
+
+      // Área "Hero" (Imagen/Gradiente superior)
+      const hero = document.createElement('a-plane');
+      hero.setAttribute('width', '1.6');
+      hero.setAttribute('height', '0.9');
+      hero.setAttribute('position', '0 0.65 0.01');
+      hero.setAttribute('material', `color: ${p.color}; opacity: 0.5`);
+
+      // Título y Meta (Estética original)
+      const title = document.createElement('a-text');
+      title.setAttribute('value', p.title);
+      title.setAttribute('position', '-0.7 0.05 0.02');
+      title.setAttribute('width', '2.5');
+      title.setAttribute('font', 'https://cdn.aframe.io/fonts/EB-Garamond.fnt');
+
+      const meta = document.createElement('a-text');
+      meta.setAttribute('value', `${p.id} / ${p.category} — ${p.year}`);
+      meta.setAttribute('position', '-0.7 -0.2 0.02');
+      meta.setAttribute('scale', '0.4 0.4 0.4');
+      meta.setAttribute('mixin', 'label');
+      meta.setAttribute('color', '#888');
+
+      card.appendChild(body);
+      card.appendChild(hero);
+      card.appendChild(title);
+      card.appendChild(meta);
+
+      return card;
+    }
+
+    function updateCarousel() {
+      DATA.forEach((proj, i) => {
+        let el = document.querySelector(`#card-${i}`);
+        if(!el) {
+          el = createCard(proj, i);
+          rig.appendChild(el);
+        }
+
+        const offset = i - currentIndex;
+        const abs = Math.abs(offset);
+        
+        // --- LÓGICA DE STACK (CARRUSEL ORIGINAL) ---
+        // z-offset: Se alejan en profundidad
+        // y-offset: Suben ligeramente como en el original
+        const z = -abs * 0.45;
+        const y = abs * 0.05; 
+        const opacity = offset === 0 ? 1 : (0.9 - abs * 0.2);
+        const scale = 1 - (abs * 0.05);
+
+        el.setAttribute('animation', {
+          property: 'position',
+          to: `0 ${y} ${z}`,
+          dur: 400,
+          easing: 'easeOutQuad'
+        });
+        el.setAttribute('animation__scale', {
+          property: 'scale',
+          to: `${scale} ${scale} ${scale}`,
+          dur: 400
+        });
+
+        // Visibilidad y control de brillo (como el filtro brightness original)
+        el.setAttribute('visible', abs < 4);
+      });
+
+      // Actualizar Panel de Datos (Derecho)
+      const p = DATA[currentIndex];
+      document.querySelector('#v-title').setAttribute('value', p.title.toUpperCase());
+      document.querySelector('#v-meta').setAttribute('value', `${p.category} // YEAR ${p.year}`);
+      document.querySelector('#v-desc').setAttribute('value', p.abstract);
+    }
+
+    // Interacciones
+    document.querySelector('#btn-next').addEventListener('click', () => {
+      if(currentIndex < DATA.length - 1) { currentIndex++; updateCarousel(); }
+    });
+    document.querySelector('#btn-prev').addEventListener('click', () => {
+      if(currentIndex > 0) { currentIndex--; updateCarousel(); }
+    });
+
+    // Iniciar
+    updateCarousel();
+  </script>
+</body>
+</html>
