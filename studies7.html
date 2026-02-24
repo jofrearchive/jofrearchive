@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Studies VR v3</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
+<style>
+html,body{margin:0;height:100%;background:#0b0b0b;overflow:hidden}
+</style>
+</head>
+<body>
+
+<a-scene background="color:#0b0b0b" vr-mode-ui="enabled:true" device-orientation-permission-ui="enabled:true">
+
+<a-entity light="type:ambient;intensity:0.6;color:#e8e2d6"></a-entity>
+<a-entity light="type:directional;intensity:0.4" position="1 2 1"></a-entity>
+
+<a-sphere radius="30" material="color:#0b0b0b;side:back"></a-sphere>
+
+<a-entity position="0 1.6 0">
+  <a-camera wasd-controls-enabled="false">
+    <a-cursor 
+      raycaster="objects:.clickable"
+      geometry="primitive:ring;radiusInner:0.012;radiusOuter:0.022"
+      material="color:#e8e2d6;opacity:0.8;shader:flat">
+    </a-cursor>
+  </a-camera>
+</a-entity>
+
+<!-- CATEGORY PANEL TOP CENTER -->
+<a-entity id="catPanel" position="0 2.35 -2.5">
+  <a-plane width="2.4" height="0.5" material="color:#111;opacity:0.85"></a-plane>
+  <a-text value="CLASSIFICATION" position="-1.1 0.18 0.02" width="3" color="#e8e2d6" opacity="0.6"></a-text>
+  <a-entity id="catList" position="-1.1 0 0.03"></a-entity>
+</a-entity>
+
+<!-- CAROUSEL CENTER LARGE -->
+<a-entity id="carousel" position="0 1.55 -2.5" rotation="-8 0 0"></a-entity>
+
+<!-- CONTROLS BIGGER -->
+<a-entity id="controls" position="0 0.55 -2.4">
+  <a-entity id="prevBtn" class="clickable" position="-0.9 0 0">
+    <a-plane width="0.9" height="0.25" material="color:#111;opacity:0.85"></a-plane>
+    <a-text value="PREV" align="center" width="3" position="0 0 0.02" color="#e8e2d6"></a-text>
+  </a-entity>
+  <a-entity id="nextBtn" class="clickable" position="0.9 0 0">
+    <a-plane width="0.9" height="0.25" material="color:#111;opacity:0.85"></a-plane>
+    <a-text value="NEXT" align="center" width="3" position="0 0 0.02" color="#e8e2d6"></a-text>
+  </a-entity>
+</a-entity>
+
+<script>
+const DATA=[
+{id:"S-001",title:"Mycelium Sculpture Series I",year:2024,category:"BioSystems"},
+{id:"S-002",title:"Transparent Solar Leaf Panels",year:2024,category:"BioSystems"},
+{id:"S-003",title:"Living Relics",year:2025,category:"BioSystems"},
+{id:"S-004",title:"Carnival Society",year:2023,category:"Dystopic Pop Art"},
+{id:"S-005",title:"Frequency Plate",year:2022,category:"Cymatics"},
+{id:"S-006",title:"Palestine Structure",year:2025,category:"Public Art"},
+{id:"S-007",title:"Landscape Archive",year:2021,category:"Landscape"}
+];
+
+let index=0;
+let activeCat="All";
+
+function categories(){
+const set=new Set(DATA.map(d=>d.category));
+return["All",...Array.from(set)];
+}
+
+function filtered(){
+return activeCat==="All"?DATA:DATA.filter(d=>d.category===activeCat);
+}
+
+function renderCategories(){
+const list=document.querySelector("#catList");
+list.innerHTML="";
+categories().forEach((c,i)=>{
+const row=document.createElement("a-entity");
+row.setAttribute("class","clickable");
+row.setAttribute("position",`${i*0.45} -0.15 0`);
+
+const bg=document.createElement("a-plane");
+bg.setAttribute("width","0.8");
+bg.setAttribute("height","0.22");
+bg.setAttribute("material",`color:#111;opacity:${c===activeCat?0.95:0.7}`);
+row.appendChild(bg);
+
+const t=document.createElement("a-text");
+t.setAttribute("value",c);
+t.setAttribute("align","center");
+t.setAttribute("width","2.5");
+t.setAttribute("position","0 0 0.02");
+t.setAttribute("color","#e8e2d6");
+row.appendChild(t);
+
+row.addEventListener("click",()=>{
+activeCat=c;
+index=0;
+renderCategories();
+renderCarousel();
+});
+
+list.appendChild(row);
+});
+}
+
+function makeCard(p){
+const e=document.createElement("a-entity");
+
+const bg=document.createElement("a-plane");
+bg.setAttribute("width","2.1");
+bg.setAttribute("height","1.2");
+bg.setAttribute("material","color:#111;opacity:0.9");
+e.appendChild(bg);
+
+const t=document.createElement("a-text");
+t.setAttribute("value",p.title);
+t.setAttribute("align","center");
+t.setAttribute("width","3.8");
+t.setAttribute("wrap-count","28");
+t.setAttribute("position","0 0.25 0.02");
+t.setAttribute("color","#e8e2d6");
+e.appendChild(t);
+
+const m=document.createElement("a-text");
+m.setAttribute("value",p.category+" — "+p.year);
+m.setAttribute("align","center");
+m.setAttribute("width","3.5");
+m.setAttribute("position","0 -0.2 0.02");
+m.setAttribute("color","#e8e2d6");
+m.setAttribute("opacity","0.6");
+e.appendChild(m);
+
+return e;
+}
+
+function renderCarousel(){
+const rig=document.querySelector("#carousel");
+rig.innerHTML="";
+const list=filtered();
+if(!list.length)return;
+if(index<0)index=list.length-1;
+if(index>=list.length)index=0;
+
+const windowSize=2;
+for(let i=index-windowSize;i<=index+windowSize;i++){
+if(i<0||i>=list.length)continue;
+const card=makeCard(list[i]);
+const offset=i-index;
+card.setAttribute("position",`0 ${-Math.abs(offset)*0.1} ${-Math.abs(offset)*0.6}`);
+card.setAttribute("scale",`${1-Math.abs(offset)*0.06} ${1-Math.abs(offset)*0.06} ${1-Math.abs(offset)*0.06}`);
+rig.appendChild(card);
+}
+}
+
+document.querySelector("#prevBtn").addEventListener("click",()=>{index--;renderCarousel();});
+document.querySelector("#nextBtn").addEventListener("click",()=>{index++;renderCarousel();});
+
+renderCategories();
+renderCarousel();
+</script>
+
+</a-scene>
+</body>
+</html>
