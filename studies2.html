@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>Jofre Archive — Studies VR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/effects/StereoEffect.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/VRButton.js"></script>
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --ink2: rgba(232,226,214,0.75);
+  --ink3: rgba(232,226,214,0.6);
+  --panel: rgba(15,15,15,0.85);
+  --border: rgba(232,226,214,0.16);
+  --serif: 'EB Garamond', serif;
+  --mono: 'Source Code Pro', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { 
+  width: 100%; 
+  height: 100%; 
+  background: var(--bg); 
+  color: var(--ink);
+  font-family: var(--serif);
+  overflow: hidden;
+  touch-action: none;
+}
+
+body {
+  background: radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 60%);
+}
+
+#vr-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#ui-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.header {
+  text-align: center;
+  pointer-events: auto;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.kicker {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-top: 8px;
+}
+
+.controls-hud {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  pointer-events: auto;
+  margin-bottom: 40px;
+}
+
+.vr-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  padding: 16px 24px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  border-radius: 2px;
+}
+
+.vr-btn:hover, .vr-btn:active {
+  border-color: rgba(232,226,214,0.3);
+  color: var(--ink);
+  background: rgba(0,0,0,0.4);
+}
+
+.vr-btn.active {
+  background: rgba(232,226,214,0.1);
+  border-color: rgba(232,226,214,0.4);
+}
+
+#enter-vr {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: rgba(232,226,214,0.1);
+  border: 1px solid rgba(232,226,214,0.3);
+  color: var(--ink);
+  padding: 18px 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+#enter-vr:hover {
+  background: rgba(232,226,214,0.2);
+  border-color: rgba(232,226,214,0.5);
+}
+
+#info-panel {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+#info-panel.visible {
+  opacity: 1;
+}
+
+.info-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.info-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 16px;
+}
+
+.info-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink2);
+  margin-bottom: 16px;
+}
+
+.info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(232,226,214,0.55);
+  border: 1px solid rgba(232,226,214,0.14);
+  padding: 4px 8px;
+}
+
+#loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  z-index: 1000;
+}
+
+.gaze-cursor {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(232,226,214,0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.gaze-cursor.focusing {
+  border-color: var(--ink);
+  background: rgba(232,226,214,0.1);
+  transform: translate(-50%, -50%) scale(0.8);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  #info-panel {
+    width: calc(100% - 40px);
+    right: 20px;
+    left: 20px;
+    top: auto;
+    bottom: 120px;
+    transform: none;
+    max-height: 40vh;
+  }
+  
+  .controls-hud {
+    margin-bottom: 20px;
+  }
+  
+  .vr-btn {
+    padding: 14px 20px;
+    font-size: 10px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading Archive...</div>
+
+<canvas id="vr-canvas"></canvas>
+
+<div class="gaze-cursor" id="cursor"></div>
+
+<div id="ui-layer">
+  <div class="header">
+    <div class="logo">Jofre Archive</div>
+    <div class="kicker">Studies — VR Collection</div>
+  </div>
+  
+  <div class="controls-hud">
+    <button class="vr-btn" id="btn-prev">← Prev</button>
+    <button class="vr-btn" id="btn-info">Info</button>
+    <button class="vr-btn" id="btn-next">Next →</button>
+  </div>
+</div>
+
+<div id="info-panel">
+  <div class="info-title" id="info-title">Select a project</div>
+  <div class="info-meta" id="info-meta">—</div>
+  <div class="info-desc" id="info-desc">Navigate the carousel to view project details.</div>
+  <div class="info-tags" id="info-tags"></div>
+</div>
+
+<button id="enter-vr">Enter VR Mode</button>
+
+<script>
+// === Data ===
+const ALL = [
+  { id:"S-001", title:"Mycelium Sculpture Series I", year:2024, category:"BioSystems", type:"Installation", status:"Prototype",
+    abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.",
+    tags:["mycelium","biotech","sculpture","living material"],
+    color: 0x8B7355
+  },
+  { id:"S-002", title:"Transparent Solar Leaf Panels", year:2024, category:"BioSystems", type:"Research", status:"Ongoing",
+    abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.",
+    tags:["solar","screen printing","biomimicry","cellulose"],
+    color: 0x4A6741
+  },
+  { id:"S-003", title:"Interspecies Archaeology / Living Relics", year:2025, category:"BioSystems", type:"Research", status:"Draft",
+    abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.",
+    tags:["interspecies","archive","mycelium","nanotech"],
+    color: 0x6B5344
+  },
+  { id:"S-004", title:"Carnival Society / Dystopic Pop Artifact", year:2023, category:"Dystopic Pop Art", type:"Concept", status:"Draft",
+    abstract:"Modern society as carnival: lights, attractions, control — depth replaced by spectacle. Interface as critique.",
+    tags:["critique","spectacle","authority","interface"],
+    color: 0x8B0000
+  },
+  { id:"S-005", title:"Frequency Plate / Cymatics Study", year:2022, category:"Cymatics", type:"Research", status:"Built",
+    abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry as archive units.",
+    tags:["cymatics","frequency","pattern","plate"],
+    color: 0x2F4F4F
+  },
+  { id:"S-006", title:"Public Installation / Palestine Structure", year:2025, category:"Public Art", type:"Installation", status:"Planned",
+    abstract:"A sculptural installation addressing Palestine through infrastructural language: witnessing, memory, public space.",
+    tags:["public art","memory","structure","palestine"],
+    color: 0x4A4A4A
+  },
+  { id:"S-007", title:"Landscape Archive / Field Fragments", year:2021, category:"Landscape", type:"Research", status:"Archived",
+    abstract:"Field notes and fragments: terrain as database; classification as a lens over land and extraction.",
+    tags:["field","landscape","archive","fragments"],
+    color: 0x556B2F
+  }
+];
+
+// === Three.js Setup ===
+let scene, camera, renderer, effect;
+let carouselGroup;
+let cards = [];
+let activeIndex = 0;
+let isVR = false;
+let raycaster, mouse;
+let hoveredCard = null;
+let gazeTimer = null;
+
+// Audio context for click sounds
+let audioCtx = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audioCtx = new AC();
+}
+
+function playClickSound() {
+  if (!audioCtx) initAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  
+  const t0 = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(1200, t0);
+  osc.frequency.exponentialRampToValueAtTime(600, t0 + 0.05);
+  
+  gain.gain.setValueAtTime(0.1, t0);
+  gain.gain.exponentialRampToValueAtTime(0.01, t0 + 0.05);
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.start(t0);
+  osc.stop(t0 + 0.05);
+}
+
+function init() {
+  const canvas = document.getElementById('vr-canvas');
+  
+  // Scene
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0b0b);
+  scene.fog = new THREE.Fog(0x0b0b0b, 10, 50);
+  
+  // Camera
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 1.6, 6);
+  
+  // Renderer
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.xr.enabled = true;
+  
+  // Stereo effect for VR
+  effect = new THREE.StereoEffect(renderer);
+  effect.setSize(window.innerWidth, window.innerHeight);
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambientLight);
+  
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  dirLight.position.set(5, 10, 7);
+  scene.add(dirLight);
+  
+  const spotLight = new THREE.SpotLight(0xe8e2d6, 0.5);
+  spotLight.position.set(0, 10, 0);
+  spotLight.angle = Math.PI / 4;
+  spotLight.penumbra = 0.5;
+  scene.add(spotLight);
+  
+  // Raycaster for gaze interaction
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+  
+  // Create carousel
+  createCarousel();
+  
+  // Environment
+  createEnvironment();
+  
+  // Event listeners
+  window.addEventListener('resize', onWindowResize);
+  document.getElementById('btn-prev').addEventListener('click', prevCard);
+  document.getElementById('btn-next').addEventListener('click', nextCard);
+  document.getElementById('btn-info').addEventListener('click', toggleInfo);
+  document.getElementById('enter-vr').addEventListener('click', enterVR);
+  
+  // Touch controls
+  let touchStartX = 0;
+  canvas.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+  });
+  canvas.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextCard();
+      else prevCard();
+    }
+  });
+  
+  // Mouse move for gaze
+  document.addEventListener('mousemove', onMouseMove);
+  
+  // Hide loading
+  document.getElementById('loading').style.display = 'none';
+  
+  // Start loop
+  animate();
+}
+
+function createCardTexture(project, index) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1280;
+  const ctx = canvas.getContext('2d');
+  
+  // Background
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  const hue = (index * 41) % 360;
+  gradient.addColorStop(0, `hsla(${hue}, 20%, 15%, 1)`);
+  gradient.addColorStop(1, `hsla(${hue}, 20%, 8%, 1)`);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Border
+  ctx.strokeStyle = 'rgba(232,226,214,0.18)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+  
+  // Tab
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(60, 20, 400, 60);
+  ctx.strokeStyle = 'rgba(232,226,214,0.16)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(60, 20, 400, 60);
+  
+  // Tab text
+  ctx.fillStyle = 'rgba(232,226,214,0.86)';
+  ctx.font = '24px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(`${project.id} / ${project.title.substring(0, 25)}...`, 80, 58);
+  
+  // Notch
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.fillRect(60, 80, 116, 20);
+  ctx.strokeRect(60, 80, 116, 20);
+  
+  // Hero area
+  const heroGradient = ctx.createRadialGradient(512, 400, 0, 512, 400, 400);
+  heroGradient.addColorStop(0, `hsla(${hue}, 30%, 30%, 0.3)`);
+  heroGradient.addColorStop(1, 'transparent');
+  ctx.fillStyle = heroGradient;
+  ctx.fillRect(60, 120, 904, 400);
+  
+  // Category/Year bar
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(60, 500, 904, 60);
+  ctx.fillStyle = 'rgba(232,226,214,0.62)';
+  ctx.font = '22px monospace';
+  ctx.fillText(`${project.category} — ${project.year}`, 80, 538);
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(232,226,214,0.48)';
+  ctx.fillText(`${project.type} / ${project.status}`, 944, 538);
+  
+  // Title
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#e8e2d6';
+  ctx.font = 'bold 48px "EB Garamond", serif';
+  const words = project.title.split(' ');
+  let y = 640;
+  words.forEach(word => {
+    ctx.fillText(word, 60, y);
+    y += 56;
+  });
+  
+  // Meta
+  ctx.fillStyle = 'rgba(232,226,214,0.55)';
+  ctx.font = '20px monospace';
+  ctx.fillText(`${project.category} — ${project.year}    ${project.type} / ${project.status}`, 60, y + 20);
+  
+  // Abstract
+  ctx.fillStyle = 'rgba(232,226,214,0.9)';
+  ctx.font = '28px "EB Garamond", serif';
+  y += 80;
+  const maxWidth = 904;
+  const lineHeight = 36;
+  const words_text = project.abstract.split(' ');
+  let line = '';
+  words_text.forEach(word => {
+    const testLine = line + word + ' ';
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > maxWidth && line !== '') {
+      ctx.fillText(line, 60, y);
+      line = word + ' ';
+      y += lineHeight;
+    } else {
+      line = testLine;
+    }
+  });
+  ctx.fillText(line, 60, y);
+  
+  // Tags
+  y += 60;
+  project.tags.slice(0, 4).forEach((tag, i) => {
+    const x = 60 + (i * 200);
+    ctx.strokeStyle = 'rgba(232,226,214,0.14)';
+    ctx.strokeRect(x, y, 180, 40);
+    ctx.fillStyle = 'rgba(232,226,214,0.55)';
+    ctx.font = '18px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(tag.toUpperCase(), x + 90, y + 26);
+  });
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  return texture;
+}
+
+function createCarousel() {
+  carouselGroup = new THREE.Group();
+  scene.add(carouselGroup);
+  
+  ALL.forEach((project, index) => {
+    const geometry = new THREE.BoxGeometry(3.2, 4, 0.15);
+    const texture = createCardTexture(project, index);
+    
+    const materials = [
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 }), // right
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 }), // left
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 }), // top
+      new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.8 }), // bottom
+      new THREE.MeshStandardMaterial({ map: texture, roughness: 0.4, metalness: 0.1 }), // front
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 })  // back
+    ];
+    
+    const card = new THREE.Mesh(geometry, materials);
+    card.userData = { index, project };
+    cards.push(card);
+    carouselGroup.add(card);
+  });
+  
+  updateCarouselPositions();
+}
+
+function updateCarouselPositions() {
+  cards.forEach((card, i) => {
+    const offset = i - activeIndex;
+    const abs = Math.abs(offset);
+    
+    // Drawer layout - stacked into depth
+    const x = 0;
+    const y = abs * 0.3;
+    const z = -abs * 4;
+    const scale = 1 - abs * 0.05;
+    const brightness = 0.92 - abs * 0.08;
+    
+    card.position.set(x, y, z);
+    card.scale.set(scale, scale, scale);
+    
+    // Materials update for brightness
+    card.material.forEach((mat, idx) => {
+      if (mat.color && idx !== 4) { // not the front face with texture
+        mat.color.setHex(0x1a1a1a * brightness);
+      }
+    });
+    
+    // Opacity for distant cards
+    card.visible = abs < 5;
+    
+    // Highlight active
+    if (offset === 0) {
+      card.material[4].emissive = new THREE.Color(0x222222);
+    } else {
+      card.material[4].emissive = new THREE.Color(0x000000);
+    }
+  });
+  
+  updateInfoPanel();
+}
+
+function createEnvironment() {
+  // Grid floor
+  const gridHelper = new THREE.GridHelper(40, 40, 0x333333, 0x111111);
+  gridHelper.position.y = -2;
+  scene.add(gridHelper);
+  
+  // Particles
+  const particlesGeometry = new THREE.BufferGeometry();
+  const particlesCount = 200;
+  const posArray = new Float32Array(particlesCount * 3);
+  
+  for (let i = 0; i < particlesCount * 3; i++) {
+    posArray[i] = (Math.random() - 0.5) * 30;
+  }
+  
+  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+  const particlesMaterial = new THREE.PointsMaterial({
+    size: 0.05,
+    color: 0xe8e2d6,
+    transparent: true,
+    opacity: 0.4
+  });
+  
+  const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+  scene.add(particles);
+  
+  // Ambient glow spheres
+  const sphereGeo = new THREE.SphereGeometry(0.5, 16, 16);
+  const sphereMat = new THREE.MeshBasicMaterial({ 
+    color: 0xe8e2d6, 
+    transparent: true, 
+    opacity: 0.03 
+  });
+  
+  for (let i = 0; i < 8; i++) {
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.position.set(
+      (Math.random() - 0.5) * 20,
+      Math.random() * 10,
+      (Math.random() - 0.5) * 20 - 5
+    );
+    sphere.scale.set(2 + Math.random() * 3, 2 + Math.random() * 3, 2 + Math.random() * 3);
+    scene.add(sphere);
+  }
+}
+
+function prevCard() {
+  playClickSound();
+  activeIndex = (activeIndex - 1 + ALL.length) % ALL.length;
+  updateCarouselPositions();
+}
+
+function nextCard() {
+  playClickSound();
+  activeIndex = (activeIndex + 1) % ALL.length;
+  updateCarouselPositions();
+}
+
+function toggleInfo() {
+  const panel = document.getElementById('info-panel');
+  panel.classList.toggle('visible');
+}
+
+function updateInfoPanel() {
+  const project = ALL[activeIndex];
+  document.getElementById('info-title').textContent = project.title;
+  document.getElementById('info-meta').textContent = `${project.id} — ${project.category} — ${project.year}`;
+  document.getElementById('info-desc').textContent = project.abstract;
+  
+  const tagsContainer = document.getElementById('info-tags');
+  tagsContainer.innerHTML = project.tags.map(tag => 
+    `<span class="tag">${tag}</span>`
+  ).join('');
+}
+
+function enterVR() {
+  if (navigator.xr) {
+    navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+      if (supported) {
+        navigator.xr.requestSession('immersive-vr', {
+          requiredFeatures: ['local-floor']
+        }).then((session) => {
+          renderer.xr.setSession(session);
+          isVR = true;
+          document.getElementById('enter-vr').style.display = 'none';
+          document.getElementById('ui-layer').style.opacity = '0.3';
+        });
+      } else {
+        // Fallback to fullscreen stereo
+        enableStereoMode();
+      }
+    });
+  } else {
+    // Fallback for non-WebXR browsers
+    enableStereoMode();
+  }
+}
+
+function enableStereoMode() {
+  isVR = true;
+  document.getElementById('enter-vr').style.display = 'none';
+  document.body.requestFullscreen().catch(() => {});
+  
+  // Device orientation for mobile
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', onDeviceOrientation);
+  }
+}
+
+function onDeviceOrientation(event) {
+  if (!isVR) return;
+  
+  const alpha = event.alpha ? THREE.MathUtils.degToRad(event.alpha) : 0;
+  const beta = event.beta ? THREE.MathUtils.degToRad(event.beta) : 0;
+  const gamma = event.gamma ? THREE.MathUtils.degToRad(event.gamma) : 0;
+  
+  // Simple orientation-based camera rotation
+  camera.rotation.y = -alpha;
+  camera.rotation.x = -beta;
+}
+
+function onMouseMove(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  if (effect) effect.setSize(window.innerWidth, window.innerHeight);
+}
+
+function checkGazeInteraction() {
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(cards);
+  
+  const cursor = document.getElementById('cursor');
+  
+  if (intersects.length > 0) {
+    const card = intersects[0].object;
+    if (hoveredCard !== card) {
+      hoveredCard = card;
+      cursor.classList.add('focusing');
+      
+      // Auto-select after gaze
+      clearTimeout(gazeTimer);
+      gazeTimer = setTimeout(() => {
+        if (hoveredCard === card && card.userData.index !== activeIndex) {
+          activeIndex = card.userData.index;
+          playClickSound();
+          updateCarouselPositions();
+        }
+      }, 1500);
+    }
+  } else {
+    hoveredCard = null;
+    cursor.classList.remove('focusing');
+    clearTimeout(gazeTimer);
+  }
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  checkGazeInteraction();
+  
+  // Gentle floating animation
+  const time = Date.now() * 0.001;
+  carouselGroup.position.y = Math.sin(time * 0.5) * 0.1;
+  
+  if (isVR && !renderer.xr.isPresenting) {
+    // Stereo rendering for mobile VR
+    effect.render(scene, camera);
+  } else {
+    renderer.render(scene, camera);
+  }
+}
+
+// Initialize
+init();
+</script>
+</body>
+</html>
