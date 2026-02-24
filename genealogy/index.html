@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
 <title>Jofre Archive — Network</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 <style>
@@ -60,7 +60,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 .siteHeader img{
   height: 56px;          /* typical WP logo height on desktop */
   width: auto;
-  max-width: min(520px, 78vw);
+  max-width: min(260px, 82vw);
   display: block;
   opacity: .92;
 }
@@ -369,17 +369,29 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   align-self: center;
   spellcheck: false;
 }
-.typingCursor {
-  display: inline;
-  animation: blink 1s step-end infinite;
-  opacity: 0.85;
-}
 
 @keyframes blink {
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 0; }
+  0%, 49% { opacity: 0.85; }
+  50%, 100% { opacity: 0; }
 }
 
+/* Typewriter cursor (auto) */
+.typingCursor{
+  display:inline;
+  animation: blink 1s step-end infinite;
+  opacity:0.85;
+}
+
+/* Live caret for manual writing (mobile) */
+.liveCaret{
+  display:none;
+  animation: blink 1s step-end infinite;
+  opacity:0.85;
+}
+
+.sheetText.modeWrite .liveCaret{
+  display:inline;
+}
 .sheetText.typing-complete .typingCursor {
   display: none;
 }
@@ -886,9 +898,6 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 input, textarea{ font-size:16px; }
 
 /* --- Prevent iOS keyboard auto-zoom on infopanel typing --- */
-.sheetText[contenteditable="true"]{
-  font-size:16px !important;
-}
 
 
 /* --- Unified background tone (Normal + VR) --- */
@@ -1008,6 +1017,181 @@ canvas {
   }
 }
 
+
+/* ===============================
+   iOS: stop keyboard zoom WITHOUT changing visual typography size
+   - iOS zooms on editable text < 16px.
+   - We set the *actual* editable font-size to 16px (to satisfy iOS),
+     then scale the element down so it *looks* like 13px/12px.
+=================================*/
+html, body{
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Use CSS vars so we can keep the exact visual sizes already used */
+.sheetText{
+  --viz: 13;       /* visual size (desktop) */
+  --ios: 16;       /* iOS minimum to avoid zoom */
+}
+
+/* Mobile visual size is 12px in your CSS — keep it as-is via variable */
+@media (max-width: 520px){
+  .sheetText{ --viz: 12; }
+}
+
+/* When editable, force iOS-safe size but preserve appearance */
+/* v3: keep editable box within sheet (avoid layout push) */
+/* ===============================
+   VR background tone match
+   - When VR is active, slightly lift the base tone so it matches non-VR perception
+=================================*/
+body.vr-on{
+  background-color: #121212 !important;
+}
+body.vr-on canvas{
+  background-color: #121212 !important;
+}
+
+
+/* ===============================
+   WRITE INVITE (mobile)
+   Small elegant popup that invites to write, dismissed by tapping outside.
+=================================*/
+#writeInviteOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 100005; /* above panels, below debug/vr if needed */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.0); /* no dim by default */
+}
+#writeInviteOverlay.open{ display:flex; }
+
+#writeInvite{
+  width: min(320px, 88vw);
+  border: 1px solid rgba(232,226,214,.22);
+  background: rgba(10,10,10,.86);
+  box-shadow: none;
+  padding: 16px 8px 16px;
+  box-sizing: border-box;
+  border-radius: 0;
+  position: relative;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+
+
+#writeInvite .column{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  text-align:center;
+  width:100%;
+}
+
+
+
+#writeInvite .msg{
+  font-family: "Source Code Pro", var(--mono);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  opacity: .85;
+  line-height: 1.5;
+  text-align: center;
+  padding: 12px 0;
+}
+
+
+#writeInvite .btnWrite{
+  margin: 0 auto;
+
+  margin-left: auto;
+  font-family: "Source Code Pro", var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--ink);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(232,226,214,.28);
+  border-radius: 0;
+  padding: 10px 12px;
+  cursor:pointer;
+  opacity: .95;
+  white-space: nowrap;
+}
+#writeInvite .btnWrite:active{ transform: translateY(1px); }
+
+/* Only show by default on mobile/tablet widths */
+@media (min-width: 901px){
+  #writeInviteOverlay{ display:none !important; }
+}
+
+
+/* ===============================
+   WRITE INPUT (proxy)
+   - Keep visible sheet text unchanged (no reflow on write)
+   - Use an offscreen textarea (16px) to open native keyboard on iOS without zoom
+=================================*/
+#writeProxy{
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  opacity: 0;
+  font-size: 16px; /* iOS: prevent focus-zoom */
+  line-height: 1;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+
+
+/* ===============================
+   PANEL-SPECIFIC META VISIBILITY RULES
+   - UTOPIA (mobile): hide ORIGIN row
+   - MANIFESTO (smartphone): hide all meta except Actions + hint text
+   - MEMORY (all): hide Index row
+=================================*/
+
+/* MEMORY: remove Index row on all sizes */
+body[data-panel-key="MEMORY"] #metaRowIndex{ display:none !important; }
+
+/* MEMORY: remove top separator above CLASS */
+body[data-panel-key="MEMORY"] #metaRowClass{
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+
+/* UTOPIA: on mobile/tablet hide ORIGIN row */
+@media (max-width: 860px){
+  body[data-panel-key="UTOPIA"] #metaRowOrigin{ display:none !important; }
+}
+
+/* MANIFESTO: on smartphone hide core meta rows, keep Actions + hint */
+@media (max-width: 520px){
+  body[data-panel-key="MANIFESTO"] #coreMetaBlock{ display:none !important; }
+  body[data-panel-key="MANIFESTO"] #manifestoControls{ display:block !important; }
+  /* keep the hint visible (panelHint) */
+}
+
+
+
 </style>
 
 <script>
@@ -1054,6 +1238,9 @@ canvas {
   <div class="led"></div>
   <span id="vr-text">VR OFF</span>
 </button>
+
+<textarea id="writeProxy" autocorrect="off" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+
 <div id="gyroDebug" style="position:fixed;top:12px;left:12px;z-index:100001;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;line-height:1.45;padding:10px 12px;background:rgba(0,0,0,.55);border:1px solid rgba(232,226,214,.18);backdrop-filter:blur(6px);display:none;max-width:min(90vw,420px);">
   <div style="opacity:.8;margin-bottom:6px;">gyro debug</div>
   <div id="gyroDbgLine1"></div>
@@ -1091,12 +1278,12 @@ canvas {
 
     <div class="panelBody">
       <aside class="meta">
-        <div class="metaBlock">
+        <div class="metaBlock" id="coreMetaBlock">
           
-          <div class="metaRow"><div class="metaKey">Index</div><div class="metaVal" id="metaIndex">UM-0001</div></div>
-          <div class="metaRow"><div class="metaKey">Class</div><div class="metaVal" id="metaClass">FOUNDATIONAL</div></div>
-          <div class="metaRow"><div class="metaKey">Origin</div><div class="metaVal" id="metaOrigin">ADMIN</div></div>
-          <div class="metaRow"><div class="metaKey">State</div><div class="metaVal" id="metaState">ACTIVE</div></div>
+          <div class="metaRow" id="metaRowIndex"><div class="metaKey">Index</div><div class="metaVal" id="metaIndex">UM-0001</div></div>
+          <div class="metaRow" id="metaRowClass"><div class="metaKey">Class</div><div class="metaVal" id="metaClass">FOUNDATIONAL</div></div>
+          <div class="metaRow" id="metaRowOrigin"><div class="metaKey">Origin</div><div class="metaVal" id="metaOrigin">ADMIN</div></div>
+          <div class="metaRow" id="metaRowState"><div class="metaKey">State</div><div class="metaVal" id="metaState">ACTIVE</div></div>
         </div>
 
         <div class="metaBlock" id="manifestoControls" style="display:none;">
@@ -1138,6 +1325,17 @@ canvas {
     </div>
   </div>
 </div>
+
+<!-- WRITE INVITE (tap outside to dismiss) -->
+<div id="writeInviteOverlay" aria-hidden="true">
+  <div id="writeInvite" role="dialog" aria-label="Write invite">
+    <div class="column">
+  <div class="msg">ADD YOUR VOICE</div>
+  <button class="btnWrite" id="writeInviteBtn" type="button">WRITE</button>
+</div>
+</div>
+</div>
+
 <script>
 (async function(){
   try { if (window.__load3dLibs) await window.__load3dLibs; } catch(e) {}
@@ -1199,15 +1397,38 @@ function __vkTokenLabel(tok){
   return __VK_SHIFT ? ch.toUpperCase() : ch;
 }
 
+function __vkEnsureLiveCaret(){
+  const el = document.getElementById("typed");
+  if(!el) return;
+
+  // Remove any old caret nodes
+  el.querySelectorAll(".liveCaret").forEach(n=>n.remove());
+
+  // Append a fresh caret at the end (so it always follows the text)
+  const caret = document.createElement("span");
+  caret.className = "liveCaret";
+  caret.textContent = "│";
+  el.appendChild(caret);
+}
+
+function __vkGetPlainText(){
+  const el = document.getElementById("typed");
+  if(!el) return "";
+  // textContent includes the caret glyph if present; remove only the trailing one
+  return String(el.textContent || "").replace(/│$/, "");
+}
+
 function __vkAppendText(text){
   const el = document.getElementById("typed");
   if(!el) return;
 
-  // Ensure editor is editable only when we want to write
+  // Write mode: allow caret + selection behaviors (we still use custom VK)
   el.setAttribute("contenteditable","true");
+  el.classList.add("modeWrite");
 
-  // Append at end (simple + stable)
-  el.textContent = (el.textContent || "") + text;
+  const next = __vkGetPlainText() + text;
+  el.textContent = next;
+  __vkEnsureLiveCaret();
 
   // Keep scroll anchored to end
   const tb = document.getElementById("textBox");
@@ -1217,9 +1438,14 @@ function __vkAppendText(text){
 function __vkBackspace(){
   const el = document.getElementById("typed");
   if(!el) return;
+
   el.setAttribute("contenteditable","true");
-  const t = el.textContent || "";
+  el.classList.add("modeWrite");
+
+  const t = __vkGetPlainText();
   el.textContent = t.slice(0, -1);
+  __vkEnsureLiveCaret();
+
   const tb = document.getElementById("textBox");
   if(tb) tb.scrollTop = tb.scrollHeight;
 }
@@ -1627,10 +1853,10 @@ const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x000000,
+      color: 0x0d0d0d,
       side: THREE.BackSide,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.32,
       depthWrite: false,
       depthTest: false
     });
@@ -2009,6 +2235,196 @@ const btnErase = document.getElementById("btnErase");
 const textBox = document.getElementById("textBox");
 const textBoxContent = document.getElementById("textBoxContent");
 
+// --- WRITE INVITE (mobile) ---
+const writeInviteOverlay = document.getElementById("writeInviteOverlay");
+const writeInviteBtn = document.getElementById("writeInviteBtn");
+
+// Position the invite inside the SHEET area on smartphone
+function __positionWriteInviteToSheet(){
+  if(!writeInviteOverlay) return;
+  // smartphone only
+  if(!(window.matchMedia && window.matchMedia("(max-width: 520px)").matches)){
+    // reset any inline constraints
+    writeInviteOverlay.style.left = "";
+    writeInviteOverlay.style.top = "";
+    writeInviteOverlay.style.width = "";
+    writeInviteOverlay.style.height = "";
+    writeInviteOverlay.style.inset = "";
+    return;
+  }
+  const sheet = document.getElementById("panelContent");
+  const panel = document.getElementById("infoPanel");
+  if(!sheet || !panel || !panel.classList.contains("open")) return;
+  const r = sheet.getBoundingClientRect();
+  // Clamp to viewport (safe)
+  const left = Math.max(0, r.left);
+  const top  = Math.max(0, r.top);
+  const width = Math.max(0, r.width);
+  const height = Math.max(0, r.height);
+  writeInviteOverlay.style.inset = "auto";
+  writeInviteOverlay.style.left = left + "px";
+  writeInviteOverlay.style.top = top + "px";
+  writeInviteOverlay.style.width = width + "px";
+  writeInviteOverlay.style.height = height + "px";
+}
+
+function __showWriteInvite(){
+  if(!writeInviteOverlay) return;
+  // only on mobile/tablet
+  if(window.matchMedia && window.matchMedia("(min-width: 901px)").matches) return;
+  __positionWriteInviteToSheet();
+  writeInviteOverlay.classList.add("open");
+  writeInviteOverlay.setAttribute("aria-hidden","false");
+}
+window.addEventListener("resize", ()=>{
+  if(writeInviteOverlay && writeInviteOverlay.classList.contains("open")) __positionWriteInviteToSheet();
+}, {passive:true});
+
+function __hideWriteInvite(){
+  if(!writeInviteOverlay) return;
+  writeInviteOverlay.classList.remove("open");
+  // reset inline constraints
+  writeInviteOverlay.style.left = "";
+  writeInviteOverlay.style.top = "";
+  writeInviteOverlay.style.width = "";
+  writeInviteOverlay.style.height = "";
+  writeInviteOverlay.style.inset = "";
+  writeInviteOverlay.setAttribute("aria-hidden","true");
+}
+
+let __INVITE_AFTER_TYPE = false;
+let __INVITE_TIMER = null;
+
+function __scheduleWriteInvite(ms){
+  if(!writeInviteOverlay) return;
+  if(__INVITE_TIMER){ clearTimeout(__INVITE_TIMER); __INVITE_TIMER = null; }
+  const delay = Math.max(0, ms|0);
+  __INVITE_TIMER = setTimeout(()=>{
+    __INVITE_TIMER = null;
+    __showWriteInvite();
+  }, delay);
+}
+function __ensureWriteCursor(){
+  if(!typedEl) return;
+  // Remove any previous live caret
+  typedEl.querySelectorAll(".liveCaret").forEach(n=>n.remove());
+  const caret = document.createElement("span");
+  caret.className = "liveCaret";
+  caret.textContent = "│";
+  typedEl.appendChild(caret);
+}
+
+function __removeWriteCursor(){
+  if(!typedEl) return;
+  typedEl.querySelectorAll(".liveCaret").forEach(n=>n.remove());
+}
+
+const writeProxy = document.getElementById("writeProxy");
+let __WRITE_ACTIVE = false;
+
+function __openNativeKeyboard(){
+  if(!writeProxy) return;
+  __WRITE_ACTIVE = true;
+    if(typedEl) typedEl.classList.add("modeWrite");
+__ensureWriteCursor();
+
+  // IMPORTANT: focus must happen synchronously inside the user gesture
+  // (iOS/Safari will ignore delayed focus for opening the keyboard).
+  try{
+    writeProxy.focus({preventScroll:true});
+  }catch(e){
+    try{ writeProxy.focus(); }catch(e2){}
+  }
+
+  // Move caret to end (helps some browsers)
+  try{
+    const v = writeProxy.value || "";
+    writeProxy.setSelectionRange(v.length, v.length);
+  }catch(e){}
+}
+
+// Proxy input handling: append characters without changing layout/wrapping
+function __appendToTyped(text){
+  if(!typedEl) return;
+  // Ensure cursor is last; insert before it
+  const cursor = typedEl.querySelector(".liveCaret");
+  if(cursor){
+    cursor.insertAdjacentText("beforebegin", text);
+  }else{
+    typedEl.insertAdjacentText("beforeend", text);
+  }
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __backspaceTyped(){
+  if(!typedEl) return;
+  const cursor = typedEl.querySelector(".liveCaret");
+  // Remove last char from the text content *excluding* cursor
+  // We'll operate on a snapshot string then re-render for correctness with newlines.
+  const raw = typedEl.textContent.replace("│","");
+  const next = raw.slice(0, -1);
+  typedEl.textContent = next;
+  __ensureWriteCursor();
+  const tb = document.getElementById("textBox");
+  if(tb) tb.scrollTop = tb.scrollHeight;
+}
+
+function __newlineTyped(){
+  __appendToTyped("\n");
+}
+
+if(writeProxy){
+  writeProxy.addEventListener("keydown",(e)=>{
+    if(!__WRITE_ACTIVE) return;
+    if(e.key === "Backspace"){
+      e.preventDefault();
+      __backspaceTyped();
+      return;
+    }
+    if(e.key === "Enter"){
+      e.preventDefault();
+      __newlineTyped();
+      return;
+    }
+  });
+  writeProxy.addEventListener("input",(e)=>{
+    if(!__WRITE_ACTIVE) return;
+    const v = writeProxy.value;
+    if(v && v.length){
+      __appendToTyped(v);
+      writeProxy.value = "";
+    }
+  });
+  writeProxy.addEventListener("blur", ()=>{
+    __WRITE_ACTIVE = false;
+    if(typedEl) typedEl.classList.remove("modeWrite");
+    __removeWriteCursor();
+  });
+}
+
+function __focusTypedEditable(){
+  // Legacy name kept: now opens native keyboard via proxy WITHOUT making the sheet editable
+  __openNativeKeyboard();
+}
+
+if(writeInviteOverlay){
+  // tap outside popup dismisses it
+  writeInviteOverlay.addEventListener("pointerdown", (e)=>{
+    if(e.target === writeInviteOverlay) __hideWriteInvite();
+  }, {passive:true});
+}
+if(writeInviteBtn){
+  writeInviteBtn.addEventListener("click", (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    __hideWriteInvite();
+    __focusTypedEditable();
+    // Open keyboard immediately (must be within the click gesture)
+    if(typeof __openNativeKeyboard === "function") __openNativeKeyboard();
+  });
+}
+
+
 // Allow manual scroll during typewriter without breaking the typing start position.
 // - User scroll disables "follow" mode
 // - Returning near the bottom re-enables follow mode automatically
@@ -2164,6 +2580,13 @@ function startTyping(text, editable = false){
         }, 0);
       }
 
+
+      // Show WRITE invite only AFTER the typewriter finishes (MANIFESTO / UTOPIA)
+      if(__INVITE_AFTER_TYPE && (currentKey === "MANIFESTO" || currentKey === "UTOPIA")){
+        __INVITE_AFTER_TYPE = false;
+        __scheduleWriteInvite(0);
+      }
+
       if(editable) {
         typedEl.setAttribute('contenteditable', 'true');
         
@@ -2213,9 +2636,31 @@ function setPanelMode(key){
   panelStatus.textContent = write ? "MODE: WRITE" : "MODE: READ";
   panelStatus.classList.toggle("modeWrite", write);
   panelStatus.classList.toggle("modeRead", !write);
+
+  // Sync the actual editor surface:
+  const el = document.getElementById("typed");
+  if(el){
+    el.classList.toggle("modeWrite", write);
+
+    if(!write){
+      // Leaving write mode: strip any live caret + lock editing
+      el.querySelectorAll(".liveCaret").forEach(n=>n.remove());
+      el.removeAttribute("contenteditable");
+    }else{
+      // Entering write mode: ensure a blinking caret that follows the text
+      el.setAttribute("contenteditable","true");
+      try{ __vkEnsureLiveCaret(); }catch(e){}
+    }
+  }
 }
 
 function openPanel(key){
+  try{ document.body.dataset.panelKey = String(key || "").toUpperCase(); }catch(e){}
+
+  // reset write invite state on every open
+  if(__INVITE_TIMER){ clearTimeout(__INVITE_TIMER); __INVITE_TIMER = null; }
+  __INVITE_AFTER_TYPE = false;
+  __hideWriteInvite();
 
   // Redirect COMMUNITY to its own fullwidth panel
   if(key === "COMMUNITY"){
@@ -2269,6 +2714,7 @@ function openPanel(key){
     manifestoControls.style.display = 'block';
     btnErase.style.display = 'block';
 
+        __INVITE_AFTER_TYPE = true;
     switchMode('rewrite');
     panel.classList.add("open");
   } else if (key === "MEMORY") {
@@ -2286,6 +2732,7 @@ function openPanel(key){
 
     // Focus caret immediately
     panel.classList.add("open");
+    __scheduleWriteInvite(2000);
     setTimeout(() => {
       try{
         const range = document.createRange();
@@ -2318,6 +2765,7 @@ function openPanel(key){
 
     typedEl.removeAttribute('contenteditable');
     typingNoScroll = true;
+    __INVITE_AFTER_TYPE = true;
     startTyping(packet.value || "", false);
 
     panel.classList.add("open");
@@ -2376,7 +2824,11 @@ function openPanel(key){
 }
 
 function closePanel(){
+   try{ delete document.body.dataset.panelKey; }catch(e){}
   panel.classList.remove("open");
+  if(__INVITE_TIMER){ clearTimeout(__INVITE_TIMER); __INVITE_TIMER = null; }
+  __INVITE_AFTER_TYPE = false;
+  __hideWriteInvite();
   resetTyping();
 }
 
