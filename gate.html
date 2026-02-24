@@ -1,0 +1,1103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ARXIVO EXPERIMENTAL — GATE</title>
+
+  <!-- Typography (Design System v1.0) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      /* COLOR SYSTEM */
+      --bg:#0b0b0b;
+      --panel: rgba(15,15,15,0.78);
+      --radial: radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 60%);
+
+      --txt:#e8e2d6;
+      --txt2: rgba(232,226,214,0.75);
+      --monoTxt: rgba(232,226,214,0.60);
+
+      --b: rgba(232,226,214,0.16);
+      --b2: rgba(232,226,214,0.22);
+      --net: rgba(232,226,214,0.18);
+      --grid: rgba(232,226,214,0.04);
+
+      --ledOff: rgba(120,255,160,0.25);
+      --ledOn: rgba(120,255,160,0.9);
+      --ledGlow: 0 0 0 1px rgba(120,255,160,0.5),
+                 0 0 18px rgba(120,255,160,0.5);
+
+      /* SPACING SYSTEM (8px base) */
+      --s1: 8px;
+      --s2: 16px;
+      --s3: 24px;
+      --s4: 32px;
+
+      /* GEOMETRY */
+      --r: 12px;
+
+      /* TYPE */
+      --serif: "EB Garamond", serif;
+      --mono: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background: var(--radial), var(--bg);
+      color: var(--txt);
+      font-family: var(--serif);
+      overflow-x:hidden;
+    }
+
+    /* Layout wrapper */
+    .wrap{
+      min-height:100%;
+      padding: clamp(var(--s2), 3.2vw, 44px);
+      display:flex;
+      flex-direction:column;
+      gap: clamp(var(--s2), 2.2vw, var(--s3));
+    }
+
+    /* Header */
+    .topbar{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: var(--s2);
+    }
+    .titleblock{
+      display:flex;
+      flex-direction:column;
+      gap: var(--s1);
+      max-width: 78ch;
+    }
+    .kicker{
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--monoTxt);
+    }
+    h1{
+      margin:0;
+      font-family: var(--serif);
+      font-weight: 600;
+      letter-spacing: .01em;
+      font-size: clamp(34px, 4.2vw, 64px);
+      line-height: 1.0;
+    }
+    .subtitle{
+      margin:0;
+      font-family: var(--serif);
+      font-weight: 400;
+      color: var(--txt2);
+      font-size: clamp(14px, 1.35vw, 16px);
+      line-height: 1.45;
+    }
+
+    /* Status pill */
+    .status{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--b);
+      background: rgba(15,15,15,0.65);
+      border-radius: 999px;
+      white-space: nowrap;
+      font-family: var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: var(--monoTxt);
+    }
+    .dot{
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(232,226,214,0.25);
+    }
+    .dot.ok{ background: var(--ledOn); box-shadow: var(--ledGlow); }
+    .dot.warn{ background: rgba(232,226,214,0.35); }
+    .dot.bad{ background: rgba(255,92,92,0.55); }
+
+    /* Grid */
+    .grid{
+      display:grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: clamp(var(--s2), 2.2vw, var(--s3));
+      align-items:stretch;
+    }
+    @media (max-width: 980px){
+      .topbar{ align-items:flex-start; flex-direction:column; }
+      .grid{ grid-template-columns: 1fr; }
+      .status{ align-self:flex-start; }
+    }
+
+    /* Panel system */
+    .card{
+      background: var(--panel);
+      border: 1px solid var(--b);
+      border-radius: var(--r);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      overflow:hidden;
+    }
+    .cardHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: var(--s2);
+      padding: var(--s2);
+      border-bottom: 1px solid var(--b);
+      background: rgba(0,0,0,0.18);
+    }
+    .cardTitle{
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--monoTxt);
+    }
+
+    /* Buttons */
+    .actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      appearance:none;
+      border: 1px solid var(--b2);
+      background: rgba(0,0,0,0.18);
+      color: var(--txt);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      cursor:pointer;
+      user-select:none;
+      transition: background .16s ease, border-color .16s ease, transform .06s ease;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn:hover{
+      background: rgba(0,0,0,0.26);
+      border-color: rgba(232,226,214,0.26);
+    }
+    .btn.primary{
+      border-color: rgba(120,255,160,0.35);
+    }
+    .btn.primary:hover{
+      border-color: rgba(120,255,160,0.55);
+    }
+    .btn.ghost{
+      background: transparent;
+      border-color: var(--b);
+      color: var(--monoTxt);
+    }
+
+    /* Map wrap */
+    .mapWrap{ padding: var(--s2); }
+
+    /* 3D map container (keeps your square) */
+    .map3d{
+      position:relative;
+      width:min(720px, 100%);
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+      border-radius: var(--r);
+      border: 1px solid var(--b);
+      background: rgba(0,0,0,0.22);
+      overflow:hidden;
+      transform: translateZ(0);
+    }
+
+    /* Canvas full size */
+    #gateCanvas{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      display:block;
+      outline:none;
+      touch-action: none; /* keep drag precision */
+    }
+
+    /* Technical grid overlay */
+    .gridlines{
+      position:absolute; inset:0;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: .55;
+      pointer-events:none;
+      mix-blend-mode: screen;
+    }
+
+    /* Sacred / manuscript noise overlay */
+    .noise{
+      position:absolute; inset:0;
+      pointer-events:none;
+      opacity: .10;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    /* vignette */
+    .vignette{
+      position:absolute; inset:-8%;
+      pointer-events:none;
+      background: radial-gradient(circle at 50% 52%, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.55) 78%, rgba(0,0,0,0.82) 100%);
+      opacity:.75;
+    }
+
+    /* Nodes overlay (room chips) */
+    .nodesOverlay{
+      position:absolute; inset:0;
+      pointer-events:none; /* only chips clickable */
+    }
+
+    /* Nodes */
+    .node{
+      position:absolute;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 10px;
+      transform: translate(-50%, -50%);
+      text-align:center;
+      pointer-events:none;
+    }
+    .node a{
+      text-decoration:none;
+      color:inherit;
+      pointer-events:auto;
+    }
+
+    .chip{
+      min-width: 166px;
+      padding: 12px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--b);
+      background: rgba(0,0,0,0.24);
+      transition: background .16s ease, border-color .16s ease, transform .10s ease;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .chip:hover{
+      transform: translateY(-1px);
+      background: rgba(0,0,0,0.30);
+      border-color: rgba(232,226,214,0.22);
+    }
+    .chip .name{
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--txt);
+    }
+    .chip .desc{
+      margin-top: 6px;
+      font-family: var(--serif);
+      font-size: 12.5px;
+      color: var(--txt2);
+      line-height: 1.25;
+    }
+    .originChip{
+      min-width: 196px;
+      border-color: var(--b2);
+      box-shadow: inset 0 0 0 1px rgba(232,226,214,0.05);
+    }
+
+    .hint{
+      font-family: var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: var(--monoTxt);
+      opacity: .95;
+      pointer-events:none;
+    }
+
+    /* Positions (kept from your map) */
+    .origin{ left:50%; top:52%; }
+    .studies{ left:50%; top:14%; }
+    .genealogy{ left:14%; top:66%; }
+    .artifacts{ left:86%; top:66%; }
+
+    /* Map note */
+    .mapNote{
+      margin-top: var(--s2);
+      color: var(--txt2);
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    /* Right content */
+    .body{
+      padding: var(--s2);
+      display:flex;
+      flex-direction:column;
+      gap: var(--s2);
+    }
+    .section{
+      border: 1px solid var(--b);
+      border-radius: var(--r);
+      padding: var(--s2);
+      background: rgba(0,0,0,0.18);
+    }
+    .section h3{
+      margin:0 0 10px 0;
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--monoTxt);
+    }
+    .section p{
+      margin:0;
+      color: var(--txt2);
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .section ul{
+      margin: 10px 0 0 18px;
+      padding:0;
+      color: var(--txt2);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .small{
+      margin-top: 10px;
+      font-family: var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: var(--monoTxt);
+      opacity: .95;
+    }
+
+    .foot{
+      margin-top:auto;
+      display:flex;
+      justify-content:space-between;
+      gap: var(--s2);
+      padding-top: var(--s1);
+      font-family: var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: rgba(232,226,214,0.45);
+      flex-wrap:wrap;
+    }
+
+    /* Overlay */
+    .overlay{
+      position:fixed; inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: var(--s2);
+      background: rgba(0,0,0,0.62);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 50;
+    }
+    .overlay.show{ display:flex; }
+
+    .modal{
+      width: min(560px, 100%);
+      border-radius: var(--r);
+      border: 1px solid var(--b);
+      background: var(--panel);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      overflow:hidden;
+    }
+    .modalHead{
+      padding: var(--s2);
+      border-bottom: 1px solid var(--b);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: var(--s2);
+      background: rgba(0,0,0,0.18);
+    }
+    .modalHead .t{
+      font-family: var(--mono);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--monoTxt);
+    }
+    .modalBody{
+      padding: var(--s2);
+      color: var(--txt2);
+      font-family: var(--serif);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .row{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      margin-top: var(--s2);
+    }
+
+    /* Accessibility */
+    .srOnly{
+      position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="kicker">JOFRE ARCHIVE NETWORK / GATE</div>
+        <h1>Arxivo Experimental</h1>
+        <p class="subtitle">
+          Entrada de orientación. Un mapa mínimo: claustro central y tres habitaciones. La activación solicita permiso
+          de orientación del dispositivo para navegación inmersiva.
+        </p>
+      </div>
+
+      <div class="status" id="statusPill" title="Permission / system state">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">SYSTEM: IDLE</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- LEFT: MAP (3D + chips) -->
+      <section class="card" aria-label="Cloister map">
+        <div class="cardHead">
+          <div class="cardTitle">Cloister Map</div>
+          <div class="actions">
+            <button class="btn primary" id="initBtn" type="button">Initialize</button>
+            <button class="btn ghost" id="skipBtn" type="button">Enter Without</button>
+          </div>
+        </div>
+
+        <div class="mapWrap">
+          <div class="map3d" role="img" aria-label="3D cloister point cloud with rooms">
+            <canvas id="gateCanvas" aria-label="3D map canvas"></canvas>
+            <div class="gridlines" aria-hidden="true"></div>
+            <div class="noise" aria-hidden="true"></div>
+            <div class="vignette" aria-hidden="true"></div>
+
+            <!-- Chips overlay -->
+            <div class="nodesOverlay" aria-hidden="false">
+              <!-- ORIGIN -->
+              <div class="node origin">
+                <a href="#" class="nodeLink" data-go="origin.html" aria-label="Enter Origin">
+                  <div class="chip originChip">
+                    <div class="name">Origin</div>
+                    <div class="desc">Central void / main entry</div>
+                  </div>
+                </a>
+                <div class="hint">Center: claustro</div>
+              </div>
+
+              <!-- STUDIES -->
+              <div class="node studies">
+                <a href="#" class="nodeLink" data-go="studies.html" aria-label="Go to Studies">
+                  <div class="chip">
+                    <div class="name">Studies</div>
+                    <div class="desc">Projects / exploration</div>
+                  </div>
+                </a>
+              </div>
+
+              <!-- GENEALOGY -->
+              <div class="node genealogy">
+                <a href="#" class="nodeLink" data-go="genealogy.html" aria-label="Go to Genealogy">
+                  <div class="chip">
+                    <div class="name">Genealogy</div>
+                    <div class="desc">Relations / context</div>
+                  </div>
+                </a>
+              </div>
+
+              <!-- ARTIFACTS -->
+              <div class="node artifacts">
+                <a href="#" class="nodeLink" data-go="artifacts.html" aria-label="Go to Artifacts">
+                  <div class="chip">
+                    <div class="name">Artifacts</div>
+                    <div class="desc">Objects / traces</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="mapNote">
+            Puedes entrar tocando cualquier habitación. Si quieres navegación por orientación del dispositivo,
+            pulsa <b>Initialize</b>.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: INFO -->
+      <aside class="card" aria-label="Orientation">
+        <div class="cardHead">
+          <div class="cardTitle">Orientation</div>
+          <div class="actions">
+            <button class="btn" id="setDefaultBtn" type="button">Set Origin Default</button>
+          </div>
+        </div>
+
+        <div class="body">
+          <div class="section">
+            <h3>Nature</h3>
+            <p>
+              No es una UI comercial. Es una interfaz archivística: estructura, control y contención.
+              El claustro es un vacío central. Las habitaciones se visitan como áreas del archivo.
+            </p>
+          </div>
+
+          <div class="section">
+            <h3>How to move</h3>
+            <ul>
+              <li><b>Desktop</b>: arrastra para rotar / explorar con precisión.</li>
+              <li><b>Mobile</b>: con sensores activados, tu orientación define el movimiento (en las páginas destino).</li>
+              <li>Si el permiso está bloqueado, puedes entrar igual y reintentar después.</li>
+            </ul>
+            <div class="small">Structure over decoration. Precision over effect.</div>
+          </div>
+
+          <div class="section">
+            <h3>Initialize protocol</h3>
+            <p>
+              <b>Initialize</b> solicita permiso de orientación (especialmente en iOS). Si el permiso ya está concedido,
+              entra directamente y marca el sistema como listo para autoinicio en la página de destino.
+            </p>
+            <div class="small" id="permLine">Permission: unknown</div>
+          </div>
+
+          <div class="foot">
+            <span id="footLeft">Gate / v1.0</span>
+            <span id="footRight">JOFRE ARCHIVE NETWORK</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Permission overlay -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Motion permission">
+      <div class="modalHead">
+        <div class="t">Motion Permission</div>
+        <button class="btn ghost" id="closeOverlayBtn" type="button">Close</button>
+      </div>
+      <div class="modalBody">
+        Para navegación inmersiva necesitamos acceso a orientación del dispositivo (giroscopio).
+        <div class="row">
+          <button class="btn primary" id="grantBtn" type="button">Allow & Enter</button>
+          <button class="btn" id="denyBtn" type="button">Enter Without</button>
+        </div>
+        <div class="small">
+          iOS requiere un gesto explícito del usuario para pedir permiso. Si lo deniegas, podrás reintentarlo.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Babylon.js -->
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+  <script>
+    // =========================
+    // ROUTES (edita a tus paths reales)
+    // =========================
+    const ROUTES = {
+      origin: "origin.html",
+      studies: "studies.html",
+      genealogy: "genealogy.html",
+      artifacts: "artifacts.html"
+    };
+
+    // =========================
+    // STORAGE KEYS
+    // =========================
+    const DEFAULT_ENTRY_KEY = "arxivo_entry_target";
+    const PERM_KEY = "arxivo_motion_permission";     // "granted" | "denied" | "unknown"
+    const AUTOSTART_KEY = "arxivo_autostart_vr";     // "1" triggers destination autostart
+
+    // =========================
+    // UI refs
+    // =========================
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const permLine = document.getElementById("permLine");
+
+    const initBtn = document.getElementById("initBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const setDefaultBtn = document.getElementById("setDefaultBtn");
+
+    const overlay = document.getElementById("overlay");
+    const closeOverlayBtn = document.getElementById("closeOverlayBtn");
+    const grantBtn = document.getElementById("grantBtn");
+    const denyBtn = document.getElementById("denyBtn");
+
+    // =========================
+    // Helpers
+    // =========================
+    function setStatus(kind, text){
+      statusDot.className = "dot " + (kind || "");
+      statusText.textContent = text;
+    }
+
+    function getEntryTarget(){
+      return localStorage.getItem(DEFAULT_ENTRY_KEY) || ROUTES.origin;
+    }
+
+    function setEntryTarget(url){
+      localStorage.setItem(DEFAULT_ENTRY_KEY, url);
+    }
+
+    function setPermState(state){
+      localStorage.setItem(PERM_KEY, state);
+      permLine.textContent = "Permission: " + state;
+    }
+
+    function openOverlay(){
+      overlay.classList.add("show");
+      overlay.setAttribute("aria-hidden","false");
+    }
+    function closeOverlay(){
+      overlay.classList.remove("show");
+      overlay.setAttribute("aria-hidden","true");
+    }
+
+    function go(url){
+      window.location.href = url;
+    }
+
+    async function requestMotionPermissionIfNeeded(){
+      // Returns: "granted" | "denied" | "not_supported"
+      try{
+        const D = window.DeviceOrientationEvent;
+        if(!D) return "not_supported";
+
+        // iOS 13+ explicit permission
+        if(typeof D.requestPermission === "function"){
+          const res = await D.requestPermission();
+          return (res === "granted") ? "granted" : "denied";
+        }
+
+        // Other browsers: no requestPermission API
+        return "granted";
+      }catch(e){
+        return "denied";
+      }
+    }
+
+    // =========================
+    // Initial render
+    // =========================
+    (function boot(){
+      document.querySelectorAll(".nodeLink").forEach(a=>{
+        const key = a.getAttribute("data-go");
+        const normalized =
+          key === "origin.html" ? ROUTES.origin :
+          key === "studies.html" ? ROUTES.studies :
+          key === "genealogy.html" ? ROUTES.genealogy :
+          key === "artifacts.html" ? ROUTES.artifacts :
+          key;
+        a.setAttribute("data-go", normalized);
+      });
+
+      const saved = localStorage.getItem(PERM_KEY) || "unknown";
+      permLine.textContent = "Permission: " + saved;
+
+      if(saved === "granted"){
+        setStatus("ok", "SYSTEM: READY");
+      }else if(saved === "denied"){
+        setStatus("bad", "SYSTEM: BLOCKED");
+      }else{
+        setStatus("warn", "SYSTEM: IDLE");
+      }
+    })();
+
+    // =========================
+    // Map click: enter directly
+    // =========================
+    document.addEventListener("click", (e)=>{
+      const a = e.target.closest(".nodeLink");
+      if(!a) return;
+      e.preventDefault();
+      const url = a.getAttribute("data-go");
+      setEntryTarget(url);
+      setStatus("warn", "TARGET: SET");
+      go(url);
+    });
+
+    // =========================
+    // Buttons
+    // =========================
+    setDefaultBtn.addEventListener("click", ()=>{
+      setEntryTarget(ROUTES.origin);
+      setStatus("ok", "DEFAULT: ORIGIN");
+    });
+
+    skipBtn.addEventListener("click", ()=>{
+      setStatus("warn", "ENTERING");
+      go(getEntryTarget());
+    });
+
+    closeOverlayBtn.addEventListener("click", closeOverlay);
+
+    denyBtn.addEventListener("click", ()=>{
+      setPermState("denied");
+      setStatus("bad", "ENTERING");
+      closeOverlay();
+      go(getEntryTarget());
+    });
+
+    initBtn.addEventListener("click", ()=>{
+      const saved = localStorage.getItem(PERM_KEY) || "unknown";
+      setStatus("warn", "INITIALIZING");
+      if(saved === "granted"){
+        localStorage.setItem(AUTOSTART_KEY, "1");
+        setStatus("ok", "SYSTEM: READY");
+        go(getEntryTarget());
+        return;
+      }
+      openOverlay();
+    });
+
+    grantBtn.addEventListener("click", async ()=>{
+      setStatus("warn", "REQUESTING");
+      const res = await requestMotionPermissionIfNeeded();
+
+      if(res === "granted"){
+        setPermState("granted");
+        localStorage.setItem(AUTOSTART_KEY, "1");
+        setStatus("ok", "SYSTEM: READY");
+        closeOverlay();
+        go(getEntryTarget());
+      }else if(res === "not_supported"){
+        setPermState("unknown");
+        setStatus("warn", "NO SENSOR API");
+        closeOverlay();
+        go(getEntryTarget());
+      }else{
+        setPermState("denied");
+        setStatus("bad", "PERMISSION DENIED");
+        // keep overlay open
+      }
+    });
+
+    // ============================================================
+    // 3D GATE SCENE (Babylon.js): point cloud cloister + sacred plane
+    // ============================================================
+    const ASSET_GLB = "https://inside.jofrearchive.com/assets/3D/a.glb";
+
+    const canvas = document.getElementById("gateCanvas");
+    const engine = new BABYLON.Engine(canvas, true, {
+      preserveDrawingBuffer: false,
+      stencil: false,
+      antialias: true,
+      disableWebGL2Support: false
+    });
+
+    let scene, camera;
+
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+    async function createScene(){
+      scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0,0,0,0); // transparent over your panel
+
+      // Subtle fog to push "sacred depth"
+      scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+      scene.fogDensity = 0.020;
+      scene.fogColor = new BABYLON.Color3(0.02,0.02,0.02);
+
+      // Camera: archive precision orbit
+      camera = new BABYLON.ArcRotateCamera(
+        "gateCam",
+        BABYLON.Tools.ToRadians(35),
+        BABYLON.Tools.ToRadians(63),
+        9.5,
+        new BABYLON.Vector3(0, 1.1, 0),
+        scene
+      );
+      camera.attachControl(canvas, true);
+      camera.wheelPrecision = 90;
+      camera.panningSensibility = 0;
+      camera.lowerBetaLimit = BABYLON.Tools.ToRadians(20);
+      camera.upperBetaLimit = BABYLON.Tools.ToRadians(88);
+      camera.lowerRadiusLimit = 6.0;
+      camera.upperRadiusLimit = 16.0;
+      camera.inertia = 0.82;
+
+      // Lights: cold museum + a sacred rim
+      const hemi = new BABYLON.HemisphericLight("h", new BABYLON.Vector3(0,1,0), scene);
+      hemi.intensity = 0.55;
+
+      const key = new BABYLON.DirectionalLight("k", new BABYLON.Vector3(-0.35,-1,-0.15), scene);
+      key.intensity = 0.85;
+
+      const rim = new BABYLON.DirectionalLight("rim", new BABYLON.Vector3(0.55,-1,0.35), scene);
+      rim.intensity = 0.35;
+
+      // Sacred "screen/altar" plane (horizontal)
+      const altar = BABYLON.MeshBuilder.CreatePlane("altar", { width: 6.2, height: 6.2 }, scene);
+      altar.rotation.x = BABYLON.Tools.ToRadians(90);
+      altar.position.y = 0.10;
+
+      const altarMat = new BABYLON.StandardMaterial("altarMat", scene);
+      altarMat.diffuseColor = new BABYLON.Color3(0.04,0.04,0.04);
+      altarMat.specularColor = new BABYLON.Color3(0.02,0.02,0.02);
+      altarMat.emissiveColor = new BABYLON.Color3(0.01,0.01,0.01);
+      altarMat.alpha = 0.98;
+
+      // DynamicTexture: manuscript text
+      const dt = new BABYLON.DynamicTexture("dt", { width: 1024, height: 1024 }, scene, true);
+      const ctx = dt.getContext();
+      ctx.clearRect(0,0,1024,1024);
+
+      // background wash
+      ctx.fillStyle = "rgba(0,0,0,0.0)";
+      ctx.fillRect(0,0,1024,1024);
+
+      // faint border
+      ctx.strokeStyle = "rgba(232,226,214,0.12)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(54,54,916,916);
+
+      // inner grid suggestion
+      ctx.strokeStyle = "rgba(232,226,214,0.05)";
+      ctx.lineWidth = 1;
+      for(let i=0;i<18;i++){
+        const y = 110 + i*46;
+        ctx.beginPath(); ctx.moveTo(110,y); ctx.lineTo(914,y); ctx.stroke();
+        const x = 110 + i*46;
+        ctx.beginPath(); ctx.moveTo(x,110); ctx.lineTo(x,914); ctx.stroke();
+      }
+
+      // title (serif “sacred”)
+      ctx.fillStyle = "rgba(232,226,214,0.90)";
+      ctx.textAlign = "center";
+      ctx.font = "600 58px 'EB Garamond'";
+      ctx.fillText("ARXIVO EXPERIMENTAL", 512, 210);
+
+      // subtitle (manuscript block)
+      ctx.fillStyle = "rgba(232,226,214,0.70)";
+      ctx.font = "400 28px 'EB Garamond'";
+      ctx.fillText("Gate of orientation — claustro central / habitaciones", 512, 262);
+
+      // mono “runes”
+      ctx.fillStyle = "rgba(232,226,214,0.55)";
+      ctx.font = "600 22px 'Source Code Pro'";
+      ctx.fillText("ORIGIN  ·  STUDIES  ·  GENEALOGY  ·  ARTIFACTS", 512, 322);
+
+      // body lines
+      ctx.fillStyle = "rgba(232,226,214,0.62)";
+      ctx.font = "400 26px 'EB Garamond'";
+      const lines = [
+        "Una entrada mínima. Un archivo visitable como museo.",
+        "El claustro es el vacío central. Las habitaciones: rutas.",
+        "Initialize activa orientación del dispositivo en destino.",
+        "Puedes entrar sin sensores: estructura sobre efecto."
+      ];
+      let y = 420;
+      lines.forEach(L=>{
+        ctx.fillText(L, 512, y);
+        y += 54;
+      });
+
+      // bottom stamp
+      ctx.fillStyle = "rgba(232,226,214,0.38)";
+      ctx.font = "600 18px 'Source Code Pro'";
+      ctx.fillText("JOFRE ARCHIVE NETWORK / GATE v1.0", 512, 900);
+
+      dt.update();
+
+      altarMat.diffuseTexture = dt;
+      altarMat.diffuseTexture.hasAlpha = true;
+      altarMat.useAlphaFromDiffuseTexture = true;
+      altar.material = altarMat;
+
+      // Slight tilt to feel “object on table”
+      altar.rotation.z = BABYLON.Tools.ToRadians(3);
+
+      // Soft glow impression (emissive pass via material only)
+      const edge = BABYLON.MeshBuilder.CreateGround("edge", { width: 6.35, height: 6.35 }, scene);
+      edge.position.y = 0.085;
+      const edgeMat = new BABYLON.StandardMaterial("edgeMat", scene);
+      edgeMat.diffuseColor = new BABYLON.Color3(0,0,0);
+      edgeMat.emissiveColor = new BABYLON.Color3(0.06,0.055,0.045);
+      edgeMat.alpha = 0.18;
+      edge.material = edgeMat;
+
+      // Load GLB then build point cloud
+      setStatus("warn", "LOADING: CLOISTER");
+      const result = await BABYLON.SceneLoader.ImportMeshAsync(
+        null,
+        "",
+        ASSET_GLB,
+        scene
+      );
+
+      // Merge all meshes into one “source” for sampling
+      const meshes = result.meshes.filter(m => m && m.name && m.isVisible && m.getTotalVertices && m.getTotalVertices() > 0);
+      // Some GLBs include a root transform node; keep only real meshes
+      const realMeshes = meshes.filter(m => m instanceof BABYLON.Mesh);
+
+      let source = null;
+      if(realMeshes.length === 1){
+        source = realMeshes[0];
+      }else{
+        // Make a safe merge
+        source = BABYLON.Mesh.MergeMeshes(realMeshes, true, true, undefined, false, true);
+      }
+
+      if(!source){
+        setStatus("bad", "MODEL: EMPTY");
+        return scene;
+      }
+
+      // Normalize: center + scale to a consistent “museum” size
+      source.computeWorldMatrix(true);
+      const b = source.getBoundingInfo().boundingBox;
+      const size = b.maximumWorld.subtract(b.minimumWorld);
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      // target overall size
+      const target = 4.4;
+      const s = target / (maxDim || 1);
+      source.scaling.setAll(s);
+
+      // Recompute bounds after scaling
+      source.computeWorldMatrix(true);
+      source.refreshBoundingInfo(true);
+
+      // Move model so it floats above altar
+      const b2 = source.getBoundingInfo().boundingBox;
+      const center = b2.centerWorld.clone();
+      const minY = b2.minimumWorld.y;
+      source.position.subtractInPlace(center);
+      source.position.y += (1.25 - minY); // lift above plane
+
+      // Hide original geometry (we only want point cloud)
+      source.isVisible = false;
+
+      // Point cloud system (surface sampling)
+      const pcs = new BABYLON.PointsCloudSystem("pcs", 1, scene);
+
+      // point count: tuned for performance
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const POINTS = isMobile ? 18000 : 32000;
+
+      // Add points on surface
+      pcs.addSurfacePoints(source, POINTS, BABYLON.PointColor.Color);
+      const pointMesh = await pcs.buildMeshAsync();
+
+      pointMesh.alwaysSelectAsActiveMesh = true;
+
+      // Material: cold phosphor dust
+      const pmat = new BABYLON.StandardMaterial("pmat", scene);
+      pmat.disableLighting = false;
+      pmat.emissiveColor = new BABYLON.Color3(0.55, 0.52, 0.45);
+      pmat.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.10);
+      pmat.specularColor = new BABYLON.Color3(0.02,0.02,0.02);
+      pmat.alpha = 0.90;
+      pointMesh.material = pmat;
+
+      // Point size
+      pcs.setPointSize = isMobile ? 2.0 : 2.4;
+      pcs.updateParticle = function(p){
+        // Subtle “breathing” drift in brightness (sacred)
+        const t = performance.now() * 0.00035;
+        const k = 0.75 + 0.25 * Math.sin(t + (p.idx % 97) * 0.12);
+        p.color.r = 0.70 * k;
+        p.color.g = 0.66 * k;
+        p.color.b = 0.54 * k;
+        p.color.a = 0.92;
+        return p;
+      };
+
+      // Slow rotation around void (no spectacle)
+      let spin = 0;
+      scene.onBeforeRenderObservable.add(()=>{
+        spin += engine.getDeltaTime() * 0.00006;
+        pointMesh.rotation.y = spin;
+
+        // Keep camera target stable
+        camera.target.y = 1.15;
+      });
+
+      // Optional: subtle “room beacons” as floating points
+      function beacon(name, pos, strength){
+        const s = BABYLON.MeshBuilder.CreateSphere(name, { diameter: 0.06 }, scene);
+        s.position = pos.clone();
+        const m = new BABYLON.StandardMaterial(name+"m", scene);
+        m.emissiveColor = new BABYLON.Color3(0.52,0.50,0.44);
+        m.alpha = 0.65;
+        s.material = m;
+        s.isPickable = false;
+        scene.onBeforeRenderObservable.add(()=>{
+          const t = performance.now()*0.001;
+          const a = 0.45 + 0.25*Math.sin(t*1.8 + strength);
+          s.scaling.setAll(0.85 + a*0.45);
+          m.alpha = 0.45 + a*0.35;
+        });
+        return s;
+      }
+
+      // These are symbolic “rooms” around the cloister in 3D
+      beacon("b_origin",    new BABYLON.Vector3(0, 1.25, 0), 0.0);
+      beacon("b_studies",   new BABYLON.Vector3(0, 2.20, -1.35), 1.2);
+      beacon("b_genealogy", new BABYLON.Vector3(-1.60, 1.10, 0.90), 2.4);
+      beacon("b_artifacts", new BABYLON.Vector3(1.60, 1.10, 0.90), 3.6);
+
+      setStatus("ok", "SYSTEM: READY");
+      return scene;
+    }
+
+    // Boot scene
+    createScene().catch(err=>{
+      console.error(err);
+      setStatus("bad", "3D ERROR");
+    });
+
+    // Render loop
+    engine.runRenderLoop(()=>{
+      if(scene) scene.render();
+    });
+
+    // Resize
+    window.addEventListener("resize", ()=>{
+      engine.resize();
+    });
+
+    // Prevent double-tap zoom on iOS (extra guard)
+    let lastTouchEnd = 0;
+    document.addEventListener("touchend", (e)=>{
+      const now = Date.now();
+      if(now - lastTouchEnd <= 300){
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+  </script>
+</body>
+</html>

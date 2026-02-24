@@ -1346,10 +1346,11 @@ function shouldAutoType(key, packet){
   // Force typewriter for TRAJECTORY even if long
   if(key === "TRAJECTORY") return true;
 
+  // Force typewriter for RUINS even if long
+  if(key === "RUINS") return true;
   // Very long texts: render instantly (no typing) to keep UX fast and readable
-  const LONG_KEYS = new Set(["RUINS"]);
+  const LONG_KEYS = new Set([]);
   if(LONG_KEYS.has(key)) return false;
-
   const txt = String(packet.value || "");
   // Threshold (chars) — keep typewriter for medium/short entries
   return txt.length > 0 && txt.length <= 1400;
@@ -2007,6 +2008,30 @@ const btnCode = document.getElementById("btnCode");
 const btnErase = document.getElementById("btnErase");
 const textBox = document.getElementById("textBox");
 const textBoxContent = document.getElementById("textBoxContent");
+
+// Allow manual scroll during typewriter without breaking the typing start position.
+// - User scroll disables "follow" mode
+// - Returning near the bottom re-enables follow mode automatically
+function isNearBottom(el, px = FOLLOW_DEADZONE_PX){
+  return (el.scrollTop + el.clientHeight) >= (el.scrollHeight - px);
+}
+function markUserScroll(){
+  if (typingNoScroll) return; // UTOPIA keeps no-scroll behavior
+  userScrolling = true;
+  followTyping = false;
+  if (userScrollTimer) clearTimeout(userScrollTimer);
+  userScrollTimer = setTimeout(()=>{ userScrolling = false; }, 900);
+}
+if (textBox){
+  textBox.addEventListener("wheel", markUserScroll, { passive:true });
+  textBox.addEventListener("touchstart", markUserScroll, { passive:true });
+  textBox.addEventListener("touchmove", markUserScroll, { passive:true });
+  textBox.addEventListener("scroll", () => {
+    if (typingNoScroll) return;
+    if (isNearBottom(textBox)) followTyping = true;
+  }, { passive:true });
+}
+
 const manifestoControls = document.getElementById("manifestoControls");
 const metaIndex = document.getElementById("metaIndex");
 const metaClass = document.getElementById("metaClass");
@@ -2019,6 +2044,13 @@ let currentMode = 'rewrite';
 let typingNoScroll = false;
 let i = 0;
 let timer = null;
+
+// Scroll control for typewriter: allow manual scroll without breaking typing
+let followTyping = true;        // if true, scroll follows cursor during typing
+let userScrolling = false;      // user is actively scrolling
+let userScrollTimer = null;
+const FOLLOW_DEADZONE_PX = 60;  // px from bottom to re-enable follow
+
 const SPEED = 45;
 
 const REWRITE_TEXT = `Article I
@@ -2072,6 +2104,8 @@ function resetTyping(){
 
 function startTyping(text, editable = false){
   resetTyping();
+  followTyping = true;
+  userScrolling = false;
   const targetText = text || (currentMode === 'rewrite' ? REWRITE_TEXT : CODE_TEXT);
 
   typedEl.classList.add('typing');
@@ -2098,7 +2132,7 @@ function startTyping(text, editable = false){
 
     i++;
 
-    if (!typingNoScroll) {
+    if (!typingNoScroll && followTyping) {
     const cursorElement = typedEl.querySelector('.typingCursor');
     if (cursorElement) {
       const cursorRect = cursorElement.getBoundingClientRect();
@@ -2310,26 +2344,20 @@ function openPanel(key){
 
     const packet = CONTENT[key] || { type:"text", value:"" };
 
-    // RUINS: render instantly, aligned from top
+    // RUINS: typewriter from top (no editable)
     typedEl.removeAttribute('contenteditable');
     typingNoScroll = false;
 
-    if (textBoxContent) textBoxContent.style.padding = "60px 20px 40px 20px";
-    textBox.scrollTop = 0;
-    textBox.style.overflow = "auto";
+    if (textBoxContent) textBoxContent.style.padding = "18px 20px 40px 20px";
 
-    typedEl.innerHTML = '<div class="panelText" style="font-family: \'EB Garamond\', serif; font-size: 17px; line-height: 1.7; opacity: .95; white-space: pre-wrap;">' + nl2br(packet.value) + '</div>';
+    textBox.style.overflow = "auto";
+    textBox.scrollTop = 0;
+
+    startTyping(packet.value || "", false);
 
     panel.classList.add("open");
-
-    // RUINS: start at top (no auto-typing)
-    if (textBoxContent) textBoxContent.style.padding = "18px 20px 40px 20px";
-    requestAnimationFrame(() => {
-    textBox.scrollTop = 0;
-    requestAnimationFrame(() => { textBox.scrollTop = 0; });
-    });
-
   } else {
+
 
     resetTyping();
     if (packet.type === "html") {
