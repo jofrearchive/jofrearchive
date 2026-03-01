@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+<title>Jofre Archive — Studies VR</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<style>
+:root{
+  --bg:#0b0b0b;
+  --ink:#e8e2d6;
+  --ink2:rgba(232,226,214,0.75);
+  --ink3:rgba(232,226,214,0.6);
+  --border:rgba(232,226,214,0.16);
+  --panel-bg:rgba(8,8,8,0.92);
+  --mono:'Source Code Pro',ui-monospace,monospace;
+  --serif:'EB Garamond',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:var(--bg);overflow:hidden}
+
+/* TOP BAR */
+#top-bar{
+  position:fixed;top:0;left:0;right:0;height:48px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:linear-gradient(180deg,rgba(11,11,11,.95) 60%,transparent 100%);
+  z-index:60;pointer-events:none;
+}
+.bar-kicker{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3)}
+.bar-logo{font-family:var(--serif);font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink)}
+
+/* BOTTOM CONTROLS */
+#bot-bar{
+  position:fixed;bottom:0;left:0;right:0;height:56px;
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  padding:0 16px;
+  background:linear-gradient(0deg,rgba(11,11,11,.95) 60%,transparent 100%);
+  z-index:60;pointer-events:auto;
+}
+.ctrl{
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink2);border:1px solid var(--border);background:rgba(0,0,0,.55);
+  padding:8px 14px;cursor:pointer;
+  transition:border-color 120ms,color 120ms;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.ctrl:active,.ctrl:hover{border-color:rgba(232,226,214,.4);color:var(--ink)}
+.ctrl:disabled{opacity:.3;cursor:not-allowed}
+.ctrl-hint{font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:rgba(232,226,214,.3);text-transform:uppercase}
+
+/* SIDE PANELS */
+.side-panel{
+  position:fixed;top:48px;
+  width:200px;max-height:calc(100vh - 104px);
+  overflow-y:auto;
+  background:var(--panel-bg);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  z-index:50;pointer-events:auto;
+}
+.side-panel::-webkit-scrollbar{width:2px}
+.side-panel::-webkit-scrollbar-thumb{background:rgba(232,226,214,.12)}
+#cat-panel{left:0;border-right:1px solid var(--border)}
+#det-panel{right:0;border-left:1px solid var(--border);padding:14px}
+
+.panel-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px solid rgba(232,226,214,.08);
+  font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink3);cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.panel-hd .tog{font-size:10px;opacity:.5;transition:transform 200ms;display:inline-block}
+.panel-collapsed .panel-hd .tog{transform:rotate(180deg)}
+.panel-body{overflow:hidden;transition:max-height 280ms ease}
+.panel-collapsed .panel-body{max-height:0!important}
+
+.cat-row{
+  padding:10px 12px;cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid rgba(232,226,214,.04);
+  transition:background 100ms;touch-action:manipulation;
+}
+.cat-row:hover,.cat-row:active{background:rgba(232,226,214,.05)}
+.cat-row.active{background:rgba(232,226,214,.08);border-right:2px solid rgba(232,226,214,.35)}
+.cat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.cat-n{font-family:var(--mono);font-size:8px;color:rgba(232,226,214,.4);border:1px solid rgba(232,226,214,.10);padding:2px 5px;flex-shrink:0;margin-left:6px}
+
+.det-title{font-family:var(--serif);font-weight:600;font-size:16px;line-height:1.2;color:var(--ink)}
+.det-meta{margin-top:6px;font-family:var(--mono);font-size:8px;letter-spacing:.15em;text-transform:uppercase;color:rgba(232,226,214,.48);display:flex;flex-direction:column;gap:3px}
+.det-blk{margin-top:11px;border-top:1px solid rgba(232,226,214,.08);padding-top:11px}
+.det-k{font-family:var(--mono);font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
+.det-p{font-family:var(--serif);font-size:13px;line-height:1.5;color:var(--ink2)}
+.det-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.det-tag{font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:rgba(232,226,214,.5);border:1px solid rgba(232,226,214,.10);padding:3px 5px}
+.doc-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.doc-btn{font-family:var(--mono);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);border:1px solid var(--border);background:rgba(0,0,0,.2);padding:5px 8px;cursor:pointer}
+.doc-btn:disabled{opacity:.22;cursor:not-allowed}
+
+#gyro-btn{
+  position:fixed;bottom:64px;left:50%;transform:translateX(-50%);
+  display:none;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--ink);border:1px solid rgba(232,226,214,.28);background:rgba(10,10,10,.96);
+  padding:10px 20px;cursor:pointer;z-index:200;pointer-events:auto;
+  backdrop-filter:blur(8px);white-space:nowrap;
+}
+#loading{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);
+  font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);
+}
+@media(max-width:700px){
+  .side-panel{width:calc(50vw - 2px)}
+  #det-panel{padding:10px}
+  .det-title{font-size:13px}
+  .det-p{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading archive...</div>
+
+<div id="top-bar">
+  <span class="bar-kicker">Studies</span>
+  <span class="bar-logo">Jofre Archive</span>
+  <span id="idx" class="bar-kicker">—</span>
+</div>
+<div id="bot-bar">
+  <button class="ctrl" id="prevBtn">← Prev</button>
+  <span class="ctrl-hint">Scroll · Swipe · Gyroscope</span>
+  <button class="ctrl" id="nextBtn">Next →</button>
+  <button class="ctrl" id="randBtn">Random</button>
+</div>
+<button id="gyro-btn">Enable Gyroscope</button>
+
+<div class="side-panel" id="cat-panel">
+  <div class="panel-hd" id="cat-toggle"><span>Studies</span><span>Cat. <span class="tog">▲</span></span></div>
+  <div class="panel-body" id="cat-body"><div id="catList"></div></div>
+</div>
+<div class="side-panel" id="det-panel">
+  <div class="panel-hd" id="det-toggle"><span>Project Data</span><span class="tog">▲</span></div>
+  <div class="panel-body" id="det-body">
+    <div id="detail" style="padding-top:6px">
+      <h3 class="det-title">Select a project</h3>
+      <div class="det-meta"><span>—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     A-FRAME SCENE
+═══════════════════════════════════ -->
+<a-scene
+  id="scene"
+  embedded
+  background="color:#0b0b0b"
+  renderer="antialias:true;colorManagement:true;sortTransparentObjects:true;logarithmicDepthBuffer:true"
+  device-orientation-permission-ui="enabled:false"
+  loading-screen="enabled:false"
+  vr-mode-ui="enabled:true"
+>
+  <a-assets id="aassets" timeout="20000"></a-assets>
+
+  <a-light type="ambient"     color="#e8e2d6" intensity="0.65"></a-light>
+  <a-light type="directional" color="#e8e2d6" intensity="0.5"  position="0 4 4"></a-light>
+  <a-light type="point"       color="#b0aaa0" intensity="0.45" position="0 4 -4" distance="22" decay="2"></a-light>
+
+  <!--
+    FLOOR — raised slightly above y=0 to avoid z-fighting with grid
+    Grid is drawn at y=0.001, floor plane at y=-0.01
+  -->
+  <a-plane id="floor"
+    rotation="-90 0 0"
+    position="0 -0.01 0"
+    width="200" height="200"
+    material="color:#0b0b0b;opacity:1;side:double">
+  </a-plane>
+
+  <!--
+    GRID — subtle canvas texture on a single plane
+    No individual line entities → no z-fighting, no flicker
+    Drawn once as a repeating canvas pattern
+  -->
+  <a-plane id="grid-plane"
+    rotation="-90 0 0"
+    position="0 0.001 0"
+    width="200" height="200"
+    material="id:gridmat;transparent:true;opacity:1;side:double;depthWrite:false">
+  </a-plane>
+
+  <!--
+    CAROUSEL RIG
+    ═══════════════════════════════════════════
+    Desktop: cards fill the center of the viewport.
+    - Position z=-1.8  (close, large presence)
+    - Position y=1.55  (eye level)
+    - Rotation x=14    (gentle tilt, not buried)
+    - Card size: 2.2w × 3.2h  (portrait, tall)
+
+    z = -abs * 0.60m  (stack depth, mirrors CSS -abs*320)
+    y =  abs * 0.04m
+    scale = 1 - abs * 0.018
+    ═══════════════════════════════════════════
+  -->
+  <a-entity id="rig-pivot" position="0 1.55 -1.8" rotation="14 0 0">
+    <a-entity id="card-rig"></a-entity>
+  </a-entity>
+
+  <a-entity id="cam-rig" position="0 1.6 0">
+    <a-camera
+      id="cam"
+      look-controls="enabled:true;reverseMouseDrag:false;touchEnabled:true;magicWindowTrackingEnabled:true"
+      wasd-controls="enabled:false"
+      fov="66"
+    >
+      <a-entity
+        cursor="fuse:true;fuseTimeout:1500"
+        position="0 0 -1"
+        geometry="primitive:ring;radiusInner:0.007;radiusOuter:0.013"
+        material="color:#e8e2d6;shader:flat;opacity:0.4"
+        raycaster="objects:.card-face;far:20;interval:150"
+      ></a-entity>
+    </a-camera>
+  </a-entity>
+
+  <a-entity laser-controls="hand:left"  raycaster="objects:.card-face;far:20;lineColor:#e8e2d6;lineOpacity:0.3"></a-entity>
+  <a-entity laser-controls="hand:right" raycaster="objects:.card-face;far:20;lineColor:#e8e2d6;lineOpacity:0.3"></a-entity>
+
+</a-scene>
+
+<script>
+/* ═══════ DATA ═══════ */
+const ALL=[
+  {id:"S-001",title:"Mycelium Sculpture Series I",year:2024,category:"BioSystems",type:"Installation",status:"Prototype",
+   abstract:"Sculptural growth system using mycelium as structural computation: humidity, time, decay as form.",
+   tags:["mycelium","biotech","sculpture","living material"],
+   materials:["mycelium spawn","cellulose substrate","humidity enclosure"],
+   technologies:["time-based growth","controlled decay"],
+   axis:["interspecies","autonomy","infrastructure"],
+   docs:{pdf:false,images:true,video:true,network:true}},
+  {id:"S-002",title:"Transparent Solar Leaf Panels",year:2024,category:"BioSystems",type:"Research",status:"Ongoing",
+   abstract:"Screen-printed translucent solar layers inspired by leaf venation; biomimetic pattern as energy diagram.",
+   tags:["solar","screen printing","biomimicry","cellulose"],
+   materials:["translucent cellulose base","conductive inks","p/n layers"],
+   technologies:["layered printing","thin-film experimentation"],
+   axis:["energy","bio-infrastructure","material politics"],
+   docs:{pdf:true,images:true,video:false,network:true}},
+  {id:"S-003",title:"Interspecies Archaeology / Living Relics",year:2025,category:"BioSystems",type:"Research",status:"Draft",
+   abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence.",
+   tags:["interspecies","archive","mycelium","nanotech"],
+   materials:["biomass","substrates","lab notes"],
+   technologies:["growth protocols","micro documentation"],
+   axis:["agency","taxonomy","time"],
+   docs:{pdf:true,images:true,video:true,network:false}},
+  {id:"S-004",title:"Carnival Society / Dystopic Pop Artifact",year:2023,category:"Dystopic Pop Art",type:"Concept",status:"Draft",
+   abstract:"Modern society as carnival: lights, control — depth replaced by spectacle. Interface as critique.",
+   tags:["critique","spectacle","authority","interface"],
+   materials:["text","graphic system","archive UI"],
+   technologies:["indexing","controlled navigation"],
+   axis:["authority","identity","bureaucracy"],
+   docs:{pdf:true,images:false,video:false,network:false}},
+  {id:"S-005",title:"Frequency Plate / Cymatics Study",year:2022,category:"Cymatics",type:"Research",status:"Built",
+   abstract:"Physical plates generating stable patterns under specific tones; mapping frequency to geometry.",
+   tags:["cymatics","frequency","pattern","plate"],
+   materials:["plate","speaker","tone generator"],
+   technologies:["signal control","documentation"],
+   axis:["measurement","ritual","structure"],
+   docs:{pdf:false,images:true,video:true,network:true}},
+  {id:"S-006",title:"Public Installation / Palestine Structure",year:2025,category:"Public Art",type:"Installation",status:"Planned",
+   abstract:"A sculptural installation addressing Palestine through infrastructural language: memory, public space.",
+   tags:["public art","memory","structure","palestine"],
+   materials:["site-specific","public constraints","structure"],
+   technologies:["planning","permits"],
+   axis:["memory","authority","public space"],
+   docs:{pdf:true,images:false,video:false,network:false}},
+  {id:"S-007",title:"Landscape Archive / Field Fragments",year:2021,category:"Landscape",type:"Research",status:"Archived",
+   abstract:"Field notes and fragments: terrain as database; classification as a lens over land and extraction.",
+   tags:["field","landscape","archive","fragments"],
+   materials:["text","photos","mapping"],
+   technologies:["indexing","taxonomy"],
+   axis:["extraction","mapping","control"],
+   docs:{pdf:true,images:true,video:false,network:false}}
+];
+
+/* ═══════ CONFIG ═══════ */
+const CFG={
+  CW:2.2, CH:3.2,          // portrait card: 2.2m wide × 3.2m tall
+  Z_STEP:0.60,              // z = -abs * 0.60  (mirrors CSS -abs*320)
+  Y_STEP:0.04,
+  SCALE_STEP:0.018,
+  WINDOW:2,
+  TEX_W:704, TEX_H:1024    // portrait canvas, power-of-two
+};
+
+/* ═══════ STATE ═══════ */
+let activeCategory="All", activeIndex=0, sortMode="yearDesc";
+let cardEntities=[], texRegistry={};
+
+/* ═══════ HELPERS ═══════ */
+function getFiltered(){
+  let l=ALL.slice();
+  if(activeCategory!=="All") l=l.filter(p=>p.category===activeCategory);
+  l.sort((a,b)=>sortMode==="yearAsc"?a.year-b.year:b.year-a.year);
+  return l;
+}
+function clamp(list){
+  if(!list.length){activeIndex=0;return;}
+  if(activeIndex<0) activeIndex=list.length-1;
+  if(activeIndex>=list.length) activeIndex=0;
+}
+function hues(p){
+  const k=parseInt((p.id||"S-000").split("-")[1]||"0",10)||0;
+  return [(k*41)%360,(k*41+80)%360];
+}
+
+/* ═══════════════════════════════════════
+   GRID TEXTURE — single canvas, no lines
+   Drawn as a repeating tile on one plane.
+   No z-fighting, no flicker.
+═══════════════════════════════════════ */
+function makeGridTexture(){
+  const S=128; // tile size in px
+  const cv=document.createElement("canvas");
+  cv.width=S; cv.height=S;
+  const g=cv.getContext("2d");
+
+  // transparent background
+  g.clearRect(0,0,S,S);
+
+  // very subtle grid lines — nearly invisible
+  g.strokeStyle="rgba(232,226,214,0.055)";
+  g.lineWidth=1;
+
+  // right edge
+  g.beginPath();
+  g.moveTo(S-0.5,0); g.lineTo(S-0.5,S);
+  g.stroke();
+
+  // bottom edge
+  g.beginPath();
+  g.moveTo(0,S-0.5); g.lineTo(S,S-0.5);
+  g.stroke();
+
+  return cv;
+}
+
+function injectGridTexture(){
+  const cv=makeGridTexture();
+  const img=document.createElement("img");
+  img.id="grid-tex";
+  img.src=cv.toDataURL("image/png");
+  document.getElementById("aassets").appendChild(img);
+
+  // Apply to grid plane after assets load
+  const plane=document.getElementById("grid-plane");
+  plane.setAttribute("material",
+    "src:#grid-tex;shader:flat;transparent:true;opacity:1;"+
+    "repeat:100 100;side:double;depthWrite:false"
+  );
+}
+
+/* ═══════════════════════════════════════
+   CANVAS CARD TEXTURE — portrait 704×1024
+═══════════════════════════════════════ */
+function drawCard(p,isBack){
+  const W=CFG.TEX_W, H=CFG.TEX_H;
+  const cv=document.createElement("canvas");
+  cv.width=W; cv.height=H;
+  const g=cv.getContext("2d");
+  const [h1,h2]=hues(p);
+
+  // BG
+  g.fillStyle="#0a0a0a";
+  g.fillRect(0,0,W,H);
+
+  // Outer border
+  g.strokeStyle="rgba(232,226,214,0.22)";
+  g.lineWidth=2;
+  g.strokeRect(1,1,W-2,H-2);
+
+  // ── TAB ──
+  const TH=38,TX=14,TW=W-28;
+  g.fillStyle="rgba(0,0,0,0.72)";
+  g.fillRect(TX,0,TW,TH);
+  g.strokeStyle="rgba(232,226,214,0.14)";
+  g.lineWidth=1;
+  g.beginPath();
+  g.moveTo(TX,0);g.lineTo(TX,TH);g.lineTo(TX+TW,TH);g.lineTo(TX+TW,0);
+  g.stroke();
+  g.fillStyle="rgba(232,226,214,0.80)";
+  g.font="500 11px 'Source Code Pro',monospace";
+  g.textBaseline="middle";
+  g.fillText(`${p.id}  /  ${p.title}`,TX+10,TH/2,TW-20);
+
+  // ── HERO ──
+  const HY=TH+2, HH=300;
+  const gr=g.createLinearGradient(0,HY,0,HY+HH);
+  gr.addColorStop(0,`hsla(${h1},32%,68%,0.26)`);
+  gr.addColorStop(0.5,`hsla(${h2},26%,55%,0.12)`);
+  gr.addColorStop(1,"rgba(0,0,0,0.60)");
+  g.fillStyle=gr; g.fillRect(0,HY,W,HH);
+  const rg=g.createRadialGradient(W*0.3,HY+HH*0.3,0,W*0.3,HY+HH*0.3,W*0.55);
+  rg.addColorStop(0,`hsla(${h1},30%,72%,0.16)`);
+  rg.addColorStop(1,"transparent");
+  g.fillStyle=rg; g.fillRect(0,HY,W,HH);
+
+  // Category label in hero
+  g.font="600 12px 'Source Code Pro',monospace";
+  g.fillStyle=`hsla(${h1},40%,80%,0.55)`;
+  g.textBaseline="middle"; g.textAlign="center";
+  g.fillText(p.category.toUpperCase(),W/2,HY+HH/2-10);
+  g.font="11px 'Source Code Pro',monospace";
+  g.fillStyle="rgba(232,226,214,0.35)";
+  g.fillText(String(p.year),W/2,HY+HH/2+14);
+  g.textAlign="left";
+
+  // Hero bar
+  const BH=38;
+  const bg2=g.createLinearGradient(0,HY+HH-BH,0,HY+HH);
+  bg2.addColorStop(0,"rgba(0,0,0,0)"); bg2.addColorStop(1,"rgba(0,0,0,0.80)");
+  g.fillStyle=bg2; g.fillRect(0,HY+HH-BH,W,BH);
+  g.font="11px 'Source Code Pro',monospace"; g.textBaseline="middle";
+  const MY=HY+HH-BH/2;
+  g.fillStyle="rgba(232,226,214,0.62)";
+  g.fillText(p.type,14,MY);
+  g.fillStyle="rgba(232,226,214,0.42)";
+  g.fillText(p.status,W-g.measureText(p.status).width-14,MY);
+
+  g.strokeStyle="rgba(232,226,214,0.12)"; g.lineWidth=1;
+  g.beginPath();g.moveTo(0,HY+HH);g.lineTo(W,HY+HH);g.stroke();
+
+  // ── BODY ──
+  const BY=HY+HH+20;
+
+  // Title
+  g.fillStyle="#e8e2d6";
+  g.font="600 26px 'EB Garamond',Georgia,serif";
+  g.textBaseline="top";
+  let tline="",tly=BY,tlh=32,tlw=W-28;
+  for(const w of p.title.split(" ")){
+    const test=tline?tline+" "+w:w;
+    if(g.measureText(test).width>tlw&&tline){
+      g.fillText(tline,14,tly,tlw); tline=w; tly+=tlh;
+    }else tline=test;
+  }
+  if(tline) g.fillText(tline,14,tly,tlw);
+  tly+=tlh+10;
+
+  // Meta
+  g.font="11px 'Source Code Pro',monospace";
+  g.fillStyle="rgba(232,226,214,0.45)";
+  g.fillText(`${p.category} — ${p.year}`,14,tly);
+  const mt2=`${p.type} / ${p.status}`;
+  g.fillText(mt2,W-g.measureText(mt2).width-14,tly);
+  tly+=22;
+
+  // Divider
+  g.strokeStyle="rgba(232,226,214,0.10)"; g.lineWidth=1;
+  g.beginPath();g.moveTo(14,tly);g.lineTo(W-14,tly);g.stroke();
+  tly+=14;
+
+  if(!isBack){
+    // Abstract
+    g.font="16px 'EB Garamond',Georgia,serif";
+    g.fillStyle="rgba(232,226,214,0.76)";
+    g.textBaseline="top";
+    let lx=14,ly=tly,lw=W-28,lh=23,line="";
+    for(const w of p.abstract.split(" ")){
+      const test=line?line+" "+w:w;
+      if(g.measureText(test).width>lw&&line){
+        g.fillText(line,lx,ly,lw); line=w; ly+=lh;
+        if(ly>H-90) break;
+      }else line=test;
+    }
+    if(line&&ly<=H-90) g.fillText(line,lx,ly,lw);
+
+    // Tags
+    g.font="10px 'Source Code Pro',monospace";
+    let tx=14; const ty=H-52;
+    for(const tag of(p.tags||[]).slice(0,4)){
+      const tw=g.measureText(tag).width+18;
+      if(tx+tw>W-14) break;
+      g.strokeStyle="rgba(232,226,214,0.14)"; g.lineWidth=1;
+      g.strokeRect(tx,ty,tw,24);
+      g.fillStyle="rgba(232,226,214,0.50)";
+      g.fillText(tag,tx+9,ty+7);
+      tx+=tw+7;
+    }
+  } else {
+    // Back: large ID
+    g.font="600 52px 'EB Garamond',Georgia,serif";
+    g.fillStyle="rgba(232,226,214,0.15)";
+    g.textAlign="center"; g.textBaseline="middle";
+    g.fillText(p.id,W/2,tly+(H-tly)/2);
+    g.textAlign="left";
+  }
+
+  return cv;
+}
+
+/* ═══════ TEXTURE REGISTRY ═══════ */
+function getTexId(p,isBack){
+  const key=`${p.id}-${isBack?1:0}`;
+  if(texRegistry[key]) return "#"+texRegistry[key];
+  const cv=drawCard(p,isBack);
+  const img=document.createElement("img");
+  const id=`tex-${p.id.replace("-","")}-${isBack?"b":"f"}`;
+  img.id=id; img.src=cv.toDataURL("image/png");
+  document.getElementById("aassets").appendChild(img);
+  texRegistry[key]=id;
+  return "#"+id;
+}
+function pregenTextures(){
+  ALL.forEach(p=>{getTexId(p,false);getTexId(p,true);});
+}
+
+/* ═══════ BUILD CARD ═══════ */
+const cardRig=document.getElementById("card-rig");
+function clearCards(){
+  cardEntities.forEach(e=>{if(e.parentNode)e.parentNode.removeChild(e);});
+  cardEntities=[];
+}
+
+function buildCard(p,offset,listIdx){
+  const abs=Math.abs(offset);
+  const isBack=abs>=1;
+  const opacity=Math.max(0,1-abs*0.07);
+  const bright=isBack?Math.max(0.48,0.88-abs*0.10):1.0;
+  const sc=1-abs*CFG.SCALE_STEP;
+  const texId=getTexId(p,isBack);
+
+  const el=document.createElement("a-entity");
+  el.setAttribute("position",`0 ${abs*CFG.Y_STEP} ${-abs*CFG.Z_STEP}`);
+  el.setAttribute("scale",`${sc} ${sc} ${sc}`);
+
+  const bx=document.createElement("a-box");
+  bx.setAttribute("width",  CFG.CW+0.014);
+  bx.setAttribute("height", CFG.CH+0.014);
+  bx.setAttribute("depth",  0.006);
+  bx.setAttribute("position","0 0 -0.005");
+  bx.setAttribute("material",`shader:flat;color:#060606;opacity:${opacity}`);
+  el.appendChild(bx);
+
+  const face=document.createElement("a-plane");
+  face.setAttribute("class","card-face");
+  face.setAttribute("width",  CFG.CW);
+  face.setAttribute("height", CFG.CH);
+  face.setAttribute("material",
+    `src:${texId};shader:flat;transparent:false;`+
+    `color:rgb(${Math.round(bright*255)},${Math.round(bright*253)},${Math.round(bright*250)});`+
+    `opacity:${opacity};side:front`
+  );
+  face.dataset.listIndex=String(listIdx);
+  face.addEventListener("click",()=>{
+    const li=parseInt(face.dataset.listIndex,10);
+    if(!isNaN(li)){activeIndex=li;playClick();render();}
+  });
+  el.appendChild(face);
+  return el;
+}
+
+/* ═══════ RENDER ═══════ */
+function render(){
+  const list=getFiltered();
+  clamp(list);
+  clearCards();
+
+  let start=activeIndex-CFG.WINDOW;
+  let end=activeIndex+CFG.WINDOW;
+  if(start<0){end+=-start;start=0;}
+  if(end>list.length-1){start-=(end-(list.length-1));end=list.length-1;}
+  start=Math.max(0,start);
+
+  for(let i=start;i<=end;i++){
+    const el=buildCard(list[i],i-activeIndex,i);
+    cardRig.appendChild(el);
+    cardEntities.push(el);
+  }
+
+  document.getElementById("idx").textContent=
+    list.length?`${activeIndex+1} / ${list.length}`:"—";
+
+  renderDetail(list[activeIndex]);
+  renderCats();
+  document.getElementById("prevBtn").disabled=list.length<2;
+  document.getElementById("nextBtn").disabled=list.length<2;
+}
+
+/* ═══════ DETAIL ═══════ */
+function renderDetail(p){
+  const d=document.getElementById("detail");
+  if(!p){d.innerHTML=`<h3 class="det-title">No results</h3>`;return;}
+  d.innerHTML=`
+    <h3 class="det-title">${p.title}</h3>
+    <div class="det-meta"><span>${p.category} — ${p.year}</span><span>${p.type} / ${p.status}</span></div>
+    <div class="det-blk"><div class="det-k">Description</div><p class="det-p">${p.abstract}</p></div>
+    <div class="det-blk"><div class="det-k">Materials</div><p class="det-p">${(p.materials||[]).join(", ")||"—"}</p></div>
+    <div class="det-blk"><div class="det-k">Technologies</div><p class="det-p">${(p.technologies||[]).join(", ")||"—"}</p></div>
+    <div class="det-blk"><div class="det-k">Axis</div><p class="det-p">${(p.axis||[]).join(" · ")||"—"}</p></div>
+    <div class="det-blk"><div class="det-k">Tags</div><div class="det-tags">${(p.tags||[]).map(t=>`<span class="det-tag">${t}</span>`).join("")}</div></div>
+    <div class="det-blk"><div class="det-k">Documentation</div><div class="doc-row">
+      <button class="doc-btn" ${p.docs?.pdf?"":'disabled'}>PDF</button>
+      <button class="doc-btn" ${p.docs?.images?"":'disabled'}>Images</button>
+      <button class="doc-btn" ${p.docs?.video?"":'disabled'}>Video</button>
+      <button class="doc-btn" ${p.docs?.network?"":'disabled'}>Network</button>
+    </div></div>`;
+  const db=document.getElementById("det-body");
+  if(db&&!document.getElementById("det-panel").classList.contains("panel-collapsed"))
+    db.style.maxHeight=db.scrollHeight+"px";
+}
+
+/* ═══════ CATS ═══════ */
+function renderCats(){
+  const cats=["All",...Array.from(new Set(ALL.map(p=>p.category))).sort()];
+  const cl=document.getElementById("catList");
+  cl.innerHTML="";
+  cats.forEach(cat=>{
+    const n=cat==="All"?ALL.length:ALL.filter(p=>p.category===cat).length;
+    const div=document.createElement("div");
+    div.className="cat-row"+(activeCategory===cat?" active":"");
+    div.innerHTML=`<span class="cat-lbl">${cat==="All"?"All Studies":cat}</span><span class="cat-n">${n}</span>`;
+    div.addEventListener("click",()=>{activeCategory=cat;activeIndex=0;render();});
+    cl.appendChild(div);
+  });
+  const cb=document.getElementById("cat-body");
+  if(cb&&!document.getElementById("cat-panel").classList.contains("panel-collapsed"))
+    cb.style.maxHeight=cb.scrollHeight+"px";
+}
+
+/* ═══════ PANELS TOGGLE ═══════ */
+function setupToggle(toggleId,bodyId,panelId){
+  const tog=document.getElementById(toggleId);
+  const body=document.getElementById(bodyId);
+  const panel=document.getElementById(panelId);
+  body.style.maxHeight=body.scrollHeight+"px";
+  tog.addEventListener("click",()=>{
+    const collapsed=panel.classList.toggle("panel-collapsed");
+    body.style.maxHeight=collapsed?"0":body.scrollHeight+"px";
+  });
+}
+
+/* ═══════ SOUND ═══════ */
+let actx=null;
+function playClick(){
+  try{
+    if(!actx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;actx=new AC();}
+    if(actx.state==="suspended")actx.resume();
+    const t=actx.currentTime,d=0.018;
+    const buf=actx.createBuffer(1,Math.max(1,Math.floor(actx.sampleRate*d)),actx.sampleRate);
+    const dat=buf.getChannelData(0);
+    for(let i=0;i<dat.length;i++)dat[i]=(Math.random()*2-1)*Math.exp(-i/(dat.length/3))*0.75;
+    const ns=actx.createBufferSource();ns.buffer=buf;
+    const bp=actx.createBiquadFilter();bp.type="bandpass";bp.frequency.setValueAtTime(1800,t);bp.Q.setValueAtTime(6,t);
+    const g=actx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.002);g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    ns.connect(bp);bp.connect(g);g.connect(actx.destination);ns.start(t);ns.stop(t+d);
+  }catch(e){}
+}
+
+/* ═══════ NAV ═══════ */
+function next(){const l=getFiltered();if(l.length<2)return;playClick();activeIndex++;render();}
+function prev(){const l=getFiltered();if(l.length<2)return;playClick();activeIndex--;render();}
+
+document.getElementById("prevBtn").addEventListener("click",prev);
+document.getElementById("nextBtn").addEventListener("click",next);
+document.getElementById("randBtn").addEventListener("click",()=>{
+  const l=getFiltered();if(!l.length)return;
+  playClick();activeIndex=Math.floor(Math.random()*l.length);render();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowLeft"||e.key==="ArrowUp")prev();
+  if(e.key==="ArrowRight"||e.key==="ArrowDown")next();
+});
+let wlk=false;
+window.addEventListener("wheel",e=>{
+  e.preventDefault();if(wlk)return;wlk=true;
+  if(e.deltaY>0)next();else prev();
+  setTimeout(()=>wlk=false,160);
+},{passive:false});
+let ty0=null;
+window.addEventListener("touchstart",e=>{
+  if(e.target.closest("#cat-panel,#det-panel,#bot-bar,#top-bar"))return;
+  ty0=e.touches[0]?.clientY??null;
+},{passive:true});
+window.addEventListener("touchend",e=>{
+  if(ty0===null)return;
+  const dy=(e.changedTouches[0]?.clientY??ty0)-ty0;ty0=null;
+  if(Math.abs(dy)<30)return;
+  if(dy<0)next();else prev();
+},{passive:true});
+
+/* ═══════ GYRO ═══════ */
+function initGyro(){
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  if(isIOS&&typeof DeviceOrientationEvent!=="undefined"&&
+     typeof DeviceOrientationEvent.requestPermission==="function"){
+    const btn=document.getElementById("gyro-btn");
+    btn.style.display="block";
+    btn.addEventListener("click",()=>{
+      DeviceOrientationEvent.requestPermission().then(state=>{
+        btn.style.display="none";
+        if(state==="granted")
+          document.getElementById("cam").setAttribute(
+            "look-controls","enabled:true;magicWindowTrackingEnabled:true;touchEnabled:true");
+      }).catch(()=>{document.getElementById("gyro-btn").style.display="none";});
+    },{once:true});
+  }
+}
+
+/* ═══════ MOBILE ═══════ */
+function autoCollapseMobile(){
+  if(window.innerWidth<=700){
+    ["cat-panel","det-panel"].forEach(id=>{
+      const panel=document.getElementById(id);
+      const bodyId=id==="cat-panel"?"cat-body":"det-body";
+      const body=document.getElementById(bodyId);
+      panel.classList.add("panel-collapsed");
+      if(body) body.style.maxHeight="0";
+    });
+  }
+}
+
+/* ═══════ INIT ═══════ */
+pregenTextures();
+injectGridTexture();  // single canvas plane, no z-fighting
+
+function init(){
+  document.getElementById("loading").style.display="none";
+  render();
+  initGyro();
+  setupToggle("cat-toggle","cat-body","cat-panel");
+  setupToggle("det-toggle","det-body","det-panel");
+  autoCollapseMobile();
+}
+
+const scene=document.getElementById("scene");
+if(scene.hasLoaded){init();}
+else{scene.addEventListener("loaded",init,{once:true});}
+</script>
+</body>
+</html>
