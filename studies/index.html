@@ -258,6 +258,7 @@ function mount3DViewer(canvas,p){
   function startLoop(){let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
   function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
   if(p.model){
+    console.log('mounting 3D for', p.id, 'model:', p.model);
     function tryLoad(attempts){
       if(typeof THREE.GLTFLoader==='undefined'){
         if(attempts>20)return loadFallback();
@@ -267,6 +268,7 @@ function mount3DViewer(canvas,p){
       try{
         const loader=new THREE.GLTFLoader();
         loader.load(p.model,(gltf)=>{
+          console.log('GLB loaded OK for', p.id);
           const obj=gltf.scene;
           const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
           obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
@@ -275,7 +277,7 @@ function mount3DViewer(canvas,p){
           obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
           scene.add(obj);state.object=obj;startLoop();
         },null,(err)=>{console.warn('GLB load failed:',err);loadFallback();});
-      }catch(e){loadFallback();}
+      }catch(e){console.warn('GLTFLoader error:',e);loadFallback();}
     }
     tryLoad(0);
   }else{loadFallback();}
