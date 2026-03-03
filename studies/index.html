@@ -225,7 +225,7 @@ const ALL = [
     technologies: {{ project.technologies | jsonify }},
     axis:         {{ project.axis         | jsonify }},
     docs:         {{ project.docs         | jsonify }},
-    url:          {{ project.url          | jsonify }}
+    url:          {% if project.project_url %}{{ project.project_url | jsonify }}{% else %}{{ project.url | jsonify }}{% endif %}
   }{% unless forloop.last %},{% endunless %}
   {% endfor %}
 ];
