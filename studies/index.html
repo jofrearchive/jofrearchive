@@ -9,23 +9,7 @@ layout: none
 <title>Jofre Archive — Studies</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-// GLTFLoader inline (r128)
-(function(){
-  THREE.GLTFLoader=function(manager){this.manager=manager||THREE.DefaultLoadingManager;};
-  THREE.GLTFLoader.prototype={
-    constructor:THREE.GLTFLoader,
-    load:function(url,onLoad,onProgress,onError){
-      const loader=new THREE.FileLoader(this.manager);
-      loader.setResponseType('arraybuffer');
-      loader.load(url,(data)=>{try{this.parse(data,'',onLoad,onError);}catch(e){if(onError)onError(e);}},onProgress,onError);
-    },
-    parse:function(data,path,onLoad,onError){
-      if(onError)onError(new Error('GLTFLoader stub'));
-    }
-  };
-})();
-</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
 :root{
   --bg:#0b0b0b; --ink:#e8e2d6; --ink2:rgba(232,226,214,0.75); --ink3:rgba(232,226,214,0.6);
@@ -348,7 +332,21 @@ function mount3DViewer(canvas,p){
   viewers.set(canvas,state);
   function syncSize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
   function startLoop(){let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
-  const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();
+  function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
+  if(p.model){
+    try{
+      const loader=new THREE.GLTFLoader();
+      loader.load(p.model,(gltf)=>{
+        const obj=gltf.scene;
+        const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
+        obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
+        const box=new THREE.Box3().setFromObject(obj);
+        obj.position.sub(box.getCenter(new THREE.Vector3()));
+        obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
+        scene.add(obj);state.object=obj;startLoop();
+      },null,()=>loadFallback());
+    }catch(e){loadFallback();}
+  }else{loadFallback();}
 }
 
 function destroy3DViewer(canvas){const s=viewers.get(canvas);if(!s)return;s.destroyed=true;if(s.raf)cancelAnimationFrame(s.raf);s.renderer.dispose();s.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});viewers.delete(canvas);}
