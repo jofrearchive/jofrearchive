@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>{{ page.title }} — Jofre Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0b0b0b;
+  --ink: #e8e2d6;
+  --ink2: rgba(232,226,214,0.75);
+  --ink3: rgba(232,226,214,0.45);
+  --border: rgba(232,226,214,0.16);
+  --serif: 'EB Garamond', serif;
+  --mono: 'Source Code Pro', monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--serif); }
+
+.header {
+  position: fixed; top: 0; left: 0; right: 0; height: 78px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(11,11,11,0.85); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border); z-index: 20;
+}
+.logo img { height: 28px; }
+
+.back {
+  position: fixed; top: 0; left: 24px; height: 78px;
+  display: flex; align-items: center;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink3);
+  text-decoration: none; z-index: 21;
+}
+.back:hover { color: var(--ink); }
+
+.wrap {
+  max-width: 860px; margin: 0 auto;
+  padding: 110px 24px 80px 24px;
+}
+
+.project-id {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 12px;
+}
+.project-title {
+  font-size: clamp(28px, 5vw, 48px); font-weight: 600;
+  line-height: 1.05; margin: 0 0 16px 0;
+}
+.project-meta {
+  display: flex; gap: 24px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink3);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 14px 0; margin-bottom: 32px;
+}
+
+.section { margin-top: 32px; }
+.section-label {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .22em;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 10px;
+}
+.section p { font-size: 17px; line-height: 1.65; color: var(--ink2); margin: 0; }
+.section ul { margin: 0; padding-left: 18px; color: var(--ink2); font-size: 16px; line-height: 1.7; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.tag {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink3);
+  border: 1px solid var(--border); padding: 6px 10px;
+}
+
+.divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+/* Project body content (from markdown) */
+.project-body { font-size: 17px; line-height: 1.75; color: var(--ink2); margin-top: 40px; }
+.project-body h2 { font-size: 22px; font-weight: 600; margin: 40px 0 12px 0; color: var(--ink); }
+.project-body h3 { font-size: 18px; font-weight: 600; margin: 32px 0 10px 0; color: var(--ink); }
+.project-body img { max-width: 100%; margin: 24px 0; display: block; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo"><img src="/assets/images/logo.png" alt="Jofre Archive"/></a>
+</header>
+
+<a href="/studies/" class="back">← Studies</a>
+
+<div class="wrap">
+  <div class="project-id">{{ page.id }} — {{ page.category }}</div>
+  <h1 class="project-title">{{ page.title }}</h1>
+
+  <div class="project-meta">
+    <span>{{ page.year }}</span>
+    <span>{{ page.type }}</span>
+    <span>{{ page.status }}</span>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Abstract</div>
+    <p>{{ page.abstract }}</p>
+  </div>
+
+  {% if page.materials %}
+  <div class="section">
+    <div class="section-label">Materials</div>
+    <ul>{% for m in page.materials %}<li>{{ m }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if page.technologies %}
+  <div class="section">
+    <div class="section-label">Technologies</div>
+    <ul>{% for t in page.technologies %}<li>{{ t }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  {% if page.axis %}
+  <div class="section">
+    <div class="section-label">Conceptual Axis</div>
+    <p>{{ page.axis | join: " — " }}</p>
+  </div>
+  {% endif %}
+
+  {% if page.tags %}
+  <div class="section">
+    <div class="section-label">Tags</div>
+    <div class="tags">{% for t in page.tags %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+  </div>
+  {% endif %}
+
+  {% if page.docs %}
+  <div class="section">
+    <div class="section-label">Documentation</div>
+    <div class="tags">
+      {% if page.docs.pdf %}<span class="tag">PDF</span>{% endif %}
+      {% if page.docs.images %}<span class="tag">Images</span>{% endif %}
+      {% if page.docs.video %}<span class="tag">Video</span>{% endif %}
+      {% if page.docs.network %}<span class="tag">Network</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="divider"></div>
+
+  <div class="project-body">
+    {{ content }}
+  </div>
+</div>
+
+</body>
+</html>
