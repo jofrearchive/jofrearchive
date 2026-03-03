@@ -9,6 +9,23 @@ layout: none
 <title>Jofre Archive — Studies</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// GLTFLoader inline (r128)
+(function(){
+  THREE.GLTFLoader=function(manager){this.manager=manager||THREE.DefaultLoadingManager;};
+  THREE.GLTFLoader.prototype={
+    constructor:THREE.GLTFLoader,
+    load:function(url,onLoad,onProgress,onError){
+      const loader=new THREE.FileLoader(this.manager);
+      loader.setResponseType('arraybuffer');
+      loader.load(url,(data)=>{try{this.parse(data,'',onLoad,onError);}catch(e){if(onError)onError(e);}},onProgress,onError);
+    },
+    parse:function(data,path,onLoad,onError){
+      if(onError)onError(new Error('GLTFLoader stub'));
+    }
+  };
+})();
+</script>
 <style>
 :root{
   --bg:#0b0b0b; --ink:#e8e2d6; --ink2:rgba(232,226,214,0.75); --ink3:rgba(232,226,214,0.6);
@@ -225,6 +242,7 @@ const ALL = [
     technologies: {{ project.technologies | jsonify }},
     axis:         {{ project.axis         | jsonify }},
     docs:         {{ project.docs         | jsonify }},
+    model:        {{ project.model        | jsonify }},
     url:          {% if project.project_url %}{{ project.project_url | jsonify }}{% else %}{{ project.url | jsonify }}{% endif %}
   }{% unless forloop.last %},{% endunless %}
   {% endfor %}
