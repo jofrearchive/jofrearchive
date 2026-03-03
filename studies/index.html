@@ -10,6 +10,10 @@ layout: none
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+// Wait for GLTFLoader to be ready
+window._gltfReady = typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined';
+</script>
 <style>
 :root{--bg:#0b0b0b;--ink:#e8e2d6;--ink2:rgba(232,226,214,0.75);--ink3:rgba(232,226,214,0.6);--panel:rgba(15,15,15,0.78);--border:rgba(232,226,214,0.16);--gridline:rgba(232,226,214,0.04);--s8:8px;--s16:16px;--s24:24px;--serif:'EB Garamond',serif;--mono:'Source Code Pro',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;}
 *{box-sizing:border-box;}
@@ -254,18 +258,26 @@ function mount3DViewer(canvas,p){
   function startLoop(){let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
   function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
   if(p.model){
-    try{
-      const loader=new THREE.GLTFLoader();
-      loader.load(p.model,(gltf)=>{
-        const obj=gltf.scene;
-        const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
-        obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
-        const box=new THREE.Box3().setFromObject(obj);
-        obj.position.sub(box.getCenter(new THREE.Vector3()));
-        obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
-        scene.add(obj);state.object=obj;startLoop();
-      },null,(err)=>{console.warn('GLB load failed:',err);loadFallback();});
-    }catch(e){loadFallback();}
+    function tryLoad(attempts){
+      if(typeof THREE.GLTFLoader==='undefined'){
+        if(attempts>20)return loadFallback();
+        setTimeout(()=>tryLoad(attempts+1),100);
+        return;
+      }
+      try{
+        const loader=new THREE.GLTFLoader();
+        loader.load(p.model,(gltf)=>{
+          const obj=gltf.scene;
+          const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
+          obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
+          const box=new THREE.Box3().setFromObject(obj);
+          obj.position.sub(box.getCenter(new THREE.Vector3()));
+          obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
+          scene.add(obj);state.object=obj;startLoop();
+        },null,(err)=>{console.warn('GLB load failed:',err);loadFallback();});
+      }catch(e){loadFallback();}
+    }
+    tryLoad(0);
   }else{loadFallback();}
 }
 
