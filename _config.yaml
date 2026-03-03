@@ -1,0 +1,17 @@
+title: Jofre Archive
+url: "https://jofrearchive.com"
+baseurl: ""
+
+collections:
+  studies:
+    output: true
+    permalink: /studies/:name/
+
+defaults:
+  - scope:
+      path: ""
+      type: studies
+    values:
+      layout: study
+
+markdown: kramdown
