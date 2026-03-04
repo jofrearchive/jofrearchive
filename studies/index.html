@@ -41,14 +41,14 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
   .grid>section[aria-label="Project Carousel"]{position:fixed;inset:52px 0 0 0;border:0 !important;background:transparent;overflow:visible;margin:0 !important;}
   .carouselPanel .panelBody{padding:0;height:100%;overflow:visible;}
   .carouselColumn{height:100%;gap:0;perspective:1800px;perspective-origin:50% 52%;}
-  .carouselHUD.miniHUD{position:absolute;top:0;left:0;right:0;z-index:30;display:flex !important;justify-content:space-between !important;align-items:center;padding:12px 16px !important;background:linear-gradient(180deg,rgba(11,11,11,0.70),transparent) !important;border:0 !important;}
+  .carouselHUD.miniHUD{display:none !important;}
   .carouselScene{position:absolute;inset:0;min-height:0;overflow:visible;}
-  .carouselRig{top:100px;width:88%;height:560px;transform:translateX(-50%) rotateX(-16deg);}
-  .card{height:460px;}
+  .carouselRig{top:60px;width:88%;height:520px;transform:translateX(-50%) rotateX(-12deg);}
+  .card{height:400px;}
   .cardHero{height:180px;}
   .cardCanvas{height:180px !important;}
   .cardTitle{font-size:17px;}
-  #mobileHudBar{display:flex;position:fixed;bottom:0;left:0;right:0;height:48px;z-index:35;align-items:center;justify-content:space-between;padding:0 16px;background:linear-gradient(0deg,rgba(11,11,11,0.85) 60%,transparent);pointer-events:none;}
+  #mobileHudBar{display:none !important;}
   #mobileHudBar span{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.45);}
   #mobileCatBtn{display:flex;position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:60;align-items:center;gap:7px;padding:9px 20px;background:rgba(11,11,11,0.90);backdrop-filter:blur(14px);border:1px solid rgba(232,226,214,0.24);font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink2);cursor:pointer;white-space:nowrap;border-radius:22px;}
   #mobileDrawer{display:block;position:fixed;left:0;right:0;bottom:0;z-index:55;background:rgba(11,11,11,0.97);backdrop-filter:blur(18px);border-top:1px solid rgba(232,226,214,0.12);border-radius:14px 14px 0 0;transform:translateY(100%);transition:transform 0.30s cubic-bezier(0.32,0,0.16,1);max-height:58vh;overflow-y:auto;}
@@ -97,6 +97,12 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
 .cardHero{height:280px;border-bottom:1px solid rgba(232,226,214,0.12);position:relative;overflow:hidden;}
 .cardCanvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;background:transparent;z-index:2;}
 .cardHeroBg{position:absolute;inset:0;z-index:1;}
+.cardHeroCRT{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
+.cardHeroCRT::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);animation:none;}
+.cardHeroCRT::after{content:"";position:absolute;inset:-100%;width:100%;height:40%;background:linear-gradient(180deg,transparent,rgba(232,226,214,0.025) 50%,transparent);animation:crtScan 6s linear infinite;opacity:0.6;}
+@keyframes crtScan{0%{top:-40%;}100%{top:140%;}}
+@keyframes crtFlicker{0%,100%{opacity:1;}92%{opacity:1;}93%{opacity:0.94;}94%{opacity:1;}97%{opacity:0.97;}98%{opacity:1;}}
+.cardHeroNoise{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0.03;animation:crtFlicker 8s infinite;}
 .cardHeroBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);}
 .cardBody{padding:12px 14px 14px 14px;}
 .cardTitle{margin:0;font-weight:600;font-size:20px;line-height:1.1;letter-spacing:.01em;}
@@ -126,7 +132,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
 <body>
 <div class="shell">
 <header class="header">
-  <a aria-label="Home" class="logo" href="/">
+  <a aria-label="Home" class="logo" href="https://inside.jofrearchive.com/origin/">
     <img alt="Jofre Archive" src="/assets/images/logo.png"/>
   </a>
 </header>
@@ -242,6 +248,40 @@ const modelCache=new Map(); // url -> THREE.Group (cloned per viewer)
 const FALLBACK_GEOS=[()=>new THREE.IcosahedronGeometry(0.9,1),()=>new THREE.TorusKnotGeometry(0.6,0.22,120,16),()=>new THREE.OctahedronGeometry(1.0,0),()=>new THREE.TorusGeometry(0.75,0.28,20,60),()=>new THREE.DodecahedronGeometry(0.9,0),()=>new THREE.ConeGeometry(0.8,1.6,7,1),()=>new THREE.CylinderGeometry(0.5,0.9,1.4,8,1)];
 function buildFallbackMesh(p){const idx=parseInt((p.id||'S-000').split('-')[1]||'0',10)%FALLBACK_GEOS.length;const geo=FALLBACK_GEOS[idx]();const hue=(idx*41)%360;const group=new THREE.Group();group.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.55,metalness:0.3})));group.add(new THREE.Mesh(geo.clone(),new THREE.MeshBasicMaterial({color:new THREE.Color(`hsl(${hue},22%,80%)`),wireframe:true,transparent:true,opacity:0.16})));return group;}
 
+function mountNoiseCanvas(canvas){
+  canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:none;opacity:0.045;mix-blend-mode:screen;';
+  function resize(){canvas.width=canvas.clientWidth||540;canvas.height=canvas.clientHeight||280;}
+  resize();
+  const ctx=canvas.getContext('2d');
+  let rafId=null;
+  let frame=0;
+  function drawNoise(){
+    rafId=requestAnimationFrame(drawNoise);
+    frame++;
+    // Only redraw every 3 frames for performance
+    if(frame%3!==0)return;
+    const w=canvas.width,h=canvas.height;
+    const img=ctx.createImageData(w,h);
+    const d=img.data;
+    for(let i=0;i<d.length;i+=4){
+      const v=Math.random()*255|0;
+      d[i]=d[i+1]=d[i+2]=v;
+      d[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+    // Occasional horizontal glitch line
+    if(Math.random()<0.015){
+      const y=Math.random()*h|0;
+      const h2=Math.random()*3+1|0;
+      ctx.fillStyle='rgba(232,226,214,0.12)';
+      ctx.fillRect(0,y,w,h2);
+    }
+  }
+  drawNoise();
+  canvas._noiseRaf=rafId;
+  canvas._noiseCtx=ctx;
+}
+
 function mount3DViewer(canvas,p){
   if(!canvas||viewers.has(canvas))return;
   // Enforce max 4 simultaneous WebGL contexts to avoid browser limit
@@ -319,9 +359,14 @@ let wasDragging=false;
 function cardEl(p){
   const el=document.createElement("div");el.className="card";
   const hueForCard=parseInt((p.id||'S-000').replace(/[^0-9]/g,'').slice(0,3)||'0',10)*47%360;
-  el.innerHTML=`<div class="cardTab">${(p.id||'').replace(/^\/studies\//i,'').replace(/\/$/,'').toUpperCase()} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><div class="cardHeroBg" style="background:radial-gradient(ellipse at 40% 60%,hsl(${hueForCard},22%,14%) 0%,hsl(${(hueForCard+30)%360},14%,9%) 55%,hsl(${(hueForCard+60)%360},10%,6%) 100%);"></div><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar" style="position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="cardTab">${(p.id||'').replace(/^\/studies\//i,'').replace(/\/$/,'').toUpperCase()} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><div class="cardHeroBg" style="background:radial-gradient(ellipse at 40% 60%,hsl(${hueForCard},22%,14%) 0%,hsl(${(hueForCard+30)%360},14%,9%) 55%,hsl(${(hueForCard+60)%360},10%,6%) 100%);"></div><div class="cardHeroCRT"></div><canvas class="cardHeroNoise" data-noise="1"></canvas><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar" style="position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
   el.addEventListener("click",()=>{if(!wasDragging)window.location.href=p.url;});
-  requestAnimationFrame(()=>{const canvas=el.querySelector('.cardCanvas');if(canvas)mount3DViewer(canvas,p);});
+  requestAnimationFrame(()=>{
+    const canvas=el.querySelector('.cardCanvas');
+    if(canvas)mount3DViewer(canvas,p);
+    const noiseCanvas=el.querySelector('canvas[data-noise]');
+    if(noiseCanvas)mountNoiseCanvas(noiseCanvas);
+  });
   return el;
 }
 
