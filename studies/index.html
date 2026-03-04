@@ -26,7 +26,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
 .shell::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(255,255,255,0.012),rgba(255,255,255,0.012)),radial-gradient(circle at 30% 20%,rgba(255,255,255,0.018),transparent 40%),radial-gradient(circle at 70% 60%,rgba(255,255,255,0.018),transparent 45%);opacity:.9;}
 .header{position:fixed;top:0;left:0;right:0;height:78px;display:flex;align-items:center;justify-content:center;z-index:20;pointer-events:none;}
 .logo{pointer-events:auto;height:40px;width:240px;display:flex;align-items:center;justify-content:center;opacity:.95;}
-.logo img{height:28px;width:auto;display:block;}
+.logo img{height:56px;width:auto;max-width:min(260px,82vw);display:block;opacity:.92;}
 .main{position:absolute;inset:78px 0 0 0;padding:var(--s24);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;overflow-x:hidden;}
 .grid{width:min(1280px,100%);display:grid;grid-template-columns:300px 1fr 360px;gap:var(--s16);align-items:start;overflow:visible;}
 #mobileScrim,#mobileDrawer,#mobileHudBar,#mobileCatBtn{display:none;}
@@ -34,7 +34,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
   body{overflow:hidden;}
   .shell{position:fixed;inset:0;}
   .header{height:52px;background:rgba(11,11,11,0.82);backdrop-filter:blur(10px);border-bottom:1px solid rgba(232,226,214,0.08);}
-  .logo img{height:20px;}
+  .logo img{height:44px;}
   .main{position:fixed;inset:52px 0 0 0;padding:0;display:block;overflow:hidden;}
   .grid{display:block;width:100%;height:100%;}
   .grid>section[aria-label="Studies Classification"],.grid>section[aria-label="Project Data"]{display:none !important;}
@@ -99,7 +99,7 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
 .cardHeroBg{position:absolute;inset:0;z-index:1;}
 .cardHeroCRT{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;}
 .cardHeroCRT::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.055) 3px,rgba(0,0,0,0.055) 4px);}
-.cardHeroCRT::after{content:"";position:absolute;left:0;right:0;height:55%;background:linear-gradient(180deg,transparent 0%,rgba(200,195,185,0.045) 50%,transparent 100%);animation:crtSweep 9s ease-in-out infinite;}
+.cardHeroCRT::after{content:"";position:absolute;left:0;right:0;height:55%;background:linear-gradient(180deg,transparent 0%,rgba(200,195,185,0.045) 50%,transparent 100%);animation:crtSweep var(--crt-dur,9s) var(--crt-ease,ease-in-out) var(--crt-delay,0s) infinite;}
 @keyframes crtSweep{0%{top:-55%;opacity:0;}8%{opacity:1;}92%{opacity:1;}100%{top:120%;opacity:0;}}
 .cardHeroBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);}
 .cardBody{padding:12px 14px 14px 14px;}
@@ -323,7 +323,7 @@ let wasDragging=false;
 function cardEl(p){
   const el=document.createElement("div");el.className="card";
   const hueForCard=parseInt((p.id||'S-000').replace(/[^0-9]/g,'').slice(0,3)||'0',10)*47%360;
-  el.innerHTML=`<div class="cardTab">${(p.id||'').replace(/^\/studies\//i,'').replace(/\/$/,'').toUpperCase()} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><div class="cardHeroBg" style="background:radial-gradient(ellipse at 40% 60%,hsl(${hueForCard},22%,14%) 0%,hsl(${(hueForCard+30)%360},14%,9%) 55%,hsl(${(hueForCard+60)%360},10%,6%) 100%);"></div><div class="cardHeroCRT"></div><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar" style="position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
+  el.innerHTML=`<div class="cardTab">${(p.id||'').replace(/^\/studies\//i,'').replace(/\/$/,'').toUpperCase()} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><div class="cardHeroBg" style="background:radial-gradient(ellipse at 40% 60%,hsl(${hueForCard},22%,14%) 0%,hsl(${(hueForCard+30)%360},14%,9%) 55%,hsl(${(hueForCard+60)%360},10%,6%) 100%);"></div><div class="cardHeroCRT" style="--crt-dur:${(7+((parseInt((p.id||'S-000').replace(/[^0-9]/g,'')||'1',10)*3.7)%6).toFixed(1))}s;--crt-delay:-${((parseInt((p.id||'S-000').replace(/[^0-9]/g,'')||'1',10)*2.3)%8).toFixed(1)}s;--crt-ease:${['ease-in-out','linear','ease-in','ease-out'][parseInt((p.id||'S-000').replace(/[^0-9]/g,'')||'0',10)%4]};"></div><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar" style="position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
   el.addEventListener("click",()=>{if(!wasDragging)window.location.href=p.url;});
   requestAnimationFrame(()=>{const canvas=el.querySelector('.cardCanvas');if(canvas)mount3DViewer(canvas,p);});
   return el;
