@@ -1,0 +1,635 @@
+---
+layout: none
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>EXPERIMENTAL ARCHIVE — GATE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg: #0f0e0c;
+      --ink: #e8e0d0;
+      --muted: #7a7060;
+      --line: rgba(200,185,155,0.18);
+      --line2: rgba(200,185,155,0.10);
+      --serif: "EB Garamond", ui-serif, Georgia, serif;
+      --mono: "Source Code Pro", ui-monospace, monospace;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body { height:100%; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--mono);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+    body::before {
+      content:"";
+      position:fixed; inset:0;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(210,185,140,0.04), transparent 40%),
+        radial-gradient(circle at 70% 70%, rgba(200,175,130,0.03), transparent 46%),
+        repeating-linear-gradient(0deg, rgba(200,185,155,0.015) 0px, rgba(200,185,155,0.015) 1px, transparent 1px, transparent 5px);
+      pointer-events:none;
+      z-index:10;
+    }
+    .gate { position:relative; z-index:5; width:min(760px, 94vw); }
+
+    /* Top meta bar */
+    .top-bar {
+      display:flex; justify-content:space-between; align-items:center;
+      border:1px solid var(--line); border-bottom:none; padding:5px 12px;
+    }
+    .top-bar span { font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+    .tb-sep { display:inline-block; width:18px; height:1px; background:var(--line); vertical-align:middle; margin:0 6px; }
+
+    /* Visit counter badge */
+    .visit-badge {
+      font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted);
+      display:flex; align-items:center; gap:6px;
+    }
+    .visit-count {
+      font-family:var(--serif); font-size:13px; font-weight:600;
+      color:var(--ink); letter-spacing:.1em;
+      transition: color .4s;
+    }
+    .visit-count.flash { color:#e8e0d0; }
+
+    /* Header label */
+    .header-label {
+      border:1px solid var(--line); border-bottom:none;
+      display:grid; grid-template-columns:72px 1fr auto; align-items:stretch;
+    }
+    .hl-priority {
+      border-right:1px solid var(--line);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; padding:14px 10px;
+      position:relative; overflow:hidden;
+    }
+    .hl-priority svg {
+      position:absolute; inset:0; width:100%; height:100%;
+      pointer-events:none;
+    }
+    .hl-priority svg line {
+      stroke: rgba(200,185,155,0.18);
+      stroke-width:1;
+      vector-effect: non-scaling-stroke;
+    }
+    .hl-priority-label { font-size:8px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+    .hl-priority-val { font-family:var(--serif); font-weight:600; font-size:44px; line-height:1; color:var(--ink); }
+    .hl-main { padding:14px 18px; display:flex; flex-direction:column; justify-content:space-between; gap:8px; }
+    .hl-kicker { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); }
+    .hl-title { font-family:var(--serif); font-weight:600; font-size:clamp(28px,5vw,44px); letter-spacing:.12em; text-transform:uppercase; line-height:1.0; color:#e8e0d0; }
+    .hl-sub { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; }
+    .hl-right { border-left:1px solid var(--line); padding:12px 14px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; min-width:92px; }
+    .hl-ref { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); text-align:right; line-height:1.9; }
+    .hl-status-badge { background:#e8e0d0; color:#0f0e0c; font-size:9px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; padding:3px 8px; }
+
+    /* Barcode row */
+    .barcode-row { border:1px solid var(--line); border-bottom:none; display:grid; grid-template-columns:1fr 88px; align-items:stretch; }
+    .bc-main { padding:10px 14px; display:flex; flex-direction:column; gap:5px; }
+    .bc-label { font-size:8px; letter-spacing:.24em; text-transform:uppercase; color:var(--muted); }
+    .bc-bar {
+      height:32px;
+      background:repeating-linear-gradient(90deg,
+        rgba(232,224,208,0.85) 0px, rgba(232,224,208,0.85) 2px,
+        transparent 2px, transparent 5px,
+        rgba(200,185,155,0.55) 5px, rgba(200,185,155,0.55) 6px,
+        transparent 6px, transparent 9px,
+        rgba(232,224,208,0.85) 9px, rgba(232,224,208,0.85) 11px,
+        transparent 11px, transparent 16px,
+        rgba(200,185,155,0.65) 16px, rgba(200,185,155,0.65) 17px,
+        transparent 17px, transparent 21px);
+    }
+    .bc-num { font-size:9px; letter-spacing:.14em; color:var(--muted); }
+    .bc-side { border-left:1px solid var(--line); display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px; padding:10px; }
+    .bc-side-label { font-size:8px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+    .bc-side-val { font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); }
+
+    /* Info cells */
+    .info-grid { border:1px solid var(--line); border-bottom:none; display:grid; grid-template-columns:1fr 1fr; }
+    .info-cell { padding:9px 12px; display:flex; flex-direction:column; gap:3px; border-right:1px solid var(--line2); }
+    .info-cell:last-child { border-right:none; }
+    .ic-label { font-size:8px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+    .ic-val { font-family:var(--serif); font-size:15px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); transition:color .4s; }
+    .ic-val.flash { color:#e8e0d0; }
+
+    /* ── TYPEWRITER CODE BAND ── */
+    .desc-band {
+      border:1px solid var(--line); border-bottom:none;
+      display:grid; grid-template-columns:42px 1fr;
+      align-items:stretch; height:90px; overflow:hidden; position:relative;
+    }
+    .desc-marker {
+      border-right:1px solid var(--line);
+      background:repeating-linear-gradient(45deg, transparent 0px, transparent 5px, rgba(200,185,155,0.04) 5px, rgba(200,185,155,0.04) 10px);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .desc-marker span { font-size:8px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); writing-mode:vertical-rl; transform:rotate(180deg); }
+
+    .code-stream-wrap { overflow:hidden; position:relative; }
+    .code-stream-wrap::before, .code-stream-wrap::after {
+      content:""; position:absolute; left:0; right:0; height:20px; z-index:2; pointer-events:none;
+    }
+    .code-stream-wrap::before { top:0; background:linear-gradient(to bottom, #0f0e0c 30%, transparent); }
+    .code-stream-wrap::after  { bottom:0; background:linear-gradient(to top, #0f0e0c 30%, transparent); }
+
+    /* The visible typewriter area — scrolls up automatically */
+    #codeDisplay {
+      padding:8px 14px;
+      font-family:var(--mono);
+      font-size:9.5px; line-height:1.6;
+      color:rgba(180,165,140,0.45);
+      white-space:pre;
+      position:relative;
+    }
+
+    /* blinking cursor */
+    .tw-cursor {
+      display:inline-block;
+      width:6px; height:1em;
+      background:rgba(232,224,208,0.8);
+      vertical-align:text-bottom;
+      animation:blink .72s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Footer */
+    .footer-label { border:1px solid var(--line); display:grid; grid-template-columns:110px 1fr 88px; align-items:stretch; }
+    .fl-scan { border-right:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:5px; justify-content:center; }
+    .fl-scan-label { font-size:8px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+    .fl-scan-bar {
+      height:24px;
+      background:repeating-linear-gradient(90deg, rgba(232,224,208,0.75) 0px, rgba(232,224,208,0.75) 2px, transparent 2px, transparent 4px, rgba(200,185,155,0.45) 4px, rgba(200,185,155,0.45) 5px, transparent 5px, transparent 8px);
+    }
+    .fl-scan-num { font-size:8px; letter-spacing:.12em; color:var(--muted); }
+    .fl-cta { padding:14px 18px; display:flex; flex-direction:column; gap:8px; justify-content:center; }
+    .fl-cta-hint { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--muted); }
+    @keyframes btnPulse {
+      0%,100% { opacity:1; border-color:rgba(200,185,155,0.30); }
+      50%      { opacity:0.55; border-color:rgba(200,185,155,0.12); }
+    }
+    .btn {
+      appearance:none; border:1px solid rgba(200,185,155,0.30);
+      background:rgba(200,185,155,0.06); color:#e8e0d0;
+      font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase;
+      padding:11px 18px; cursor:pointer;
+      transition:background .12s, border-color .12s, transform .08s;
+      position:relative; overflow:hidden;
+      animation: btnPulse 3.2s ease-in-out infinite;
+    }
+    .btn::after { content:""; position:absolute; top:0; left:-100%; width:60%; height:100%; background:linear-gradient(90deg, transparent, rgba(200,185,155,0.08), transparent); transition:left .35s ease; }
+    .btn:hover { background:rgba(200,185,155,0.12); border-color:rgba(200,185,155,0.45); transform:translateY(-1px); animation:none; opacity:1; }
+    .btn:hover::after { left:160%; }
+    .btn:active { transform:translateY(0); }
+    .btn:focus-visible { outline:2px solid rgba(200,185,155,0.30); outline-offset:3px; }
+    .fl-meta { border-left:1px solid var(--line); padding:12px; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-end; }
+    .fl-meta-top { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); text-align:right; line-height:1.85; }
+    .fl-meta-lot { font-family:var(--serif); font-size:11px; font-weight:600; letter-spacing:.10em; color:#7a7060; }
+
+    @media (max-width:560px){
+      .info-grid { grid-template-columns:1fr 1fr; }
+      .info-cell:nth-child(even){ border-right:none; }
+      .info-cell:nth-child(3),.info-cell:nth-child(4){ border-top:1px solid var(--line2); }
+      .fl-meta { display:none; }
+      .footer-label { grid-template-columns:90px 1fr; }
+    }
+    @media (prefers-reduced-motion:reduce){ .tw-cursor { animation:none; } }
+  </style>
+</head>
+<body>
+  <main class="gate">
+
+    <div class="top-bar">
+      <span>Gate / Archive Entry</span>
+      <div class="visit-badge">
+        Visits <span class="tb-sep"></span>
+        <span class="visit-count" id="visitCount">——</span>
+      </div>
+    </div>
+
+    <div class="header-label">
+      <div class="hl-priority">
+        <svg aria-hidden="true" preserveAspectRatio="none"><line x1="0" y1="0" x2="100%" y2="100%"/><line x1="100%" y1="0" x2="0" y2="100%"/></svg>
+      </div>
+      <div class="hl-main">
+
+        <h1 class="hl-title">Experimental<br>Archive</h1>
+        <div class="hl-sub">
+          <span>NCT03467816</span><span>·</span>
+          <span>NAPF-09892986</span>
+        </div>
+      </div>
+      <div class="hl-right">
+        <div class="hl-ref">
+          <div>Ref: EXP-001</div>
+          <div id="refVisit">——</div>
+          <div>RAAVH74</div>
+        </div>
+        <div class="hl-status-badge">Ready</div>
+      </div>
+    </div>
+
+    <div class="barcode-row">
+      <div class="bc-main">
+        <div class="bc-label">Scan / Verify &nbsp;·&nbsp; Radar VVVV-111 AM-112</div>
+        <div class="bc-bar"></div>
+        <div class="bc-num" id="bcNum">001-——— &nbsp;&nbsp; 002-——— &nbsp;&nbsp; RAAVH74 PROT.</div>
+      </div>
+      <div class="bc-side">
+        <div class="bc-side-label">VV-51</div>
+        <div class="bc-side-val">Res</div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-cell">
+        <div class="ic-label">Input</div>
+        <div class="ic-val" id="icInput">———</div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Session</div>
+        <div class="ic-val" id="icSession">———</div>
+      </div>
+    </div>
+
+    <div class="desc-band">
+      <div class="desc-marker"><span>Protocol</span></div>
+      <div class="code-stream-wrap">
+        <div id="codeDisplay"></div>
+      </div>
+    </div>
+
+    <div class="footer-label">
+      <div class="fl-scan">
+        <div class="fl-scan-label">Initialize</div>
+        <div class="fl-scan-bar"></div>
+        <div class="fl-scan-num" id="flLot">REF 11-——— · LOT ———</div>
+      </div>
+      <div class="fl-cta">
+        <button class="btn" id="initBtn" type="button">Initialize Interface</button>
+      </div>
+      <div class="fl-meta">
+        <div class="fl-meta-top">
+          <div>vwv-111</div>
+          <div>am-112</div>
+          <div>vv-51</div>
+        </div>
+        <div class="fl-meta-lot" id="flMeta">W.——/— · H.——/——</div>
+      </div>
+    </div>
+
+  </main>
+
+<script>
+// ─────────────────────────────────────────────
+//  VISIT COUNTER — WordPress Jetpack Stats API
+// ─────────────────────────────────────────────
+const WP_VISITS_URL = 'https://jofrearchive.com/wp-json/archive/v1/visits';
+
+function pad(n, len) { return String(n).padStart(len, '0'); }
+
+function deriveNumbers(v) {
+  const material  = pad(((v * 7919) % 9000000) + 1000000, 7);
+  const baseUnit  = pad(((v * 6271) % 900000000) + 100000000, 9);
+  const input     = pad(((v * 13) % 9990) + 10, 4);
+  const session   = pad(v % 10000, 4);
+  const refVisit  = `${pad(Math.floor(v/100)+1,4)} / ${pad(v % 100, 2)}`;
+  const lot       = pad(((v * 3) % 90000) + 10000, 5);
+  const bc1       = pad(((v * 101) % 9000) + 1000, 4);
+  const bc2       = pad(((v * 307) % 9000) + 1000, 4);
+  const w1        = pad((v % 31) + 1, 2);
+  const w2        = pad((v % 28) + 1, 2);
+  const h1        = pad((v % 23) + 1, 2);
+  const h2        = pad((v % 59) + 1, 2);
+  return { material, baseUnit, input, session, refVisit, lot, bc1, bc2, w1, w2, h1, h2 };
+}
+
+function updateEl(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 600);
+}
+
+async function initCounter() {
+  const countEl = document.getElementById('visitCount');
+  let v = 0;
+
+  try {
+    const res = await fetch(WP_VISITS_URL, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      v = parseInt(data.visits, 10) || 0;
+    }
+  } catch(e) {
+    // If API unreachable, show dashes
+    countEl.textContent = '——';
+    return;
+  }
+
+  // Animate count up
+  const target = v;
+  const steps = Math.min(target, 40);
+  const stepVal = Math.max(1, Math.floor(target / steps));
+  let current = 0;
+  const interval = setInterval(() => {
+    current = Math.min(current + stepVal, target);
+    countEl.textContent = pad(current, 6);
+    if (current >= target) {
+      countEl.textContent = pad(target, 6);
+      clearInterval(interval);
+      countEl.classList.add('flash');
+      setTimeout(() => countEl.classList.remove('flash'), 600);
+    }
+  }, 38);
+
+  // Update derived cells
+  const n = deriveNumbers(v);
+  setTimeout(() => {
+    updateEl('icMaterial', n.material);
+    updateEl('icBaseUnit', n.baseUnit);
+    updateEl('icInput', n.input);
+    updateEl('icSession', n.session);
+    updateEl('refVisit', n.refVisit);
+    updateEl('flLot', `REF 11-${n.bc1} · LOT ${n.lot}`);
+    updateEl('flMeta', `W.${n.w1}/${n.w2} · H.${n.h1}/${n.h2}`);
+    document.getElementById('bcNum').textContent =
+      `001-${n.bc1}   002-${n.bc2}   RAAVH74 PROT.`;
+  }, 400);
+}
+
+// ─────────────────────────────────────────────
+//  TYPEWRITER CODE ANIMATION
+// ─────────────────────────────────────────────
+const SOURCE = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EXPERIMENTAL ARCHIVE — GATE</title>
+  <style>
+    :root{
+      --bg: #0b0b0b;
+      --ink: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.55);
+      --line: rgba(255,255,255,0.16);
+      --serif: "EB Garamond", ui-serif, Georgia, serif;
+      --mono: "Source Code Pro", ui-monospace, monospace;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--mono);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+    }
+    /* Structured access point to an indexed archive.    */
+    /* Rooms, fragments and documents behave as          */
+    /* catalogued material: traceable, versioned,        */
+    /* operational.                                      */
+    .gate {
+      position: relative;
+      z-index: 5;
+      width: min(760px, 94vw);
+    }
+    .header-label {
+      border: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+    }
+    .hl-title {
+      font-family: var(--serif);
+      font-weight: 600;
+      font-size: clamp(28px, 5vw, 44px);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      line-height: 1.0;
+    }
+    .bc-bar {
+      height: 32px;
+      background: repeating-linear-gradient(90deg,
+        rgba(255,255,255,0.85) 0px, rgba(255,255,255,0.85) 2px,
+        transparent 2px, transparent 5px,
+        rgba(255,255,255,0.55) 5px, rgba(255,255,255,0.55) 6px,
+        transparent 6px, transparent 9px
+      );
+    }
+    .desc-band {
+      border: 1px solid var(--line);
+      height: 90px;
+      overflow: hidden;
+    }
+    #codeDisplay {
+      font-size: 9.5px;
+      line-height: 1.6;
+      color: rgba(255,255,255,0.42);
+      white-space: pre;
+    }
+    .tw-cursor {
+      display: inline-block;
+      width: 6px; height: 1em;
+      background: rgba(255,255,255,0.75);
+      vertical-align: text-bottom;
+      animation: blink .72s step-end infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; }
+      50%      { opacity:0; }
+    }
+    .btn {
+      border: 1px solid rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      font-family: var(--mono);
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      padding: 11px 18px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.40);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <main class="gate">
+    <div class="top-bar">
+      <span>Gate / Archive Entry</span>
+      <span class="visit-badge">
+        Visits <span class="visit-count" id="visitCount"></span>
+      </span>
+    </div>
+    <div class="header-label">
+      <div class="hl-priority">
+        <div class="hl-priority-label">Priority</div>
+        <div class="hl-priority-val">A</div>
+      </div>
+      <div class="hl-main">
+        <h1 class="hl-title">Experimental<br>Archive</h1>
+      </div>
+    </div>
+    <div class="barcode-row">
+      <div class="bc-bar"></div>
+    </div>
+    <div class="info-grid">
+      <div class="info-cell">
+        <div class="ic-label">Material</div>
+        <div class="ic-val" id="icMaterial"></div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Base Unit</div>
+        <div class="ic-val" id="icBaseUnit"></div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Input</div>
+        <div class="ic-val" id="icInput"></div>
+      </div>
+      <div class="info-cell">
+        <div class="ic-label">Session</div>
+        <div class="ic-val" id="icSession"></div>
+      </div>
+    </div>
+    <!-- Structured access point to an indexed archive.  -->
+    <!-- Rooms, fragments and documents behave as        -->
+    <!-- catalogued material: traceable, versioned,      -->
+    <!-- operational.                                    -->
+    <div class="desc-band">
+      <div class="desc-marker"><span>Protocol</span></div>
+      <div class="code-stream-wrap">
+        <div id="codeDisplay"></div>
+      </div>
+    </div>
+    <div class="footer-label">
+      <div class="fl-cta">
+        <button class="btn" id="initBtn">Initialize System →</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    const TARGET_URL = "./origin/";
+    document.getElementById("initBtn")
+      .addEventListener("click", () => {
+        try { navigator.vibrate?.(18); } catch(e) {}
+        window.location.href = TARGET_URL;
+      });
+    // visit counter + typewriter initialized on load
+  <\/script>
+</body>
+</html>`;
+
+// Typewriter state
+const display = document.getElementById('codeDisplay');
+const cursor = document.createElement('span');
+cursor.className = 'tw-cursor';
+
+let charIndex = 0;
+let lineBuffer = '';
+const lines = [];        // rendered lines as text nodes
+let currentLineNode = null;
+const WRAP = display;
+const VISIBLE_HEIGHT = 90; // px — height of .desc-band
+
+// Speed: chars per tick, tick interval ms
+// Vary speed slightly for realism
+let tickMs = 18;
+
+function appendChar(ch) {
+  if (!currentLineNode) {
+    currentLineNode = document.createTextNode('');
+    WRAP.appendChild(currentLineNode);
+    WRAP.appendChild(cursor);
+  }
+  if (ch === '\n') {
+    // move cursor after newline: new text node on next line
+    WRAP.removeChild(cursor);
+    currentLineNode = document.createTextNode('');
+    WRAP.appendChild(document.createTextNode('\n'));
+    WRAP.appendChild(currentLineNode);
+    WRAP.appendChild(cursor);
+    // scroll to keep cursor visible
+    const wrapEl = display.parentElement;
+    const cursorTop = cursor.offsetTop;
+    const visTop = wrapEl.scrollTop;
+    if (cursorTop > visTop + VISIBLE_HEIGHT - 24) {
+      wrapEl.scrollTop = cursorTop - VISIBLE_HEIGHT + 32;
+    }
+  } else {
+    currentLineNode.textContent += ch;
+  }
+}
+
+function typeNextChars() {
+  if (charIndex >= SOURCE.length) {
+    // restart: fade out, reset
+    setTimeout(() => {
+      display.innerHTML = '';
+      cursor.remove();
+      currentLineNode = null;
+      charIndex = 0;
+      // re-add cursor
+      WRAP.appendChild(cursor);
+      scheduleNext();
+    }, 2200);
+    return;
+  }
+
+  // type a burst of chars for speed variation
+  const burst = Math.random() < 0.12 ? 1 : (Math.random() < 0.5 ? 2 : 3);
+  for (let i = 0; i < burst && charIndex < SOURCE.length; i++) {
+    appendChar(SOURCE[charIndex]);
+    charIndex++;
+  }
+  scheduleNext();
+}
+
+function scheduleNext() {
+  // vary speed: pause longer at newlines
+  const ch = SOURCE[charIndex] || '';
+  const delay = ch === '\n' ? tickMs * 3 :
+                (Math.random() < 0.04 ? tickMs * 12 : // rare pause
+                tickMs + Math.random() * 8);
+  setTimeout(typeNextChars, delay);
+}
+
+// Init
+display.appendChild(cursor);
+scheduleNext();
+
+// ─────────────────────────────────────────────
+//  BUTTON — request gyroscope, then redirect
+// ─────────────────────────────────────────────
+const TARGET_URL = "https://inside.jofrearchive.com/origin/";
+
+document.getElementById("initBtn").addEventListener("click", async () => {
+  try { navigator.vibrate?.(18); } catch(e) {}
+
+  // iOS 13+ requires explicit permission for DeviceOrientationEvent
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const permission = await DeviceOrientationEvent.requestPermission();
+      // granted or denied — proceed to redirect either way
+    } catch(e) {
+      // user dismissed or error — proceed anyway
+    }
+  }
+  // Android & desktop don't need permission, go straight through
+  window.location.href = TARGET_URL;
+});
+
+// Start visit counter
+initCounter();
+</script>
+</body>
+</html>
