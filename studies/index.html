@@ -93,9 +93,10 @@ button{font:inherit;color:inherit;background:transparent;border:0;padding:0;}
 .card{position:absolute;left:50%;top:0;width:100%;height:660px;transform-style:preserve-3d;border:1px solid rgba(232,226,214,0.18);background:rgba(10,10,10,0.96);box-shadow:0 30px 90px rgba(0,0,0,0.45);border-radius:2px;overflow:hidden;will-change:transform,opacity,filter;cursor:pointer;user-select:none;}
 .cardTab{position:absolute;left:14px;top:-1px;height:30px;max-width:calc(100% - 28px);display:flex;align-items:center;padding:0 12px;border:1px solid rgba(232,226,214,0.16);border-bottom:0;background:rgba(0,0,0,0.60);font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(232,226,214,0.86);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none;}
 .cardNotch{position:absolute;left:14px;top:23px;width:58px;height:10px;border-left:1px solid rgba(232,226,214,0.14);border-right:1px solid rgba(232,226,214,0.14);border-bottom:1px solid rgba(232,226,214,0.10);background:rgba(0,0,0,0.12);opacity:.75;pointer-events:none;}
-.cardHero{height:280px;border-bottom:1px solid rgba(232,226,214,0.12);background:rgba(0,0,0,0.22);position:relative;}
-.cardCanvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;background:transparent;}
-.cardHeroBar{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:linear-gradient(180deg,rgba(0,0,0,0.05),rgba(0,0,0,0.70));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);}
+.cardHero{height:280px;border-bottom:1px solid rgba(232,226,214,0.12);position:relative;overflow:hidden;}
+.cardCanvas{position:absolute;inset:0;width:100% !important;height:100% !important;display:block;background:transparent;z-index:2;}
+.cardHeroBg{position:absolute;inset:0;z-index:1;}
+.cardHeroBar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);}
 .cardBody{padding:12px 14px 14px 14px;}
 .cardTitle{margin:0;font-weight:600;font-size:20px;line-height:1.1;letter-spacing:.01em;}
 .cardMeta{margin-top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.55);display:flex;justify-content:space-between;gap:var(--s16);flex-wrap:wrap;}
@@ -226,7 +227,7 @@ function renderCategories(){
   categoriesFrom(ALL).forEach(cat=>addRow(cat,cat.toLowerCase()));
 }
 
-function renderProjectList(){const list=getFiltered();projList.innerHTML="";list.forEach((p,i)=>{const el=document.createElement("div");el.className="navItem"+(i===wrapIndex(activeIndex,list.length)?" active":"");    el.textContent = (p.ref || p.id || '').replace(/^\/studies\//i,'').replace(/\/$/,'');el.addEventListener("click",()=>{activeIndex=i;slotStates=[];renderCarousel();});projList.appendChild(el);});}
+function renderProjectList(){const list=getFiltered();projList.innerHTML="";list.forEach((p,i)=>{const el=document.createElement("div");el.className="navItem"+(i===wrapIndex(activeIndex,list.length)?" active":"");const rawId=(p.id||'');const match=rawId.match(/S-\d+/i);el.textContent=match?match[0].toUpperCase():rawId;el.addEventListener("click",()=>{activeIndex=i;slotStates=[];renderCarousel();});projList.appendChild(el);});}
 
 function renderDetail(p){
   if(!p){detail.innerHTML="<h3 class='detailTitle'>No file loaded</h3>";return;}
@@ -289,7 +290,8 @@ const _elRemove=Element.prototype.remove;Element.prototype.remove=function(){if(
 let wasDragging=false;
 function cardEl(p){
   const el=document.createElement("div");el.className="card";
-  el.innerHTML=`<div class="cardTab">${p.id} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
+  const hueForCard=parseInt((p.id||'S-000').replace(/[^0-9]/g,'').slice(0,3)||'0',10)*47%360;
+  el.innerHTML=`<div class="cardTab">${(p.id||'').replace(/^\/studies\//i,'').replace(/\/$/,'').toUpperCase()} — ${p.title}</div><div class="cardNotch"></div><div class="cardHero"><div class="cardHeroBg" style="background:radial-gradient(ellipse at 40% 60%,hsl(${hueForCard},22%,14%) 0%,hsl(${(hueForCard+30)%360},14%,9%) 55%,hsl(${(hueForCard+60)%360},10%,6%) 100%);"></div><canvas class="cardCanvas" data-id="${p.id}"></canvas><div class="cardHeroBar" style="position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 12px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.65));display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgba(232,226,214,0.62);"><span>${p.category}</span><span>${p.year}</span></div></div><div class="cardBody"><h2 class="cardTitle">${p.title}</h2><div class="cardMeta"><span>${p.type||""}</span><span>${p.status||""}</span><span>${p.id}</span></div><p class="cardDesc">${p.abstract||""}</p><div class="cardTags">${(p.tags||[]).map(t=>`<span class="cardTag">${t}</span>`).join("")}</div></div>`;
   el.addEventListener("click",()=>{if(!wasDragging)window.location.href=p.url;});
   requestAnimationFrame(()=>{const canvas=el.querySelector('.cardCanvas');if(canvas)mount3DViewer(canvas,p);});
   return el;
