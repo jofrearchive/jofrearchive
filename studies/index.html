@@ -10,6 +10,7 @@ layout: none
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 <script>
 // Wait for GLTFLoader to be ready
 window._gltfReady = typeof THREE !== 'undefined' && typeof THREE.GLTFLoader !== 'undefined';
@@ -258,7 +259,7 @@ function mount3DViewer(canvas,p){
   const fill=new THREE.DirectionalLight(0x8090b0,0.5);fill.position.set(-4,-2,-3);scene.add(fill);
   const rim=new THREE.DirectionalLight(0xe8e2d6,0.4);rim.position.set(0,-4,5);scene.add(rim);
   const camera=new THREE.PerspectiveCamera(38,1,0.1,100);
-  camera.position.set(0,0,3.6);
+  camera.position.set(0,0,2.8);
   const state={renderer,scene,camera,object:null,destroyed:false,raf:null,loopStarted:false};
   viewers.set(canvas,state);
   function syncSize(){const parent=canvas.parentElement;const w=canvas.clientWidth||(parent&&parent.clientWidth)||820;const h=canvas.clientHeight||(parent&&parent.clientHeight)||280;if(!w||!h)return;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
@@ -270,10 +271,15 @@ function mount3DViewer(canvas,p){
     function applyModel(sourceObj){
       const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
       const obj=sourceObj.clone(true);
-      obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
+      obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25,transparent:false,opacity:1.0});});
       const box=new THREE.Box3().setFromObject(obj);
-      obj.position.sub(box.getCenter(new THREE.Vector3()));
-      obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
+      const center=box.getCenter(new THREE.Vector3());
+      const size=box.getSize(new THREE.Vector3());
+      const maxDim=Math.max(size.x,size.y,size.z);
+      // Normalize to fit in a ~1.8 unit box regardless of original scale
+      const normalizedScale = 1.8 / maxDim;
+      obj.position.sub(center.multiplyScalar(normalizedScale));
+      obj.scale.setScalar(normalizedScale);
       scene.add(obj);state.object=obj;startLoop();
     }
     if(modelCache.has(p.model)){
@@ -287,6 +293,11 @@ function mount3DViewer(canvas,p){
         }
         try{
           const loader=new THREE.GLTFLoader();
+          if(typeof THREE.DRACOLoader!=='undefined'){
+            const draco=new THREE.DRACOLoader();
+            draco.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/');
+            loader.setDRACOLoader(draco);
+          }
           loader.load(p.model,(gltf)=>{
             modelCache.set(p.model, gltf.scene);
             applyModel(gltf.scene);
