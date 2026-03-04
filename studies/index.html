@@ -247,16 +247,18 @@ function mount3DViewer(canvas,p){
   renderer.setClearColor(0x000000,0);
   renderer.outputEncoding=THREE.sRGBEncoding;
   const scene=new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xe8e2d6,0.6));
-  const key=new THREE.DirectionalLight(0xffffff,1.1);key.position.set(3,5,4);scene.add(key);
-  const fill=new THREE.DirectionalLight(0x8090b0,0.4);fill.position.set(-4,-2,-3);scene.add(fill);
-  const rim=new THREE.DirectionalLight(0xe8e2d6,0.3);rim.position.set(0,-4,5);scene.add(rim);
+  scene.add(new THREE.AmbientLight(0xe8e2d6,0.9));
+  const key=new THREE.DirectionalLight(0xffffff,1.4);key.position.set(3,5,4);scene.add(key);
+  const fill=new THREE.DirectionalLight(0x8090b0,0.5);fill.position.set(-4,-2,-3);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xe8e2d6,0.4);rim.position.set(0,-4,5);scene.add(rim);
   const camera=new THREE.PerspectiveCamera(38,1,0.1,100);
   camera.position.set(0,0,3.6);
-  const state={renderer,scene,camera,object:null,destroyed:false,raf:null};
+  const state={renderer,scene,camera,object:null,destroyed:false,raf:null,loopStarted:false};
   viewers.set(canvas,state);
-  function syncSize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
-  function startLoop(){let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
+  function syncSize(){const parent=canvas.parentElement;const w=canvas.clientWidth||(parent&&parent.clientWidth)||820;const h=canvas.clientHeight||(parent&&parent.clientHeight)||280;if(!w||!h)return;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
+  syncSize();
+  if(typeof ResizeObserver!=='undefined'){const ro=new ResizeObserver(()=>syncSize());ro.observe(canvas);state._ro=ro;}
+  function startLoop(){if(state.loopStarted)return;state.loopStarted=true;let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
   function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
   if(p.model){
     console.log('mounting 3D for', p.id, 'model:', p.model);
@@ -284,7 +286,7 @@ function mount3DViewer(canvas,p){
   }else{loadFallback();}
 }
 
-function destroy3DViewer(canvas){const s=viewers.get(canvas);if(!s)return;s.destroyed=true;if(s.raf)cancelAnimationFrame(s.raf);s.renderer.dispose();s.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});viewers.delete(canvas);}
+function destroy3DViewer(canvas){const s=viewers.get(canvas);if(!s)return;s.destroyed=true;if(s._ro)s._ro.disconnect();if(s.raf)cancelAnimationFrame(s.raf);s.renderer.dispose();s.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose());}});viewers.delete(canvas);}
 const _elRemove=Element.prototype.remove;Element.prototype.remove=function(){if(this.classList&&this.classList.contains('card')){const cv=this.querySelector('.cardCanvas');if(cv)destroy3DViewer(cv);}_elRemove.call(this);};
 
 let wasDragging=false;
