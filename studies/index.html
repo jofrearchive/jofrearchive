@@ -237,11 +237,17 @@ function renderDetail(p){
 }
 
 const viewers=new Map();
+const modelCache=new Map(); // url -> THREE.Group (cloned per viewer)
 const FALLBACK_GEOS=[()=>new THREE.IcosahedronGeometry(0.9,1),()=>new THREE.TorusKnotGeometry(0.6,0.22,120,16),()=>new THREE.OctahedronGeometry(1.0,0),()=>new THREE.TorusGeometry(0.75,0.28,20,60),()=>new THREE.DodecahedronGeometry(0.9,0),()=>new THREE.ConeGeometry(0.8,1.6,7,1),()=>new THREE.CylinderGeometry(0.5,0.9,1.4,8,1)];
 function buildFallbackMesh(p){const idx=parseInt((p.id||'S-000').split('-')[1]||'0',10)%FALLBACK_GEOS.length;const geo=FALLBACK_GEOS[idx]();const hue=(idx*41)%360;const group=new THREE.Group();group.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.55,metalness:0.3})));group.add(new THREE.Mesh(geo.clone(),new THREE.MeshBasicMaterial({color:new THREE.Color(`hsl(${hue},22%,80%)`),wireframe:true,transparent:true,opacity:0.16})));return group;}
 
 function mount3DViewer(canvas,p){
   if(!canvas||viewers.has(canvas))return;
+  // Enforce max 4 simultaneous WebGL contexts to avoid browser limit
+  if(viewers.size>=4){
+    const oldest=viewers.keys().next().value;
+    if(oldest)destroy3DViewer(oldest);
+  }
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'low-power'});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
   renderer.setClearColor(0x000000,0);
@@ -258,31 +264,37 @@ function mount3DViewer(canvas,p){
   function syncSize(){const parent=canvas.parentElement;const w=canvas.clientWidth||(parent&&parent.clientWidth)||820;const h=canvas.clientHeight||(parent&&parent.clientHeight)||280;if(!w||!h)return;if(canvas.width!==w||canvas.height!==h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}}
   syncSize();
   if(typeof ResizeObserver!=='undefined'){const ro=new ResizeObserver(()=>syncSize());ro.observe(canvas);state._ro=ro;}
-  function startLoop(){if(state.loopStarted)return;state.loopStarted=true;let t=0;let dbgFrames=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);if(dbgFrames<3){const gl=renderer.getContext();console.log('[3D DBG]',p.id,'frame',dbgFrames,'canvas size:',canvas.width,'x',canvas.height,'clientSize:',canvas.clientWidth,'x',canvas.clientHeight,'object:',!!state.object,'scene children:',scene.children.length,'gl lost:',gl.isContextLost(),'canvas zIndex:',canvas.style.zIndex,'canvas computed z:',window.getComputedStyle(canvas).zIndex,'parent:',canvas.parentElement&&canvas.parentElement.className);dbgFrames++;}})();}
+  function startLoop(){if(state.loopStarted)return;state.loopStarted=true;let t=0;(function loop(){if(state.destroyed)return;state.raf=requestAnimationFrame(loop);syncSize();t+=0.008;if(state.object){state.object.rotation.y=t*0.9;state.object.rotation.x=Math.sin(t*0.4)*0.22;}renderer.render(scene,camera);})();}
   function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
   if(p.model){
-    console.log('mounting 3D for', p.id, 'model:', p.model);
-    function tryLoad(attempts){
-      if(typeof THREE.GLTFLoader==='undefined'){
-        if(attempts>20)return loadFallback();
-        setTimeout(()=>tryLoad(attempts+1),100);
-        return;
-      }
-      try{
-        const loader=new THREE.GLTFLoader();
-        loader.load(p.model,(gltf)=>{
-          console.log('GLB loaded OK for', p.id);
-          const obj=gltf.scene;
-          const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
-          obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
-          const box=new THREE.Box3().setFromObject(obj);
-          obj.position.sub(box.getCenter(new THREE.Vector3()));
-          obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
-          scene.add(obj);state.object=obj;startLoop();
-        },null,(err)=>{console.warn('GLB load failed:',err);loadFallback();});
-      }catch(e){console.warn('GLTFLoader error:',e);loadFallback();}
+    function applyModel(sourceObj){
+      const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
+      const obj=sourceObj.clone(true);
+      obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.5,metalness:0.25});});
+      const box=new THREE.Box3().setFromObject(obj);
+      obj.position.sub(box.getCenter(new THREE.Vector3()));
+      obj.scale.setScalar(1.8/box.getSize(new THREE.Vector3()).length());
+      scene.add(obj);state.object=obj;startLoop();
     }
-    tryLoad(0);
+    if(modelCache.has(p.model)){
+      applyModel(modelCache.get(p.model));
+    } else {
+      function tryLoad(attempts){
+        if(typeof THREE.GLTFLoader==='undefined'){
+          if(attempts>20)return loadFallback();
+          setTimeout(()=>tryLoad(attempts+1),100);
+          return;
+        }
+        try{
+          const loader=new THREE.GLTFLoader();
+          loader.load(p.model,(gltf)=>{
+            modelCache.set(p.model, gltf.scene);
+            applyModel(gltf.scene);
+          },null,(err)=>{console.warn('GLB load failed:',err);loadFallback();});
+        }catch(e){console.warn('GLTFLoader error:',e);loadFallback();}
+      }
+      tryLoad(0);
+    }
   }else{loadFallback();}
 }
 
