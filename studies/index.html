@@ -226,7 +226,7 @@ function renderCategories(){
   categoriesFrom(ALL).forEach(cat=>addRow(cat,cat.toLowerCase()));
 }
 
-function renderProjectList(){const list=getFiltered();projList.innerHTML="";list.forEach((p,i)=>{const el=document.createElement("div");el.className="navItem"+(i===wrapIndex(activeIndex,list.length)?" active":"");    el.textContent=p.id.replace(/^\/studies\//i,'');el.addEventListener("click",()=>{activeIndex=i;slotStates=[];renderCarousel();});projList.appendChild(el);});}
+function renderProjectList(){const list=getFiltered();projList.innerHTML="";list.forEach((p,i)=>{const el=document.createElement("div");el.className="navItem"+(i===wrapIndex(activeIndex,list.length)?" active":"");    el.textContent = (p.ref || p.id || '').replace(/^\/studies\//i,'').replace(/\/$/,'');el.addEventListener("click",()=>{activeIndex=i;slotStates=[];renderCarousel();});projList.appendChild(el);});}
 
 function renderDetail(p){
   if(!p){detail.innerHTML="<h3 class='detailTitle'>No file loaded</h3>";return;}
