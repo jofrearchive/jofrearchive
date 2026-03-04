@@ -146,7 +146,7 @@ layout: none
       padding:8px 14px;
       font-family:var(--mono);
       font-size:9.5px; line-height:1.6;
-      color:rgba(180,165,140,0.45);
+      color:#c4c4c0;
       white-space:pre;
       position:relative;
     }
@@ -194,12 +194,17 @@ layout: none
     .fl-meta-top { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); text-align:right; line-height:1.85; }
     .fl-meta-lot { font-family:var(--serif); font-size:11px; font-weight:600; letter-spacing:.10em; color:#696968; }
 
-    @media (max-width:560px){
+    @media (max-width:600px){
+      .header-label { grid-template-columns: 48px 1fr; }
+      .hl-right { display:none; }
+      .hl-title { font-size: clamp(24px, 8vw, 38px); }
+      .barcode-row { grid-template-columns: 1fr 70px; }
+      .bc-side-val { font-size:16px; }
       .info-grid { grid-template-columns:1fr 1fr; }
-      .info-cell:nth-child(even){ border-right:none; }
-      .info-cell:nth-child(3),.info-cell:nth-child(4){ border-top:1px solid var(--line2); }
       .fl-meta { display:none; }
-      .footer-label { grid-template-columns:90px 1fr; }
+      .footer-label { grid-template-columns: 80px 1fr; }
+      .fl-scan { min-width:unset; }
+      .top-bar { flex-direction:column; align-items:flex-start; gap:3px; }
     }
     @media (prefers-reduced-motion:reduce){ .tw-cursor { animation:none; } }
   </style>
@@ -331,10 +336,11 @@ async function initCounter() {
       v = parseInt(data.visits, 10) || 0;
     }
   } catch(e) {
-    // If API unreachable, show dashes
-    countEl.textContent = '——';
+    countEl.textContent = '———';
     return;
   }
+
+  if (!v || isNaN(v)) { countEl.textContent = '———'; return; }
 
   // Animate count up
   const target = v;
