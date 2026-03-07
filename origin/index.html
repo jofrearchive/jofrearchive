@@ -1,12 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>JOFRE ARCHIVE — Cloister Point Cloud</title>
-  <script src="https://cdn.babylonjs.com/babylon.js"></script>
-  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JOFRE OLIVERAS — Procedural Cave</title>
   <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&family=Source+Code+Pro:wght@300;400&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -14,969 +11,605 @@
       --ivory: #e8e2d6;
       --led-green: #4ade80;
     }
-    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background: var(--bg-deep); }
-    #renderCanvas { width:100%; height:100%; touch-action:none; filter: contrast(110%) brightness(90%); }
-
-    /* Gate */
-h1 {
-      font-family:'EB Garamond', serif;
-      font-weight: normal;
-      letter-spacing: .2em;
-      opacity:.9;
-      margin: 0 0 40px 0;
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
     }
 
-    
-/* ===== PANEL ===== */
-#panel{
-  position:fixed;
-  left:50%;
-  top:50%;
-  transform: translate(-50%, -50%);
-  width: min(360px, 92vw);
-  background: rgba(10,10,10,.65);
-  border:1px solid rgba(255,255,255,.18);
-  padding: 32px !important; /* Padding restaurado a 32px */
-  backdrop-filter: blur(8px);
-  z-index:8;
-  opacity:0;
-  transition: opacity 1.0s ease;
-  display:none;
-}
-#panel.show{ opacity:1; }
+    /* ===== PANEL ===== */
+    #panel {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(360px, 92vw);
+      background: rgba(10,10,10,.65);
+      border: 1px solid rgba(255,255,255,.18);
+      padding: 32px;
+      backdrop-filter: blur(8px);
+      z-index: 8;
+      opacity: 0;
+      transition: opacity 1.0s ease;
+    }
+    #panel.show { opacity: 1; }
 
-#panel #title{
-  font-family:'EB Garamond', serif;
-  font-size: 28px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--ivory);
-  margin: 0 0 10px 0;
-}
-#panel #submeta{
-  font-family:'Source Code Pro', monospace;
-  font-size: 10px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  opacity:.65;
-  line-height: 1.6;
-  margin-bottom: 12px;
-  color: var(--ivory);
-}
-#panel .tabs{
-  display:flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 8px;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-#panel .tabLink{
-  flex: 1 1 0;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.16);
-  color: var(--ivory);
-  font-family: 'Source Code Pro', monospace;
-  font-size: 11px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  padding: 10px 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  white-space: nowrap;
-}
-#panel .tabLink:hover, #panel .tabLink.active{
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.36);
-  opacity: 1;
-}
+    #panel #title {
+      font-family: 'EB Garamond', serif;
+      font-size: 28px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--ivory);
+      margin: 0 0 10px 0;
+    }
+    #panel #submeta {
+      font-family: 'Source Code Pro', monospace;
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      opacity: .65;
+      line-height: 1.6;
+      margin-bottom: 12px;
+      color: var(--ivory);
+    }
+    #panel .tabs {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 8px;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    #panel .tabLink {
+      flex: 1 1 0;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: var(--ivory);
+      font-family: 'Source Code Pro', monospace;
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 10px 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      white-space: nowrap;
+    }
+    #panel .tabLink:hover, #panel .tabLink.active {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.36);
+      opacity: 1;
+    }
 
-#dynamicDescription{ display:none; }
+    /* VR Button */
+    #motionBtn {
+      position: fixed;
+      left: 50%;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      z-index: 12;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.45);
+      color: rgba(232,226,214,.55);
+      font-family: 'Source Code Pro', monospace;
+      font-size: 12px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: border-color .25s ease, color .25s ease, background .25s ease;
+    }
+    #motionBtn:hover {
+      border-color: rgba(255,255,255,.30);
+      background: rgba(0,0,0,.60);
+    }
+    #motionDot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #222;
+      box-shadow: none;
+      transition: all .25s ease;
+    }
+    #motionBtn.active #motionDot {
+      background: rgba(74,222,128,.95);
+      box-shadow: 0 0 12px rgba(74,222,128,.85);
+    }
+    #motionBtn.active {
+      color: var(--ivory);
+    }
 
-/* gate vs system */
-body.bab3d-ready #panel{ display:none; }
-body.bab3d-on #panel{ display:block; }
-
-/* ===== LOADER ===== */
-#loader {
-  position:fixed; inset:0;
-  background: var(--bg-deep);
-  z-index:9999;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right))
-           max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
-}
-#loader[aria-hidden="true"]{ display:none; }
-.loaderBox {
-  width:min(760px, 92vw);
-  border:1px solid rgba(255,255,255,.16);
-  background: rgba(10,10,10,.60);
-  padding: clamp(18px, 4vw, 34px);
-}
-.loaderTitle {
-  font-family:'EB Garamond', serif;
-  font-size: clamp(16px, 2.6vw, 22px);
-  letter-spacing: .24em;
-  text-transform: uppercase;
-  opacity:.92;
-  margin-bottom: 12px;
-  color: var(--ivory);
-}
-.typeLine {
-  font-family: 'Source Code Pro', monospace;
-  font-size: clamp(12px, 2vw, 14px);
-  letter-spacing: .08em;
-  opacity:.78;
-  line-height:1.65;
-  white-space: pre-wrap;
-  min-height: 5.2em;
-  color: var(--ivory);
-}
-.barWrap {
-  margin-top: 18px;
-  height: 10px;
-  border:1px solid rgba(255,255,255,.16);
-  background: rgba(255,255,255,.03);
-}
-.bar {
-  height:100%;
-  width:0%;
-  background: rgba(232,226,214,.58);
-  transition: width .08s linear;
-}
-.percentRow {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  margin-top: 12px;
-  font-family: 'Source Code Pro', monospace;
-  font-size: 12px;
-  letter-spacing: .14em;
-  opacity:.65;
-  text-transform: uppercase;
-  color: var(--ivory);
-}
-.fadeOut {
-  opacity:0;
-  pointer-events:none;
-  transition: opacity 1.1s ease;
-}
-
-/* Motion permission mini button (iOS) */
-#motionBtn{
-  position: fixed;
-  left: 50%;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 12;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.45);
-  color: rgba(232,226,214,.55); /* OFF = grey */
-  font-family:'Source Code Pro', monospace;
-  font-size: 12px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: border-color .25s ease, color .25s ease, background .25s ease;
-}
-#motionBtn:hover{
-  border-color: rgba(255,255,255,.30);
-  background: rgba(0,0,0,.60);
-}
-
-#motionDot{
-  width:8px; height:8px; border-radius:50%;
-  background:#222;           /* OFF = grey dot */
-  box-shadow:none;
-  transition:all .25s ease;
-}
-
-#motionBtn.active #motionDot{
-  background: rgba(74,222,128,.95);
-  box-shadow: 0 0 12px rgba(74,222,128,.85);
-}
-
-
-/* Mobile adjustments */
-@media (max-width: 520px){
-  #panel{
-    padding: 14px 14px 8px !important;
-  }
-}
-
-
-</style>
+    @media (max-width: 520px){
+      #panel { padding: 14px 14px 8px !important; }
+    }
+  </style>
 </head>
-<body class="bab3d-ready">
+<body>
 
-<script>
-</script>
+  <canvas id="gl"></canvas>
 
-      <span>Initialize System</span>
-    </button>
-  </div>
 
-  <div id="loader" aria-hidden="true">
-    <div class="loaderBox">
-      <div class="loaderTitle">INITIALIZING SYSTEM</div>
-      <div id="typeLine" class="typeLine">Boot sequence…</div>
-      <div class="barWrap"><div id="bar" class="bar"></div></div>
-      <div class="percentRow">
-        <div id="pct">0%</div>
-        <div id="status">loading geometry</div>
-      </div>
-    </div>
-  </div>
-
-  <canvas id="renderCanvas"></canvas>
-
-  <button id="motionBtn" type="button" aria-label="Toggle VR">
-  <span id="motionDot" aria-hidden="true"></span>
-  <span class="vrLabel">VR OFF</span>
-</button>
-
+  <!-- JOFRE OLIVERAS PANEL -->
   <div id="panel" aria-hidden="false">
     <div id="title">JOFRE OLIVERAS</div>
     <div id="submeta"></div>
     <div class="tabs" id="tabs"></div>
-    <div id="dynamicDescription"></div>
   </div>
 
-<script>
-const PANEL_CONTENT = {
-  title: "JOFRE OLIVERAS",
-  submeta: [
-    "ARTIST · EXPLORER · LANDSCAPER",
-    "BASED BETWEEN DISCIPLINES",
-    "EXPERIMENTAL ARCHIVE"
-  ],
-  tabs: [
-    { key: "STUDIES", ctaHref: "https://inside.jofrearchive.com/studies/" },
-    { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" },
-    { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
-  ]
-};
+  <!-- VR BUTTON (mobile only) -->
+  <button id="motionBtn" type="button" aria-label="Toggle VR">
+    <span id="motionDot" aria-hidden="true"></span>
+    <span class="vrLabel">VR OFF</span>
+  </button>
 
-(function initPanel(){
-  const panel = document.getElementById("panel");
-  const titleEl = document.getElementById("title");
-  const submetaEl = document.getElementById("submeta");
-  const tabsEl = document.getElementById("tabs");
+  <script>
+  /* ============================================================
+     PANEL CONTENT
+  ============================================================ */
+  const PANEL_CONTENT = {
+    title: "JOFRE OLIVERAS",
+    submeta: [
+      "ARTIST · EXPLORER · LANDSCAPER",
+      "BASED BETWEEN DISCIPLINES",
+      "EXPERIMENTAL ARCHIVE"
+    ],
+    tabs: [
+      { key: "STUDIES",   ctaHref: "https://inside.jofrearchive.com/studies/" },
+      { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" },
+      { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
+    ]
+  };
 
-  function escapeHtml(s){
-    return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  (function initPanel(){
+    const panel     = document.getElementById("panel");
+    const titleEl   = document.getElementById("title");
+    const submetaEl = document.getElementById("submeta");
+    const tabsEl    = document.getElementById("tabs");
 
-  titleEl.textContent = PANEL_CONTENT.title;
-  submetaEl.innerHTML = PANEL_CONTENT.submeta.map(escapeHtml).join("<br>");
+    function escapeHtml(s){
+      return String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
 
-  tabsEl.innerHTML = "";
-  PANEL_CONTENT.tabs.forEach((t)=>{
-    const b = document.createElement("button");
-    b.type = "button";
-    b.className = "tabLink";
-    b.textContent = t.key;
-    b.addEventListener("click", ()=>{
-      if (t.ctaHref) window.location.href = t.ctaHref;
+    titleEl.textContent = PANEL_CONTENT.title;
+    submetaEl.innerHTML = PANEL_CONTENT.submeta.map(escapeHtml).join("<br>");
+
+    tabsEl.innerHTML = "";
+    PANEL_CONTENT.tabs.forEach((t) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "tabLink";
+      b.textContent = t.key;
+      b.addEventListener("click", () => {
+        if (t.ctaHref) window.location.href = t.ctaHref;
+      });
+      tabsEl.appendChild(b);
     });
-    tabsEl.appendChild(b);
-  });
 
-  const obs = new MutationObserver(() => {
-    if (document.body.classList.contains("bab3d-on")) {
-      panel.classList.add("show");
-      obs.disconnect();
+    // Show panel after a brief delay (gives cave time to start rendering)
+    setTimeout(() => panel.classList.add("show"), 800);
+  })();
+
+
+  /* ============================================================
+     WEBGL CAVE
+  ============================================================ */
+  const canvas = document.getElementById('gl');
+  const gl = canvas.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: false });
+
+  if (!gl) {
+    document.body.innerHTML = '<div style="color:white;font:16px monospace;padding:20px">WebGL not supported.</div>';
+    throw new Error('WebGL not supported');
+  }
+
+  const vertexSource = `
+    attribute vec2 aPosition;
+    varying vec2 vUv;
+    void main() {
+      vUv = aPosition * 0.5 + 0.5;
+      gl_Position = vec4(aPosition, 0.0, 1.0);
+    }
+  `;
+
+  const fragmentSource = `
+    precision highp float;
+
+    uniform vec2 iResolution;
+    uniform float iTime;
+    uniform sampler2D iChannel0;
+    uniform sampler2D iChannel1;
+    varying vec2 vUv;
+
+    float getGrey(vec3 p){ return p.x*0.299 + p.y*0.587 + p.z*0.114; }
+
+    float noise(in vec3 p){
+        vec3 i = floor(p);
+        p -= i;
+        p *= p*(3.0 - 2.0*p);
+        p.xy = texture2D(iChannel1, (p.xy + i.xy + vec2(37.0, 17.0)*i.z + 0.5)/256.0).yx;
+        return mix(p.x, p.y, p.z);
+    }
+
+    vec4 texcube(sampler2D sam, in vec3 p, in vec3 n){
+        p *= 1.5;
+        vec4 x = texture2D(sam, fract(p.yz));
+        vec4 y = texture2D(sam, fract(p.zx));
+        vec4 z = texture2D(sam, fract(p.xy));
+        return x*abs(n.x) + y*abs(n.y) + z*abs(n.z);
+    }
+
+    vec3 path(float time) {
+        return vec3(cos(0.51 * time) + sin(0.14 * time), 0.8 * sin(0.27 * time), time);
+    }
+
+    const mat3 m = mat3(
+         0.00, -0.80, -0.60,
+        -0.80,  0.36, -0.48,
+        -0.60, -0.48,  0.64
+    );
+
+    float mapTerrain(vec3 position) {
+        float initialCaveSize = 0.00;
+        vec3 xyDifference = position - path(position.z);
+        vec3 stretchFactor = 1.2 * vec3(sin(position.z * 0.32), cos(position.z * 0.77), 1.0);
+        float d = initialCaveSize - length(xyDifference * stretchFactor);
+        vec3 stalactites = vec3(6.0, 0.15, 6.0);
+        d += 0.7500 * noise(stalactites * position);
+        float strength = 0.5;
+        for (int i=0; i<5; i++){
+            position = m*position*2.04;
+            d += strength * noise(position);
+            strength *= 0.5;
+        }
+        return d;
+    }
+
+    void camera(in vec3 origin, in vec3 target, out vec3 forward, out vec3 right, out vec3 up){
+        forward = normalize(target-origin);
+        right = normalize(vec3(forward.z, 0.0, -forward.x));
+        up = normalize(cross(forward, right));
+    }
+
+    float rayMarch(in vec3 ro, in vec3 rd){
+        float maxd = 20.0;
+        float t = 0.1;
+        for(int i = 0; i < 160; i++) {
+            float h = mapTerrain(ro + rd * t);
+            if(h < (0.001 * t) || t > maxd) break;
+            t += (step(h, 1.0) * 0.05 + 0.1) * h;
+        }
+        if(t > maxd) t = -1.0;
+        return t;
+    }
+
+    vec3 calcNormal(in vec3 pos, in float t){
+        vec3 eps = vec3(max(0.02, 0.001*t), 0.0, 0.0);
+        return normalize(vec3(
+          mapTerrain(pos+eps.xyy) - mapTerrain(pos-eps.xyy),
+          mapTerrain(pos+eps.yxy) - mapTerrain(pos-eps.yxy),
+          mapTerrain(pos+eps.yyx) - mapTerrain(pos-eps.yyx)
+        ));
+    }
+
+    vec3 doBumpMap(sampler2D tex, in vec3 p, in vec3 nor, float bumpfactor){
+        const float eps = 0.001;
+        float ref = getGrey(texcube(tex, p, nor).xyz);
+        vec3 grad = vec3(
+            getGrey(texcube(tex, vec3(p.x - eps, p.y, p.z), nor).xyz) - ref,
+            getGrey(texcube(tex, vec3(p.x, p.y - eps, p.z), nor).xyz) - ref,
+            getGrey(texcube(tex, vec3(p.x, p.y, p.z - eps), nor).xyz) - ref
+        ) / eps;
+        grad -= nor*dot(nor, grad);
+        return normalize(nor + grad*bumpfactor);
+    }
+
+    float softshadow(in vec3 rayOrigin, in vec3 rayDirection, float mint, float maxt, float k) {
+        float res = 1.0;
+        float t = mint;
+        for(int i = 0; i < 100; i++) {
+            float h = mapTerrain(rayOrigin + rayDirection*t);
+            res = min(res, k*max(h,0.0)/t);
+            t += clamp(h, 0.01, 0.4);
+            if(res < 0.001 || t >= maxt) break;
+        }
+        return clamp(res, 0.0, 1.0);
+    }
+
+    float lightValue(vec3 rayOrigin, vec3 position, vec3 normal, vec3 lightPosition){
+        vec3 lightDir = lightPosition - position;
+        float diffuseFactor = clamp(dot(normalize(lightDir), normal), 0.0, 1.0);
+        float shadow = softshadow(position, normalize(lightDir), 0.01, length(lightDir), 2.0);
+        return shadow * diffuseFactor / pow(length(lightDir), 1.6) + 0.04;
+    }
+
+    void main() {
+        vec2 fragCoord = vUv * iResolution;
+        vec2 q = fragCoord.xy / iResolution.xy;
+        vec2 p = -1.0 + 2.0*q;
+        p.x *= iResolution.x / iResolution.y;
+
+        float time = 3.8 + 0.6 * iTime;
+        vec3 rayOrigin = path(time);
+        vec3 target = path(time+1.6)+vec3((sin(time)+cos(time/2.0))/2.0,0.0,0.0);
+        vec3 lightPosition = path(time+1.0) + vec3(sin(time*0.6)*0.6, cos(time*0.4)*0.5, 0.0);
+
+        vec3 forward, right, up;
+        camera(rayOrigin, target, forward, right, up);
+        vec3 rayDirection = normalize(2.0*forward + right*p.x + up*p.y);
+
+        vec3 col = vec3(0.0);
+        float t = rayMarch(rayOrigin, rayDirection);
+        if (t > 0.0){
+            vec3 position = rayOrigin + t * rayDirection;
+            vec3 normal = calcNormal(position, t);
+            normal = doBumpMap(iChannel0, position, normal, 0.005);
+
+            vec3 wall_col = texcube(iChannel0, 0.5*position, normal).xyz;
+
+            float lValue = lightValue(rayOrigin, position, normal, lightPosition);
+            wall_col *= lValue;
+
+            float g = dot(wall_col, vec3(0.299,0.587,0.114));
+            vec3 warm = vec3(0.95, 0.78, 0.55);
+            col = g * warm * 0.7;
+
+            if(position.y < -1.0) {
+                col.z += 0.005;
+                col *= pow(0.4, position.y * position.y);
+            }
+        }
+
+        col = pow(max(col, 0.0), vec3(0.85));
+        gl_FragColor = vec4(col, 1.0);
+    }
+  `;
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(shader));
+      throw new Error('Shader compile failed');
+    }
+    return shader;
+  }
+
+  function createProgram(vsSource, fsSource) {
+    const program = gl.createProgram();
+    gl.attachShader(program, createShader(gl.VERTEX_SHADER, vsSource));
+    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fsSource));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(program));
+      throw new Error('Program link failed');
+    }
+    return program;
+  }
+
+  function createTextureFromCanvas(drawFn, size = 256) {
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(size, size);
+    drawFn(img.data, size, size);
+    ctx.putImageData(img, 0, 0);
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return tex;
+  }
+
+  function hash(x, y) {
+    let n = x * 374761393 + y * 668265263;
+    n = (n ^ (n >> 13)) * 1274126177;
+    n = n ^ (n >> 16);
+    return (n >>> 0) / 4294967295;
+  }
+
+  const rockTexture = createTextureFromCanvas((data, w, h) => {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        const n1 = hash(x, y);
+        const n2 = hash(x >> 1, y >> 1);
+        const n3 = hash((x + 17) >> 2, (y + 31) >> 2);
+        const v = Math.floor((n1 * 0.5 + n2 * 0.35 + n3 * 0.15) * 255);
+        data[i+0] = Math.min(255, v + 18);
+        data[i+1] = Math.min(255, v + 10);
+        data[i+2] = Math.min(255, v + 2);
+        data[i+3] = 255;
+      }
     }
   });
-  obs.observe(document.body, { attributes:true, attributeFilter:["class"] });
-})();
-</script>
 
-<script>
-(function(){
+  const noiseTexture = createTextureFromCanvas((data, w, h) => {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        data[i+0] = Math.floor(hash(x, y) * 255);
+        data[i+1] = Math.floor(hash(x + 113, y + 71) * 255);
+        data[i+2] = Math.floor(hash(x + 53, y + 197) * 255);
+        data[i+3] = 255;
+      }
+    }
+  });
 
-  
-// iOS motion permission: Safari will show the real system prompt when required.
-async function requestGyroPermission(){
-  const DOE = window.DeviceOrientationEvent;
-  if (!DOE) {
-    console.log("DeviceOrientationEvent not supported");
-    return false;
-  }
-  if (typeof DOE.requestPermission === "function") {
-    try {
-      const res = await DOE.requestPermission();
-      console.log("iOS permission result:", res);
-      return res === "granted";
-    } catch (e) {
-      console.error("iOS permission error:", e);
-      return false;
+  const program = createProgram(vertexSource, fragmentSource);
+  gl.useProgram(program);
+
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1,
+  ]), gl.STATIC_DRAW);
+
+  const aPosition = gl.getAttribLocation(program, 'aPosition');
+  gl.enableVertexAttribArray(aPosition);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+  const uResolution = gl.getUniformLocation(program, 'iResolution');
+  const uTime       = gl.getUniformLocation(program, 'iTime');
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, rockTexture);
+  gl.uniform1i(gl.getUniformLocation(program, 'iChannel0'), 0);
+
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, noiseTexture);
+  gl.uniform1i(gl.getUniformLocation(program, 'iChannel1'), 1);
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width  = Math.floor(window.innerWidth  * dpr);
+    const height = Math.floor(window.innerHeight * dpr);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width; canvas.height = height;
+      gl.viewport(0, 0, width, height);
     }
   }
-  console.log("No permission needed (non-iOS or old iOS)");
-  return true;
-}
 
+  let start = performance.now();
+  function render(now) {
+    resize();
+    gl.uniform2f(uResolution, canvas.width, canvas.height);
+    gl.uniform1f(uTime, (now - start) * 0.001);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
+
+
+  /* ============================================================
+     VR / GYROSCOPE (mobile only — identical to index.html)
+  ============================================================ */
   function isMobile(){
     const ua = navigator.userAgent || "";
     const tp = navigator.maxTouchPoints || 0;
     return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/(Macintosh)/i.test(ua) && tp > 1);
   }
 
-  const canvas = document.getElementById("renderCanvas");
-  const engine = new BABYLON.Engine(canvas, true);
-  let scene;
-  let camera = null;
+  async function requestGyroPermission(){
+    const DOE = window.DeviceOrientationEvent;
+    if (!DOE) return false;
+    if (typeof DOE.requestPermission === "function") {
+      try { const r = await DOE.requestPermission(); return r === "granted"; }
+      catch(e) { return false; }
+    }
+    return true;
+  }
 
-  // Shared VR state (needed for auto-start after init)
-  let motionBtn = null;
+  const motionBtn = document.getElementById("motionBtn");
   let motionEnabled = false;
-  let motionPermissionGranted = false;
-  let enableMotion = null;
-  let disableMotion = null;
 
-  const modelUrl = "https://inside.jofrearchive.com/assets/3D/c.glb";
-
-  function setLoaderStatus(msg){
-    const s = document.getElementById("status");
-    if (s) s.textContent = msg;
-  }
-  async function importMeshWithTimeout(url, timeoutMs=20000){
-    setLoaderStatus("loading geometry");
-    return await Promise.race([
-      BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene),
-      new Promise((_, rej)=>setTimeout(()=>rej(new Error("Model load timeout after "+timeoutMs+"ms: "+url)), timeoutMs))
-    ]);
-  }
-
-  async function createScene(){
-    scene = new BABYLON.Scene(engine);
-    scene.clearColor = new BABYLON.Color4(0.043, 0.043, 0.043, 1);
-
-    const hemiLight = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-    hemiLight.intensity = 0.35;
-
-    const keyLight = new BABYLON.DirectionalLight("key", new BABYLON.Vector3(-0.4, -1, -0.6), scene);
-    keyLight.position = new BABYLON.Vector3(3, 6, 4);
-    keyLight.intensity = 1.1;
-
-    // CÁMARA: Posición física baja (Y=-10) para ver el claustro desde abajo hacia arriba// CÁMARA SMARTPHONE — alineada al eje Z, lo más atrás posible (Z negativo), mirando hacia arriba
-camera = new BABYLON.FreeCamera("camera360", new BABYLON.Vector3(0, -6, -40), scene);
-camera.attachControl(canvas, true);
-// Keep framing consistent across desktop/mobile aspect ratios
-camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
-camera.fov = 0.85; // tweak: smaller = tighter, larger = wider
-
-
-// Objetivo de mirada: hacia el centro elevado (mirada ascendente)
-camera.setTarget(new BABYLON.Vector3(0, 15, 0));
-
-// Sin teclado
-camera.inputs.removeByType("FreeCameraKeyboardMoveInput");
-
-// --- VR TOGGLE BUTTON (GIROSCOPIO MANUAL CORREGIDO) ---
-motionBtn = document.getElementById("motionBtn");
-
-// ===== Motion state (shared) =====
-
-if (isMobile() && motionBtn) {
+  if (isMobile() && motionBtn) {
     motionBtn.style.display = "flex";
-    
 
-    let initialCameraQuat = new BABYLON.Quaternion();
-    let sensorZeroQuat = new BABYLON.Quaternion();
-    let currentDeviceQuat = new BABYLON.Quaternion();
-    let smoothedDeviceQuat = new BABYLON.Quaternion();
+    // VR uses deviceorientation to rotate the cave's ray direction offset
+    let vrAlpha = 0, vrBeta = 0, vrGamma = 0;
     let firstRead = true;
-    let activationPose = "upright"; // "upright" | "flatUp" | "flatDown" // "upright" | "flat" (fixed at activation)
-    let eventCount = 0;
-    
-    // Smoothing factor (0.0 - 1.0). Lower = smoother but more lag
-    const SMOOTHING_FACTOR = 0.12;
-    
-    // Debug info
-    console.log("Mobile detected, VR button visible");
-    console.log("Protocol:", window.location.protocol);
-    console.log("DeviceOrientationEvent available:", 'DeviceOrientationEvent' in window);
+    let zeroAlpha = 0, zeroBeta = 0, zeroGamma = 0;
+    let activationPose = "upright";
 
-    // Handler manual para el sensor con debugging
+    const SMOOTHING = 0.12;
+    let smoothA = 0, smoothB = 0, smoothG = 0;
+
+    // Expose VR offset so render loop can use it
+    window._vrOffset = { yaw: 0, pitch: 0 };
+
     const handleMotion = (event) => {
-        if (!motionEnabled) {
-            console.log("Event received but motion not enabled");
-            return;
-        }
+      if (!motionEnabled) return;
 
-        eventCount++;
-        if (eventCount % 60 === 0) { // Log cada ~1 segundo a 60fps
-            console.log("Orientation event #", eventCount, "alpha:", event.alpha, "beta:", event.beta, "gamma:", event.gamma);
-        }
+      const alpha = event.alpha ?? 0;
+      const beta  = event.beta  ?? 0;
+      const gamma = event.gamma ?? 0;
 
-        // Manejar valores null (iOS sin magnetómetro)
-        const alpha = (event.alpha === null) ? 0 : BABYLON.Tools.ToRadians(event.alpha);
-        const beta = (event.beta === null) ? 0 : BABYLON.Tools.ToRadians(event.beta);
-        const gamma = (event.gamma === null) ? 0 : BABYLON.Tools.ToRadians(event.gamma);
+      if (firstRead) {
+        const isFlat = Math.abs(beta) < 35 && Math.abs(gamma) < 35;
+        activationPose = isFlat ? "flatUp" : "upright";
+        zeroAlpha = alpha; zeroBeta = beta; zeroGamma = gamma;
+        smoothA = alpha; smoothB = beta; smoothG = gamma;
+        firstRead = false;
+        return;
+      }
 
-        // Detectar la pose en el moment d'activació (només 1 cop)
-        if (firstRead) {
-            const bDeg = (event.beta  ?? 0);
-            const gDeg = (event.gamma ?? 0);
+      smoothA = smoothA + (alpha - smoothA) * SMOOTHING;
+      smoothB = smoothB + (beta  - smoothB) * SMOOTHING;
+      smoothG = smoothG + (gamma - smoothG) * SMOOTHING;
 
-            // Heurística: en "flat" (pantalla plana mirant amunt), beta i gamma solen estar prop de 0.
-            // En "upright" (telèfon dret), beta sol estar prop de ±90.
-            const isFlat = Math.abs(bDeg) < 35 && Math.abs(gDeg) < 35;
-            
-  const isFlatLike = Math.abs(gDeg) < 35;
-  const isFlatUp   = isFlatLike && (Math.abs(bDeg) < 35);
-  const isFlatDown = isFlatLike && (Math.abs(Math.abs(bDeg) - 180) < 35);
+      const dA = smoothA - zeroAlpha;
+      const dB = smoothB - zeroBeta;
+      const dG = smoothG - zeroGamma;
 
-  if (isFlatUp) activationPose = "flatUp";
-  else if (isFlatDown) activationPose = "flatDown";
-  else activationPose = "upright";
-
-        }
-
-
-        // Construir cuaternión del dispositivo evitando gimbal lock (orden Y * X * Z)
-// y compensando la orientación de pantalla (portrait/landscape).
-const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
-    ? screen.orientation.angle
-    : (typeof window.orientation === 'number' ? window.orientation : 0);
-const orient = BABYLON.Tools.ToRadians(orientDeg);
-
-// Ajustes de eixos / UX:
-// - La compensació de pantalla (portrait/landscape) es manté via orientDeg/orient.
-// - El mapping principal (upright vs flat) es fixa NOMÉS en activar el gyro.
-const isPortrait = (Math.abs(orientDeg) % 180) === 0;
-
-// 1) base mapping (upright)
-let yaw   = alpha;
-let pitch = beta;
-let roll  = gamma;
-
-// 2) correccions de signe que ja tenies en portrait (si et funcionen)
-if (isPortrait) {
-    yaw   = -yaw;
-    pitch = -pitch;
-    roll  = -roll;
-}
-
-// 3) si s'activa en "flat", fem el swap yaw<->roll (manté UX natural en pantalla plana)
-if (activationPose === "flatUp" || activationPose === "flatDown") {
-    const tmp = yaw;
-    yaw = roll;
-    roll = tmp;
-
-    if (activationPose === "flatUp") {
-      roll = -roll;
-    } else if (activationPose === "flatDown") {
-      // yaw direction fix (do NOT invert)
-      // yaw = yaw;
-      roll = -roll;
-    }
-}
-// q = qY(yaw) * qX(pitch) * qZ(roll)  (orden YXZ)
-const qYaw = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, yaw);
-const qPitch = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, pitch);
-const qRoll = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, roll);
-
-qYaw.multiplyToRef(qPitch, currentDeviceQuat);   // currentDeviceQuat = qYaw * qPitch
-currentDeviceQuat.multiplyInPlace(qRoll);        // currentDeviceQuat = (qYaw*qPitch) * qRoll
-
-// Convertir de coords del dispositivo a coords del mundo/cámara (equivalente a -PI/2 en X)
-if (!handleMotion._q1) {
-    const s = Math.sqrt(0.5);
-    handleMotion._q1 = new BABYLON.Quaternion(-s, 0, 0, s);
-}
-currentDeviceQuat.multiplyInPlace(handleMotion._q1);
-
-// Compensar la rotación de la pantalla (para que portrait/landscape no cambie el mapeo)
-const qScreen = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Z, -orient);
-currentDeviceQuat.multiplyInPlace(qScreen);
-
-    if (activationPose === "flatDown") {
-      const qFlip = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, Math.PI);
-      currentDeviceQuat.multiplyInPlace(qFlip);
-    }
-
-        // Suavizado (smoothing)
-        if (firstRead) {
-            smoothedDeviceQuat.copyFrom(currentDeviceQuat);
-        } else {
-            BABYLON.Quaternion.SlerpToRef(smoothedDeviceQuat, currentDeviceQuat, SMOOTHING_FACTOR, smoothedDeviceQuat);
-        }
-
-        if (firstRead) {
-            console.log("First sensor read, establishing zero point");
-            sensorZeroQuat.copyFrom(smoothedDeviceQuat);
-            sensorZeroQuat.invertInPlace();
-            firstRead = false;
-        }
-
-        // Calcular rotación relativa desde el punto cero
-        const deviceRelative = smoothedDeviceQuat.multiply(sensorZeroQuat);
-
-        // Aplicar sobre la rotación inicial de la cámara
-// Importante: para mantener los ejes intuitivos con una cámara ya inclinada,
-// aplicamos el delta del dispositivo DESPUÉS de la orientación base (post-multiply).
-if (camera.rotationQuaternion) {
-    initialCameraQuat.multiplyToRef(deviceRelative, camera.rotationQuaternion);
-} else {
-    console.warn("Camera has no rotationQuaternion");
-}
+      // Map to yaw/pitch offset for the cave camera
+      if (activationPose === "upright") {
+        window._vrOffset.yaw   =  dA * 0.018;
+        window._vrOffset.pitch = -dB * 0.014;
+      } else {
+        window._vrOffset.yaw   =  dG * 0.018;
+        window._vrOffset.pitch = -dA * 0.014;
+      }
     };
 
-    
-    // Unified enable/disable so auto-start can reuse without re-prompting.
-    enableMotion = async (opts) => {
-        const assumeGranted = !!(opts && opts.assumeGranted);
-        console.log("enableMotion()", { assumeGranted, motionEnabled });
-
-        if (motionEnabled) return true;
-
-        // HTTPS check (iOS requirement)
-        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-            console.error("HTTPS required for gyroscope on iOS");
-            alert("Se requiere HTTPS para usar el giroscopio en iOS");
-            return false;
-        }
-
-        if (!assumeGranted) {
-            const ok = await requestGyroPermission();
-            motionPermissionGranted = ok;
-            console.log("Permission result:", ok);
-            if (ok) { try { localStorage.setItem("gyroPermissionGranted","1"); } catch(e) {} }
-
-            if (!ok) {
-                console.log("Permission denied or failed");
-                return false;
-            }
-        } else {
-            motionPermissionGranted = true;
-        }
-
-        // Ensure camera uses quaternions
-        if (!camera.rotationQuaternion) {
-            console.log("Converting camera to quaternion mode");
-            camera.rotationQuaternion = BABYLON.Quaternion.FromEulerAngles(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-        }
-
-        // Save current camera rotation as base (no jump)
-        initialCameraQuat.copyFrom(camera.rotationQuaternion);
-
-        // Reset sensor state
-        firstRead = true;
-        eventCount = 0;
-        motionEnabled = true;
-
-        // Start listening
-        window.addEventListener("deviceorientation", handleMotion, true);
-        console.log("Device orientation listener added (assumeGranted=", assumeGranted, ")");
-
-        // If no events arrive, we can report in console (helps debugging)
-        setTimeout(() => {
-            if (eventCount === 0) {
-                console.warn("No orientation events received after 2 seconds");
-                console.log("Device info:", navigator.userAgent);
-            }
-        }, 2000);
-
-        motionBtn.classList.add("active");
-        motionBtn.querySelector(".vrLabel").textContent = "VR ON";
-        return true;
+    const enableMotion = async (opts) => {
+      if (motionEnabled) return;
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        alert("Se requiere HTTPS para el giroscopio en iOS"); return;
+      }
+      const assumeGranted = !!(opts && opts.assumeGranted);
+      if (!assumeGranted) {
+        const ok = await requestGyroPermission();
+        if (!ok) return;
+        try { localStorage.setItem("gyroPermissionGranted","1"); } catch(e) {}
+      }
+      firstRead = true;
+      motionEnabled = true;
+      window.addEventListener("deviceorientation", handleMotion, true);
+      motionBtn.classList.add("active");
+      motionBtn.querySelector(".vrLabel").textContent = "VR ON";
     };
 
-    disableMotion = () => {
-        if (!motionEnabled) return;
-        console.log("Disabling VR mode");
-        motionEnabled = false;
-        window.removeEventListener("deviceorientation", handleMotion, true);
-
-        motionBtn.classList.remove("active");
-        motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
+    const disableMotion = () => {
+      if (!motionEnabled) return;
+      motionEnabled = false;
+      window._vrOffset.yaw = 0;
+      window._vrOffset.pitch = 0;
+      window.removeEventListener("deviceorientation", handleMotion, true);
+      motionBtn.classList.remove("active");
+      motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
     };
 
     motionBtn.addEventListener("click", async () => {
-        console.log("VR button clicked, motionEnabled:", motionEnabled);
-        if (!motionEnabled) {
-            await enableMotion();
-        } else {
-            disableMotion();
-        }
+      if (!motionEnabled) await enableMotion();
+      else disableMotion();
     });
-}
 
-    
-let res;
-try {
-  // Try model load with timeout so the loader never gets stuck forever.
-  res = await importMeshWithTimeout(modelUrl, 25000);
-} catch (e) {
-  console.error("GLB load failed:", e);
-  setLoaderStatus("geometry failed");
-  // Fallback placeholder so the experience still runs (gyro/VR can be tested).
-  const fallback = BABYLON.MeshBuilder.CreateBox("fallbackBox", {size: 8}, scene);
-  fallback.position = new BABYLON.Vector3(0, 6, 0);
-  const mat = new BABYLON.StandardMaterial("fallbackMat", scene);
-  mat.diffuseColor = new BABYLON.Color3(0.12, 0.12, 0.12);
-  mat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.05);
-  fallback.material = mat;
-  res = { meshes: [fallback] };
-}
-    res.meshes.forEach(mesh => {
-      if (mesh && mesh.getTotalVertices() > 0) {
-        mesh.isVisible = true;
-        const solidMat = new BABYLON.PBRMaterial("solidMat_"+mesh.name, scene);
-        solidMat.albedoColor = new BABYLON.Color3(0.02, 0.02, 0.02);
-        solidMat.metallic = 0.4;
-        solidMat.roughness = 0.35;
-        mesh.material = solidMat;
-      }
-    });
-// --- MODEL ROOT + SLOW CONSTANT ROTATION (like a calm museum turntable) ---
-// Parent all imported top-level meshes to a single root so we can rotate the whole cloister cleanly.
-const modelRoot = new BABYLON.TransformNode("modelRoot", scene);
-res.meshes.forEach(m => {
-  if (m && m !== modelRoot && !m.parent) m.parent = modelRoot;
-});
-
-// Slow constant rotation speed (radians per second). Tweak to taste:
-const ROT_SPEED = 0.06; // ~3.4 degrees/sec. Try 0.02 for ultra-slow.
-let _lastT = performance.now();
-
-scene.onBeforeRenderObservable.add(() => {
-  const now = performance.now();
-  const dt = Math.min(0.05, (now - _lastT) / 1000); // clamp for tab-switch jumps
-  _lastT = now;
-  modelRoot.rotation.y += ROT_SPEED * dt;
-});
-
-
-    
-
-
-
-
-// --- CAMERA IN CLOISTER VOID CENTER (DISTANCE-FIELD) — finds the largest empty space on XZ near the floor ---
-// Full/trimmed bounding boxes can still be biased. This approach:
-// 1) Samples world vertices (mostly walls/columns) near the floor band.
-// 2) Builds a coarse grid on XZ.
-// 3) Chooses the grid point that maximizes distance to the nearest sampled vertex => center of the largest void.
-//
-// Tweak knobs:
-const FLOOR_BAND = 0.22;        // fraction of total height above minY to consider as "near floor"
-const MAX_SAMPLES = 9000;       // cap of sampled points for speed
-const GRID_N = 45;              // grid resolution per axis (odd is nice)
-const CENTER_DX = 0.0;          // manual micro-offsets
-const CENTER_DZ = 0.0;
-const EYE_MIN = 1.6;            // minimum eye height
-const LOOK_UP = 0.28;           // fraction of height above center to look at
-const FACE_Z_BIAS = 0.0;        // keep 0 for perfectly centered roof
-
-try {
-  // 1) global bounds
-  let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-  let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-
-  res.meshes.forEach(m => {
-    if (!m || !m.getBoundingInfo) return;
-    const bi = m.getBoundingInfo();
-    if (!bi || !bi.boundingBox) return;
-    const bmin = bi.boundingBox.minimumWorld;
-    const bmax = bi.boundingBox.maximumWorld;
-
-    min.x = Math.min(min.x, bmin.x); min.y = Math.min(min.y, bmin.y); min.z = Math.min(min.z, bmin.z);
-    max.x = Math.max(max.x, bmax.x); max.y = Math.max(max.y, bmax.y); max.z = Math.max(max.z, bmax.z);
-  });
-
-  const size = max.subtract(min);
-  const floorY = min.y;
-  const bandY = floorY + size.y * FLOOR_BAND;
-
-  // 2) sample points near the floor band (mostly walls/columns edges)
-  const samples = [];
-  let stride = 3; // start stride
-  const pushSample = (x,z) => { samples.push(x, z); };
-
-  const collect = () => {
-    samples.length = 0;
-
-    res.meshes.forEach(m => {
-      if (!m || !m.isVerticesDataPresent || !m.isVerticesDataPresent(BABYLON.VertexBuffer.PositionKind)) return;
-
-      const pos = m.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-      if (!pos || pos.length < 3) return;
-
-      const wm = m.computeWorldMatrix(true);
-      const tmp = new BABYLON.Vector3();
-
-      for (let i = 0; i < pos.length; i += 3 * stride) {
-        tmp.set(pos[i], pos[i+1], pos[i+2]);
-        BABYLON.Vector3.TransformCoordinatesToRef(tmp, wm, tmp);
-
-        if (tmp.y <= bandY) {
-          pushSample(tmp.x, tmp.z);
-          if (samples.length/2 >= MAX_SAMPLES) return;
-        }
-      }
-    });
-  };
-
-  // adaptive stride if too many points
-  for (let attempts = 0; attempts < 4; attempts++) {
-    collect();
-    if ((samples.length/2) <= MAX_SAMPLES) break;
-    stride = Math.min(24, stride * 2);
+    // Auto-enable if previously granted
+    (async () => {
+      let stored = false;
+      try { stored = localStorage.getItem("gyroPermissionGranted") === "1"; } catch(e) {}
+      if (!stored) return;
+      const DOE = window.DeviceOrientationEvent;
+      const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
+      if (!needsGesture) { await enableMotion({ assumeGranted: true }); }
+    })();
   }
-
-  // Fallback: if we got almost nothing, use full bbox center
-  let bestX = (min.x + max.x) * 0.5;
-  let bestZ = (min.z + max.z) * 0.5;
-
-  if (samples.length >= 20) {
-    // 3) grid search for point farthest from nearest sample
-    const pad = 0.06; // keep away from extreme outer bounds
-    const x0 = min.x + size.x * pad, x1 = max.x - size.x * pad;
-    const z0 = min.z + size.z * pad, z1 = max.z - size.z * pad;
-
-    let bestD2 = -1;
-
-    for (let ix = 0; ix < GRID_N; ix++) {
-      const x = x0 + (x1 - x0) * (ix / (GRID_N - 1));
-      for (let iz = 0; iz < GRID_N; iz++) {
-        const z = z0 + (z1 - z0) * (iz / (GRID_N - 1));
-
-        // distance to nearest sample
-        let d2min = Number.POSITIVE_INFINITY;
-        for (let s = 0; s < samples.length; s += 2) {
-          const dx = x - samples[s];
-          const dz = z - samples[s+1];
-          const d2 = dx*dx + dz*dz;
-          if (d2 < d2min) d2min = d2;
-          // early exit if already worse than best
-          if (d2min <= bestD2) break;
-        }
-
-        if (d2min > bestD2) {
-          bestD2 = d2min;
-          bestX = x;
-          bestZ = z;
-        }
-      }
-    }
-  }
-
-  // 4) place camera at void center, face +Z, look upward
-  const eyeH = Math.max(size.y * 0.10, EYE_MIN);
-  const camX = bestX + CENTER_DX;
-  const camZ = bestZ + CENTER_DZ;
-  const camY = floorY + eyeH;
-
-  camera.position.set(camX, camY, camZ);
-
-  const targetY = (min.y + max.y) * 0.5 + size.y * 0.42; // stronger upward target
-  camera.setTarget(new BABYLON.Vector3(camX, targetY, camZ + FACE_Z_BIAS));
-
-  // Center the model rotation axis in the cloister void (XZ void center + vertical midpoint)
-  const voidAxis = new BABYLON.Vector3(camX, (min.y + max.y) * 0.5, camZ);
-  if (typeof modelRoot !== 'undefined' && modelRoot && modelRoot.setPivotPoint) {
-    modelRoot.setPivotPoint(voidAxis, BABYLON.Space.WORLD);
-  }
-
-  // near/far planes
-  const radius = Math.max(size.x, size.z) * 0.5;
-  camera.minZ = Math.max(0.01, radius / 1500);
-  camera.maxZ = Math.max(1000, radius * 60);
-
-} catch (e) {
-  console.warn("Void-center camera failed:", e);
-}
-
-    // XR disabled to prevent black screen issues
-
-    return scene;
-  }
-
-  function startLoader(minMs=2600){
-    const loader = document.getElementById("loader");
-    const bar = document.getElementById("bar");
-    const pct = document.getElementById("pct");
-    const typeLine = document.getElementById("typeLine");
-    const status = document.getElementById("status");
-
-    loader.classList.remove("fadeOut");
-    loader.setAttribute("aria-hidden","false");
-
-    const steps = ["Allocating scene…","Preparing materials…","Building point cloud…","Finalizing render loop…"];
-    let stepIdx = 0;
-    const t0 = performance.now();
-    let v = 0;
-    let raf = 0;
-
-    function tick(){
-      v = Math.min(92, v + (92 - v)*0.035 + 0.25);
-      if (bar) bar.style.width = v.toFixed(1) + "%";
-      if (pct) pct.textContent = Math.floor(v) + "%";
-      if (typeLine && (performance.now()-t0) > (stepIdx+1)*620){
-        typeLine.textContent = steps[Math.min(stepIdx, steps.length-1)];
-        stepIdx = Math.min(stepIdx+1, steps.length-1);
-      }
-      raf = requestAnimationFrame(tick);
-    }
-    raf = requestAnimationFrame(tick);
-
-    async function done(){
-      const elapsed = performance.now() - t0;
-      const wait = Math.max(0, minMs - elapsed);
-      if(wait) await new Promise(r=>setTimeout(r, wait));
-
-      cancelAnimationFrame(raf);
-      if (bar) bar.style.width = "100%";
-      if (pct) pct.textContent = "100%";
-      if (status) status.textContent = "ready";
-
-      loader.classList.add("fadeOut");
-      setTimeout(()=>{
-        loader.setAttribute("aria-hidden","true");
-      }, 1100);
-    }
-
-    function fail(msg){
-      cancelAnimationFrame(raf);
-      if (status) status.textContent = "error";
-    }
-
-    return {done, fail};
-  }
-
-  let loopStarted = false;
-  let initializedOnce = false;
-
-  async function initSystem(opts){
-    const { withLoader } = opts || {};
-    const L = withLoader ? startLoader(2600) : null;
-
-    document.body.classList.remove("bab3d-ready");
-    document.body.classList.add("bab3d-on");
-
-    try{
-      if (!initializedOnce){
-        initializedOnce = true;
-        await createScene();
-      }
-
-      if (!loopStarted){
-        loopStarted = true;
-        engine.runRenderLoop(() => { if (scene) scene.render(); });
-      }
-
-      if (scene && scene.executeWhenReady){
-        await new Promise(res => scene.executeWhenReady(res));
-      }
-
-      if (L) await L.done();
-    }
-    catch(err){
-      console.error(err);
-      if (L) {
-        try { L.fail(String(err && err.message ? err.message : err)); } catch(e) {}
-        // Ensure loader disappears even on error
-        setTimeout(()=>{
-          const loader = document.getElementById("loader");
-          if (loader) loader.setAttribute("aria-hidden","true");
-        }, 900);
-      }
-    }
-  }
-
-  // === AUTO INIT (no gate) ===
-  // We always initialize the scene on load.
-  // For gyro auto-enable:
-  // - We probe deviceorientation briefly; if events arrive, we assume permission is available this session.
-  // - If so, we set motionPermissionGranted=true and auto-click the VR button AFTER init (so camera direction is preserved).
-
-  async function probeGyroPermission(timeoutMs=900){
-    return await new Promise((resolve)=>{
-      let gotEvent = false;
-      const handler = (e)=>{
-        // We consider it "working" if we get any numeric beta/gamma (alpha may be null on some devices)
-        const ok = (typeof e.beta === "number") || (typeof e.gamma === "number") || (typeof e.alpha === "number");
-        if(ok){
-          gotEvent = true;
-          cleanup();
-          resolve(true);
-        }
-      };
-      const cleanup = ()=>{
-        window.removeEventListener("deviceorientation", handler, true);
-        clearTimeout(t);
-      };
-      window.addEventListener("deviceorientation", handler, true);
-      const t = setTimeout(()=>{
-        cleanup();
-        resolve(false);
-      }, timeoutMs);
-    });
-  }
-
-  (async ()=> {
-    // Start system immediately
-    await initSystem({ withLoader: true });
-
-    if (!isMobile()) return;
-
-    let storedGranted = false;
-    try { storedGranted = localStorage.getItem("gyroPermissionGranted") === "1"; } catch(e) {}
-    if (!storedGranted) return;
-
-    const DOE = window.DeviceOrientationEvent;
-    const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
-
-    const attemptAuto = async () => {
-      if (!motionBtn || typeof enableMotion !== "function") return;
-      if (motionEnabled) return;
-
-      // If navigation carries active user gesture (click from previous page),
-      // iOS can accept requestPermission() here.
-      if (navigator.userActivation && navigator.userActivation.isActive) {
-        await enableMotion(); // will request if needed
-        return;
-      }
-
-      // If orientation events are already flowing, enable without prompting.
-      const hasGyro = await probeGyroPermission(700);
-      if (hasGyro) {
-        await enableMotion({ assumeGranted: true });
-        return;
-      }
-
-      // iOS fallback: arm first gesture on this page.
-      if (needsGesture) {
-        const once = async () => {
-          document.removeEventListener("pointerdown", once, true);
-          document.removeEventListener("touchstart", once, true);
-          await enableMotion();
-        };
-        document.addEventListener("pointerdown", once, true);
-        document.addEventListener("touchstart", once, true);
-      }
-    };
-
-    requestAnimationFrame(() => { attemptAuto(); });
-  })();
-window.addEventListener("resize", () => engine.resize());
-})();
-</script>
-
+  </script>
 </body>
 </html>
