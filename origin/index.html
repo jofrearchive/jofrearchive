@@ -229,6 +229,7 @@
     uniform float iTime;
     uniform sampler2D iChannel0;
     uniform sampler2D iChannel1;
+    uniform vec2 iVROffset;
     varying vec2 vUv;
 
     float getGrey(vec3 p){ return p.x*0.299 + p.y*0.587 + p.z*0.114; }
@@ -330,7 +331,7 @@
         vec3 lightDir = lightPosition - position;
         float diffuseFactor = clamp(dot(normalize(lightDir), normal), 0.0, 1.0);
         float shadow = softshadow(position, normalize(lightDir), 0.01, length(lightDir), 2.0);
-        return shadow * diffuseFactor / pow(length(lightDir), 1.6) + 0.04;
+        return shadow * diffuseFactor / pow(length(lightDir), 2.5);
     }
 
     void main() {
@@ -342,11 +343,22 @@
         float time = 3.8 + 0.6 * iTime;
         vec3 rayOrigin = path(time);
         vec3 target = path(time+1.6)+vec3((sin(time)+cos(time/2.0))/2.0,0.0,0.0);
-        vec3 lightPosition = path(time+1.0) + vec3(sin(time*0.6)*0.6, cos(time*0.4)*0.5, 0.0);
+        vec3 lightPosition = path(time+2.5 + cos(time) + sin(1.2*time));
 
         vec3 forward, right, up;
         camera(rayOrigin, target, forward, right, up);
-        vec3 rayDirection = normalize(2.0*forward + right*p.x + up*p.y);
+        // VR gyro offset: rotate the view direction
+        float cosY = cos(iVROffset.x);
+        float sinY = sin(iVROffset.x);
+        float cosP = cos(iVROffset.y);
+        float sinP = sin(iVROffset.y);
+        // yaw around up axis
+        vec3 fwdYaw = normalize(forward * cosY + right * sinY);
+        vec3 rightYaw = normalize(-forward * sinY + right * cosY);
+        // pitch around right axis
+        vec3 fwdFinal = normalize(fwdYaw * cosP + up * sinP);
+        vec3 upFinal = normalize(-fwdYaw * sinP + up * cosP);
+        vec3 rayDirection = normalize(2.0*fwdFinal + rightYaw*p.x + upFinal*p.y);
 
         vec3 col = vec3(0.0);
         float t = rayMarch(rayOrigin, rayDirection);
@@ -466,6 +478,7 @@
 
   const uResolution = gl.getUniformLocation(program, 'iResolution');
   const uTime       = gl.getUniformLocation(program, 'iTime');
+  const uVROffset   = gl.getUniformLocation(program, 'iVROffset');
 
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, rockTexture);
@@ -490,6 +503,8 @@
     resize();
     gl.uniform2f(uResolution, canvas.width, canvas.height);
     gl.uniform1f(uTime, (now - start) * 0.001);
+    const vr = window._vrOffset || {yaw:0, pitch:0};
+    gl.uniform2f(uVROffset, vr.yaw, vr.pitch);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     requestAnimationFrame(render);
   }
@@ -515,6 +530,7 @@
     return true;
   }
 
+  window._vrOffset = { yaw: 0, pitch: 0 };
   const motionBtn = document.getElementById("motionBtn");
   let motionEnabled = false;
 
@@ -529,9 +545,6 @@
 
     const SMOOTHING = 0.12;
     let smoothA = 0, smoothB = 0, smoothG = 0;
-
-    // Expose VR offset so render loop can use it
-    window._vrOffset = { yaw: 0, pitch: 0 };
 
     const handleMotion = (event) => {
       if (!motionEnabled) return;
@@ -559,11 +572,11 @@
 
       // Map to yaw/pitch offset for the cave camera
       if (activationPose === "upright") {
-        window._vrOffset.yaw   =  dA * 0.018;
-        window._vrOffset.pitch = -dB * 0.014;
+        window._vrOffset.yaw   =  dA * 0.030;
+        window._vrOffset.pitch = -dB * 0.025;
       } else {
-        window._vrOffset.yaw   =  dG * 0.018;
-        window._vrOffset.pitch = -dA * 0.014;
+        window._vrOffset.yaw   =  dG * 0.030;
+        window._vrOffset.pitch = -dA * 0.025;
       }
     };
 
