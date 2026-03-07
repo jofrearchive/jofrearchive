@@ -91,46 +91,6 @@
       opacity: 1;
     }
 
-    /* VR Button */
-    #motionBtn {
-      position: fixed;
-      left: 50%;
-      bottom: max(16px, env(safe-area-inset-bottom));
-      transform: translateX(-50%);
-      z-index: 12;
-      display: none;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      border: 1px solid rgba(255,255,255,.16);
-      background: rgba(0,0,0,.45);
-      color: rgba(232,226,214,.55);
-      font-family: 'Source Code Pro', monospace;
-      font-size: 12px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      transition: border-color .25s ease, color .25s ease, background .25s ease;
-    }
-    #motionBtn:hover {
-      border-color: rgba(255,255,255,.30);
-      background: rgba(0,0,0,.60);
-    }
-    #motionDot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #222;
-      box-shadow: none;
-      transition: all .25s ease;
-    }
-    #motionBtn.active #motionDot {
-      background: rgba(74,222,128,.95);
-      box-shadow: 0 0 12px rgba(74,222,128,.85);
-    }
-    #motionBtn.active {
-      color: var(--ivory);
-    }
-
     @media (max-width: 520px){
       #panel { padding: 14px 14px 8px !important; }
     }
@@ -148,11 +108,6 @@
     <div class="tabs" id="tabs"></div>
   </div>
 
-  <!-- VR BUTTON (mobile only) -->
-  <button id="motionBtn" type="button" aria-label="Toggle VR">
-    <span id="motionDot" aria-hidden="true"></span>
-    <span class="vrLabel">VR OFF</span>
-  </button>
 
   <script>
   /* ============================================================
@@ -171,6 +126,19 @@
       { key: "ARTIFACTS", ctaHref: "https://jofrearchive.com/artifacts" }
     ]
   };
+
+  async function requestGyroAndNavigate(href) {
+    const DOE = window.DeviceOrientationEvent;
+    if (DOE && typeof DOE.requestPermission === "function") {
+      try {
+        const result = await DOE.requestPermission();
+        if (result === "granted") {
+          try { localStorage.setItem("gyroPermissionGranted", "1"); } catch(e) {}
+        }
+      } catch(e) {}
+    }
+    if (href) window.location.href = href;
+  }
 
   (function initPanel(){
     const panel     = document.getElementById("panel");
@@ -191,8 +159,12 @@
       b.type = "button";
       b.className = "tabLink";
       b.textContent = t.key;
-      b.addEventListener("click", () => {
-        if (t.ctaHref) window.location.href = t.ctaHref;
+      b.addEventListener("click", async () => {
+        if (t.key === "GENEALOGY") {
+          await requestGyroAndNavigate(t.ctaHref);
+        } else {
+          if (t.ctaHref) window.location.href = t.ctaHref;
+        }
       });
       tabsEl.appendChild(b);
     });
@@ -569,11 +541,9 @@
   }
 
   window._vrOffset = { yaw: 0, pitch: 0 };
-  const motionBtn = document.getElementById("motionBtn");
   let motionEnabled = false;
 
-  if (isMobile() && motionBtn) {
-    motionBtn.style.display = "flex";
+  if (isMobile()) {
 
     const SMOOTHING = 0.12;
     // sqrt(0.5) constant for coord-system correction quat
@@ -668,8 +638,6 @@
       firstRead = true;
       motionEnabled = true;
       window.addEventListener("deviceorientation", handleMotion, true);
-      motionBtn.classList.add("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR ON";
     };
 
     const disableMotion = () => {
@@ -678,14 +646,7 @@
       window._vrOffset.yaw = 0;
       window._vrOffset.pitch = 0;
       window.removeEventListener("deviceorientation", handleMotion, true);
-      motionBtn.classList.remove("active");
-      motionBtn.querySelector(".vrLabel").textContent = "VR OFF";
     };
-
-    motionBtn.addEventListener("click", async () => {
-      if (!motionEnabled) await enableMotion();
-      else disableMotion();
-    });
 
     // Auto-enable if previously granted
     (async () => {
