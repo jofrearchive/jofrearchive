@@ -554,6 +554,7 @@ const VIDEO_BASE64 = ""; // paste base64 mp4 if you want single-file video
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/DRACOLoader.js"></script>
 
 <script>
 /* ================= LOADER ================= */
@@ -790,7 +791,10 @@ const scene = new THREE.Scene();
     footer.style.opacity = '0.9';
   }
 
+  const dracoLoader = new THREE.DRACOLoader();
+  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128/examples/js/libs/draco/');
   const gltfLoader = new THREE.GLTFLoader();
+  gltfLoader.setDRACOLoader(dracoLoader);
   gltfLoader.load(
     '../assets/3D/skull.glb',
     (gltf) => {
