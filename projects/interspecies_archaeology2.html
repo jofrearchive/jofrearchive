@@ -353,7 +353,7 @@ body::after {
   .kbdHint{ display:none; }
 }
 
-/* ===== MOBILE COLLAPSIBLE CARTEL (TOP SHEET) ===== */
+/* ===== MOBILE COLLAPSIBLE CARTEL (BOTTOM SHEET) ===== */
 #panelHandle{ display:none; }
 #panelBody{ display:block; }
 
@@ -408,7 +408,7 @@ body::after {
   }
   #panelBody{
     padding: 14px 16px 16px 16px;
-    max-height: 55vh;
+    max-height: 62vh;
     overflow:auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -551,7 +551,7 @@ body::after {
 const VIDEO_BASE64 = ""; // paste base64 mp4 if you want single-file video
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/GLTFLoader.js"></script>
 
@@ -791,21 +791,14 @@ const scene = new THREE.Scene();
   }
 
   const gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.setCrossOrigin('anonymous');
   gltfLoader.load(
-    'https://inside.jofrearchive.com/assets/3D/skull.glb',
+    '../assets/3D/skull.glb',
     (gltf) => {
       skull = gltf.scene;
       applyMaterialTweaks(skull);
       pivot.add(skull);
       fitSkullModel(skull);
-      if(vitrine){
-        scene.remove(vitrine.back);
-        scene.remove(vitrine.floor);
-        scene.remove(vitrine.cabinet);
-        scene.remove(vitrine.edgeLines);
-        currentVitrine = addVitrineCabinet();
-      }
+      currentVitrine = addVitrineCabinet();
     },
     undefined,
     (error) => {
