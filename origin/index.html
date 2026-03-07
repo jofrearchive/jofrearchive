@@ -512,8 +512,10 @@
 
 
   /* ============================================================
-     VR / GYROSCOPE (mobile only — identical to index.html)
+     VR / GYROSCOPE — quaternion-based, identical logic to index.html
+     Outputs window._vrOffset {yaw, pitch} in radians for the shader
   ============================================================ */
+
   function isMobile(){
     const ua = navigator.userAgent || "";
     const tp = navigator.maxTouchPoints || 0;
@@ -530,6 +532,41 @@
     return true;
   }
 
+  // Minimal quaternion helpers (no Babylon dependency)
+  function quatFromAxisAngle(ax, ay, az, angle) {
+    const s = Math.sin(angle / 2);
+    return [ax*s, ay*s, az*s, Math.cos(angle / 2)];
+  }
+  function quatMul(a, b) {
+    return [
+      a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+      a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+      a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+      a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
+    ];
+  }
+  function quatInvert(q) { return [-q[0], -q[1], -q[2], q[3]]; }
+  function quatSlerp(a, b, t) {
+    let dot = a[0]*b[0]+a[1]*b[1]+a[2]*b[2]+a[3]*b[3];
+    if (dot < 0) { b = [-b[0],-b[1],-b[2],-b[3]]; dot = -dot; }
+    if (dot > 0.9995) {
+      const r = [a[0]+t*(b[0]-a[0]), a[1]+t*(b[1]-a[1]), a[2]+t*(b[2]-a[2]), a[3]+t*(b[3]-a[3])];
+      const n = Math.sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]+r[3]*r[3]);
+      return [r[0]/n, r[1]/n, r[2]/n, r[3]/n];
+    }
+    const th0 = Math.acos(dot), th = th0 * t;
+    const s0 = Math.cos(th) - dot * Math.sin(th) / Math.sin(th0);
+    const s1 = Math.sin(th) / Math.sin(th0);
+    return [s0*a[0]+s1*b[0], s0*a[1]+s1*b[1], s0*a[2]+s1*b[2], s0*a[3]+s1*b[3]];
+  }
+  // Extract yaw (Y) and pitch (X) from quaternion
+  function quatToYawPitch(q) {
+    const [x,y,z,w] = q;
+    const yaw   = Math.atan2(2*(w*y + x*z), 1 - 2*(y*y + x*x));
+    const pitch = Math.asin(Math.max(-1, Math.min(1, 2*(w*x - z*y))));
+    return { yaw, pitch };
+  }
+
   window._vrOffset = { yaw: 0, pitch: 0 };
   const motionBtn = document.getElementById("motionBtn");
   let motionEnabled = false;
@@ -537,50 +574,86 @@
   if (isMobile() && motionBtn) {
     motionBtn.style.display = "flex";
 
-    // VR uses deviceorientation to rotate the cave's ray direction offset
-    let vrAlpha = 0, vrBeta = 0, vrGamma = 0;
-    let firstRead = true;
-    let zeroAlpha = 0, zeroBeta = 0, zeroGamma = 0;
-    let activationPose = "upright";
-
     const SMOOTHING = 0.12;
-    let smoothA = 0, smoothB = 0, smoothG = 0;
+    // sqrt(0.5) constant for coord-system correction quat
+    const S = Math.sqrt(0.5);
+    const Q_COORD = [-S, 0, 0, S]; // -90° around X, same as Babylon index.html
+
+    let firstRead = true;
+    let activationPose = "upright";
+    let sensorZeroQuat = [0,0,0,1];
+    let smoothedQuat   = [0,0,0,1];
+
+    function deviceQuatFromEuler(alphaDeg, betaDeg, gammaDeg, orientDeg) {
+      const toR = Math.PI / 180;
+      let yaw   = alphaDeg * toR;
+      let pitch = betaDeg  * toR;
+      let roll  = gammaDeg * toR;
+
+      const isPortrait = (Math.abs(orientDeg) % 180) === 0;
+      if (isPortrait) { yaw = -yaw; pitch = -pitch; roll = -roll; }
+
+      if (activationPose === "flatUp" || activationPose === "flatDown") {
+        const tmp = yaw; yaw = roll; roll = tmp;
+        if (activationPose === "flatUp")   roll = -roll;
+        if (activationPose === "flatDown") roll = -roll;
+      }
+
+      // q = qY(yaw) * qX(pitch) * qZ(roll)
+      const qY = quatFromAxisAngle(0,1,0, yaw);
+      const qX = quatFromAxisAngle(1,0,0, pitch);
+      const qZ = quatFromAxisAngle(0,0,1, roll);
+      let q = quatMul(quatMul(qY, qX), qZ);
+
+      // coord-system correction
+      q = quatMul(q, Q_COORD);
+
+      // screen orientation compensation
+      const qScreen = quatFromAxisAngle(0,0,1, -(orientDeg * Math.PI / 180));
+      q = quatMul(q, qScreen);
+
+      if (activationPose === "flatDown") {
+        const qFlip = quatFromAxisAngle(1,0,0, Math.PI);
+        q = quatMul(q, qFlip);
+      }
+      return q;
+    }
 
     const handleMotion = (event) => {
       if (!motionEnabled) return;
 
-      const alpha = event.alpha ?? 0;
-      const beta  = event.beta  ?? 0;
-      const gamma = event.gamma ?? 0;
+      const alphaDeg = event.alpha ?? 0;
+      const betaDeg  = event.beta  ?? 0;
+      const gammaDeg = event.gamma ?? 0;
+      const orientDeg = (screen.orientation && typeof screen.orientation.angle === 'number')
+        ? screen.orientation.angle
+        : (typeof window.orientation === 'number' ? window.orientation : 0);
 
       if (firstRead) {
-        const isFlat = Math.abs(beta) < 35 && Math.abs(gamma) < 35;
-        activationPose = isFlat ? "flatUp" : "upright";
-        zeroAlpha = alpha; zeroBeta = beta; zeroGamma = gamma;
-        smoothA = alpha; smoothB = beta; smoothG = gamma;
+        const bDeg = betaDeg, gDeg = gammaDeg;
+        const isFlatLike = Math.abs(gDeg) < 35;
+        if      (isFlatLike && Math.abs(bDeg) < 35)               activationPose = "flatUp";
+        else if (isFlatLike && Math.abs(Math.abs(bDeg)-180) < 35) activationPose = "flatDown";
+        else                                                        activationPose = "upright";
+
+        const q0 = deviceQuatFromEuler(alphaDeg, betaDeg, gammaDeg, orientDeg);
+        smoothedQuat   = [...q0];
+        sensorZeroQuat = quatInvert(q0);
         firstRead = false;
         return;
       }
 
-      smoothA = smoothA + (alpha - smoothA) * SMOOTHING;
-      smoothB = smoothB + (beta  - smoothB) * SMOOTHING;
-      smoothG = smoothG + (gamma - smoothG) * SMOOTHING;
+      const currentQuat = deviceQuatFromEuler(alphaDeg, betaDeg, gammaDeg, orientDeg);
+      smoothedQuat = quatSlerp(smoothedQuat, currentQuat, SMOOTHING);
 
-      const dA = smoothA - zeroAlpha;
-      const dB = smoothB - zeroBeta;
-      const dG = smoothG - zeroGamma;
-
-      // Map to yaw/pitch offset for the cave camera
-      if (activationPose === "upright") {
-        window._vrOffset.yaw   =  dA * 0.030;
-        window._vrOffset.pitch = -dB * 0.025;
-      } else {
-        window._vrOffset.yaw   =  dG * 0.030;
-        window._vrOffset.pitch = -dA * 0.025;
-      }
+      // relative rotation from zero point
+      const relQuat = quatMul(smoothedQuat, sensorZeroQuat);
+      const { yaw, pitch } = quatToYawPitch(relQuat);
+      window._vrOffset.yaw   = yaw;
+      window._vrOffset.pitch = pitch;
     };
 
-    const enableMotion = async (opts) => {
+    let enableMotion = async (opts) => {
       if (motionEnabled) return;
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         alert("Se requiere HTTPS para el giroscopio en iOS"); return;
@@ -620,7 +693,18 @@
       if (!stored) return;
       const DOE = window.DeviceOrientationEvent;
       const needsGesture = !!(DOE && typeof DOE.requestPermission === "function");
-      if (!needsGesture) { await enableMotion({ assumeGranted: true }); }
+      if (needsGesture) {
+        // arm first gesture
+        const once = async () => {
+          document.removeEventListener("pointerdown", once, true);
+          document.removeEventListener("touchstart",  once, true);
+          await enableMotion();
+        };
+        document.addEventListener("pointerdown", once, true);
+        document.addEventListener("touchstart",  once, true);
+      } else {
+        await enableMotion({ assumeGranted: true });
+      }
     })();
   }
   </script>
