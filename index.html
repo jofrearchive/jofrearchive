@@ -134,8 +134,8 @@ layout: none
       "EXPERIMENTAL ARCHIVE"
     ],
     tabs: [
-      { key: "STUDIES",   ctaHref: "https://inside.jofrearchive.com/studies/" },
       { key: "WORKS",     ctaHref: "https://inside.jofrearchive.com/works/" },
+      { key: "STUDIES",   ctaHref: "https://inside.jofrearchive.com/studies/" },
       { key: "ARTIFACTS", ctaHref: "https://inside.jofrearchive.com/artifacts/" },
       { key: "GENEALOGY", ctaHref: "https://inside.jofrearchive.com/genealogy/" }
     ]
@@ -148,8 +148,14 @@ layout: none
         const result = await DOE.requestPermission();
         if (result === "granted") {
           try { localStorage.setItem("gyroPermissionGranted", "1"); } catch(e) {}
+          // Enable motion listener briefly so permission is fully active,
+          // then navigate after a short tick to ensure the flag is flushed.
+          await new Promise(resolve => setTimeout(resolve, 80));
         }
       } catch(e) {}
+    } else if (DOE) {
+      // Android / non-iOS: no prompt needed, just store the flag
+      try { localStorage.setItem("gyroPermissionGranted", "1"); } catch(e) {}
     }
     if (href) window.location.href = href;
   }
@@ -175,6 +181,12 @@ layout: none
       b.textContent = t.key;
       b.addEventListener("click", async () => {
         if (t.key === "GENEALOGY") {
+          // Call enableMotion if VR block already initialized it (satisfies
+          // the user-gesture requirement and stores the localStorage flag
+          // before navigating away).
+          if (typeof enableMotion === "function") {
+            await enableMotion();
+          }
           await requestGyroAndNavigate(t.ctaHref);
         } else {
           if (t.ctaHref) window.location.href = t.ctaHref;
@@ -556,6 +568,7 @@ layout: none
 
   window._vrOffset = { yaw: 0, pitch: 0 };
   let motionEnabled = false;
+  let enableMotion = null;  // hoisted so GENEALOGY button can call it
 
   if (isMobile()) {
 
@@ -638,7 +651,7 @@ layout: none
       window._vrOffset.pitch = -pitch;
     };
 
-    let enableMotion = async (opts) => {
+    enableMotion = async (opts) => {
       if (motionEnabled) return;
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         alert("Se requiere HTTPS para el giroscopio en iOS"); return;
