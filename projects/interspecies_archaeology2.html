@@ -499,9 +499,9 @@ body::after {
   <div id="panelBody">
   <div id="title">INTERSPECIES ARCHAEOLOGY</div>
   <div id="submeta">
-    accession no: IA-ΣK-01<br>
-    material: mycelium composite · human skull form<br>
-    status: bio-fabricated relic · speculative fossil
+    serial no: IA-ΣK-01<br>
+    material: mycelium composite<br>
+    description: bio-fabricated relic
   </div>
 
   <div class="tabs">
@@ -529,7 +529,7 @@ body::after {
     This piece proposes a museology of the living: vitrines for organisms that are still growing.
   </div>
 
-  <div id="footer">drag to rotate · scroll to zoom · use arrows to switch</div>
+
   </div>
 </div>
 
@@ -762,7 +762,7 @@ const scene = new THREE.Scene();
     bbox.getCenter(center);
 
     const maxDim = Math.max(size.x, size.y, size.z) || 1;
-    const desired = isPhone ? 120 : (isTablet ? 132 : 142);
+    const desired = isPhone ? 120 : (isTablet ? 132 : 105);
     const fitScale = desired / maxDim;
     root.scale.setScalar(fitScale);
 
@@ -811,7 +811,7 @@ const scene = new THREE.Scene();
     undefined,
     (error) => {
       console.error('GLB load error:', error);
-      showLoadError('model could not be loaded · check remote file access');
+      console.error('model could not be loaded');
     }
   );
 
@@ -932,7 +932,8 @@ const scene = new THREE.Scene();
   }
 
   function syncDefault(){
-    if(!panel.dataset.userToggled) setCollapsed(false);
+    const small = window.matchMedia('(max-width: 820px)').matches;
+    if(!panel.dataset.userToggled) setCollapsed(small);
   }
 
   handle.addEventListener('click', ()=>{
