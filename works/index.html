@@ -187,7 +187,17 @@ body::before{
 }
 .pbtn:hover{background:#f0e2c0;}
 
-/* TOOLTIP */
+/* SLIDER */
+.slider{position:relative;width:100%;aspect-ratio:16/9;background:var(--surface);overflow:hidden;border-bottom:1px solid var(--border);}
+.slider img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.82) contrast(1.02) brightness(.92);opacity:0;transition:opacity .4s;}
+.slider img.active{opacity:1;}
+.slider-prev,.slider-next{position:absolute;top:50%;transform:translateY(-50%);background:rgba(8,8,6,.7);border:1px solid var(--border);color:var(--accent);cursor:pointer;font-family:var(--mono);font-size:14px;padding:6px 10px;z-index:10;line-height:1;}
+.slider-prev{left:8px;}
+.slider-next{right:8px;}
+.slider-prev:hover,.slider-next:hover{color:var(--accent2);}
+.slider-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10;}
+.slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(200,184,154,.35);cursor:pointer;transition:background .2s;}
+.slider-dot.active{background:var(--accent2);}
 .tt{
   position:fixed;
   z-index:300;
@@ -264,8 +274,6 @@ body::before{
     <div class="pbody">
       <div class="pyr" id="pyr"></div>
       <div class="pdesc" id="pdesc"></div>
-      <div class="ptags" id="ptags"></div>
-      <a href="#" class="pbtn" id="pbtn">View Project →</a>
     </div>
   </div>
 </div>
@@ -277,7 +285,7 @@ const W$ = [
 
 
   {id:'fr-cf', city:'Clermont-Ferrand', co:'France', lat:45.78, lon:3.09, title:'Clermont-Ferrand', yr:'2020', desc:'Urban regeneration proposal for post-industrial zones, integrating volcanic rock into contemporary building envelopes.', tags:['Urban','Regeneration','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=70'},
-  {id:'jordan', city:'Amman', co:'Jordan', lat:31.95, lon:35.91, title:'Amman Study', yr:'2018', desc:'Research and documentation of informal urban growth patterns across the hillside districts of the Jordanian capital.', tags:['Research','Urban','Documentation'], link:'#', img:'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&q=70'},
+  {id:'jordan', city:'Amman', co:'Jordan', lat:31.95, lon:35.91, title:'The Column', yr:'2021', desc:'A mural depicting a man standing upright while holding the capital of a classical stone column above his head. The image combines references to the ancient architectural heritage of the region—evoking the Nabataean monuments of Petra—with a contemporary human figure dressed in everyday clothing and a traditional keffiyeh. Through this juxtaposition, the work reflects on the relationship between past and present, suggesting that cultural heritage is both a source of strength and a weight carried by current generations. Installed on a large building façade in the historic center of Amman, the mural transforms a familiar architectural symbol into a metaphor for collective responsibility, questioning how societies preserve, reinterpret, and physically sustain the legacy of their history within modern urban life.', tags:[], link:'#', imgs:['http://inside.jofrearchive.com/assets/images/works/2021amman.webp','http://inside.jofrearchive.com/assets/images/works/2021amman1.webp','http://inside.jofrearchive.com/assets/images/works/2021amman2.webp']},
   {id:'in-coi', city:'Coimbatore', co:'India', lat:11.02, lon:76.96, title:'Coimbatore Textile', yr:'2017', desc:'Adaptive reuse of textile mill infrastructure as mixed-use creative cluster preserving industrial heritage.', tags:['Adaptive Reuse','Heritage','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=70'},
   {id:'in-mum', city:'Mumbai', co:'India', lat:19.08, lon:72.88, title:'Mumbai Tower', yr:'2021', desc:'High-density residential tower exploring vertical community living through shared terraces and transitional spaces.', tags:['Residential','High-rise','Community'], link:'#', img:'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=70'},
 
@@ -293,7 +301,7 @@ const W$ = [
   {id:'es-val', city:'Valencia', co:'Spain', lat:39.47, lon:-0.38, title:'Valencia Garden', yr:'2021', desc:'Bioclimatic garden system for the Turia riverbed — extending the linear park with productive and ecological layers.', tags:['Landscape','Ecological','Bioclimatic'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
   {id:'es-can', city:'Canary Islands', co:'Spain', lat:28.12, lon:-15.44, title:'Canary Volcanic', yr:'2020', desc:'Visitor centre built into the volcanic terrain of Lanzarote, referencing Coderch and Barragán in its tectonic language.', tags:['Landscape','Volcanic','Visitor Centre'], link:'#', img:'https://images.unsplash.com/photo-1564419320461-6870880221ad?w=800&q=70'},
   {id:'uk', city:'Aberdeen', co:'UK', lat:57.15, lon:-2.09, title:'Aberdeen Granite', yr:'2017', desc:'Granite quarry interpretation centre addressing the material identity and post-extractive landscape of NE Scotland.', tags:['Material','Landscape','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=70'},
-  {id:'usa', city:'Miami', co:'USA', lat:25.76, lon:-80.19, title:'Miami Beach', yr:'2023', desc:'Resilient coastal architecture prototype addressing sea-level rise through adaptive ground levels and amphibious base.', tags:['Resilience','Coastal','Climate'], link:'#', img:'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&q=70'},
+  {id:'usa', city:'Miami', co:'USA', lat:25.76, lon:-80.19, title:'Miami Beach', yr:'2023', desc:'Resilient coastal architecture prototype addressing sea-level rise through adaptive ground levels and amphibious base.', tags:[], link:'#', img:'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&q=70'},
 ];
 
 const canvas = document.getElementById('c');
@@ -682,9 +690,25 @@ function openPanel(w){
   document.getElementById('ptitle').textContent = w.title;
   document.getElementById('pyr').textContent = `Project / ${w.yr}`;
   document.getElementById('pdesc').textContent = w.desc;
-  document.getElementById('pbtn').href = w.link;
-  document.getElementById('ptags').innerHTML = w.tags.map(t => `<span class="tag">${t}</span>`).join('');
-  document.getElementById('pimg').innerHTML = `<img src="${w.img}" alt="${w.title}">`;
+
+  const pimg = document.getElementById('pimg');
+  const imgs = w.imgs || (w.img ? [w.img] : []);
+  if(imgs.length > 1){
+    let cur = 0;
+    const slides = imgs.map((src,i) => `<img src="${src}" alt="${w.title}" class="${i===0?'active':''}">`).join('');
+    const dots = imgs.map((_,i) => `<span class="slider-dot${i===0?' active':''}"></span>`).join('');
+    pimg.innerHTML = `<div class="slider">${slides}<button class="slider-prev">‹</button><button class="slider-next">›</button><div class="slider-dots">${dots}</div></div>`;
+    const sl = pimg.querySelector('.slider');
+    const allImgs = sl.querySelectorAll('img');
+    const allDots = sl.querySelectorAll('.slider-dot');
+    function goTo(n){ cur=(n+imgs.length)%imgs.length; allImgs.forEach((im,i)=>im.classList.toggle('active',i===cur)); allDots.forEach((d,i)=>d.classList.toggle('active',i===cur)); }
+    sl.querySelector('.slider-prev').addEventListener('click', e=>{e.stopPropagation();goTo(cur-1);});
+    sl.querySelector('.slider-next').addEventListener('click', e=>{e.stopPropagation();goTo(cur+1);});
+    allDots.forEach((d,i)=>d.addEventListener('click',e=>{e.stopPropagation();goTo(i);}));
+  } else {
+    pimg.innerHTML = imgs[0] ? `<img src="${imgs[0]}" alt="${w.title}" style="width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.82) contrast(1.02) brightness(.92);">` : '';
+  }
+
   document.getElementById('panel').classList.add('open');
 }
 
