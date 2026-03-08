@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JOFRE OLIVERAS — Works</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600&family=Source+Code+Pro:wght@400;600&display=swap');
+
+:root{
+  --bg:#0a0a08;
+  --surface:#111110;
+  --border:#2a2a26;
+  --accent:#c8b89a;
+  --accent2:#e8d5b0;
+  --text:#d4cfc8;
+  --muted:#5a5550;
+  --panel-bg:rgba(8,8,6,0.97);
+  --serif:"EB Garamond", ui-serif, Georgia, serif;
+  --mono:"Source Code Pro", ui-monospace, monospace;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{
+  width:100%;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--mono);
+  overflow:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(200,184,154,.025), transparent 38%),
+    radial-gradient(circle at 70% 70%, rgba(200,184,154,.018), transparent 44%),
+    repeating-linear-gradient(0deg, rgba(200,184,154,.012) 0px, rgba(200,184,154,.012) 1px, transparent 1px, transparent 5px);
+  z-index:1;
+}
+
+#c{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  cursor:grab;
+  z-index:2;
+}
+#c:active{cursor:grabbing;}
+
+.hint{
+  position:fixed;
+  bottom:28px;
+  right:36px;
+  z-index:50;
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.18em;
+  color:var(--muted);
+  text-align:right;
+  line-height:2;
+  text-transform:uppercase;
+}
+
+/* PANEL */
+.panel{
+  position:fixed;
+  right:36px;
+  top:50%;
+  transform:translateY(-50%) translateX(calc(100% + 50px));
+  z-index:200;
+  width:320px;
+  background:var(--panel-bg);
+  border:1px solid var(--border);
+  transition:transform .5s cubic-bezier(.16,1,.3,1);
+  pointer-events:none;
+  box-shadow:0 0 40px rgba(0,0,0,.28);
+}
+.panel.open{
+  transform:translateY(-50%) translateX(0);
+  pointer-events:all;
+}
+.ph{
+  padding:16px 18px 12px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+}
+.ploc{
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.2em;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.ptitle{
+  font-family:var(--serif);
+  font-size:30px;
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--accent2);
+  line-height:0.95;
+  text-transform:uppercase;
+}
+.pcls{
+  background:none;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:20px;
+  line-height:1;
+  transition:color .2s;
+  flex-shrink:0;
+  font-family:var(--mono);
+}
+.pcls:hover{color:var(--accent2);}
+.pimg{
+  width:100%;
+  aspect-ratio:16/9;
+  background:var(--surface);
+  overflow:hidden;
+  border-bottom:1px solid var(--border);
+}
+.pimg img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+  filter:saturate(.82) contrast(1.02) brightness(.92);
+}
+.pbody{padding:16px 18px;}
+.pyr{
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.2em;
+  color:var(--muted);
+  margin-bottom:10px;
+  text-transform:uppercase;
+}
+.pdesc{
+  font-family:var(--serif);
+  font-size:16px;
+  line-height:1.5;
+  color:var(--text);
+  font-weight:500;
+  margin-bottom:14px;
+}
+.ptags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:16px;
+}
+.tag{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  border:1px solid var(--border);
+  padding:4px 7px;
+}
+.pbtn{
+  display:inline-block;
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--bg);
+  background:var(--accent2);
+  padding:10px 16px;
+  text-decoration:none;
+  transition:background .2s;
+}
+.pbtn:hover{background:#f0e2c0;}
+
+/* TOOLTIP */
+.tt{
+  position:fixed;
+  z-index:300;
+  pointer-events:none;
+  background:rgba(8,8,6,.96);
+  border:1px solid var(--border);
+  padding:8px 11px;
+  transform:translate(-50%,-145%);
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .15s;
+}
+.tt.on{opacity:1;}
+.ttc{
+  font-family:var(--serif);
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:.04em;
+  color:var(--accent2);
+  text-transform:uppercase;
+  line-height:1;
+}
+.ttk{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.16em;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-top:4px;
+}
+
+@media (max-width: 900px){
+  .panel{
+    right:18px;
+    width:min(320px, calc(100vw - 36px));
+  }
+  .hint{
+    right:18px;
+    bottom:18px;
+  }
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="tt" id="tt">
+  <div class="ttc" id="ttc"></div>
+  <div class="ttk" id="ttk"></div>
+</div>
+
+<div class="panel" id="panel">
+  <div class="ph">
+    <div>
+      <div class="ploc" id="ploc"></div>
+      <div class="ptitle" id="ptitle"></div>
+    </div>
+    <button class="pcls" id="pcls">×</button>
+  </div>
+  <div class="pimg" id="pimg"></div>
+  <div class="pbody">
+    <div class="pyr" id="pyr"></div>
+    <div class="pdesc" id="pdesc"></div>
+    <div class="ptags" id="ptags"></div>
+    <a href="#" class="pbtn" id="pbtn">View Project →</a>
+  </div>
+</div>
+
+<div class="hint">Drag to rotate<br>Hover point / click to explore</div>
+
+<script>
+const W$ = [
+  {id:'cyprus', city:'Limassol', co:'Cyprus', lat:34.68, lon:33.05, title:'Limassol Project', yr:'2022', desc:'Architectural intervention on the Mediterranean coastline exploring light and shadow through concrete and glass volumes.', tags:['Architecture','Mediterranean','Public Space'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
+  {id:'fr-ile', city:'Ille-Sur-Têt', co:'France', lat:42.67, lon:2.62, title:'Ille-Sur-Têt', yr:'2019', desc:'Cultural installation within the historic village structures of Catalonia, dialoguing with local stone and vernacular forms.', tags:['Installation','Heritage','Cultural'], link:'#', img:'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=70'},
+  {id:'fr-cf', city:'Clermont-Ferrand', co:'France', lat:45.78, lon:3.09, title:'Clermont-Ferrand', yr:'2020', desc:'Urban regeneration proposal for post-industrial zones, integrating volcanic rock into contemporary building envelopes.', tags:['Urban','Regeneration','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=70'},
+  {id:'jordan', city:'Amman', co:'Jordan', lat:31.95, lon:35.91, title:'Amman Study', yr:'2018', desc:'Research and documentation of informal urban growth patterns across the hillside districts of the Jordanian capital.', tags:['Research','Urban','Documentation'], link:'#', img:'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&q=70'},
+  {id:'in-coi', city:'Coimbatore', co:'India', lat:11.02, lon:76.96, title:'Coimbatore Textile', yr:'2017', desc:'Adaptive reuse of textile mill infrastructure as mixed-use creative cluster preserving industrial heritage.', tags:['Adaptive Reuse','Heritage','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=70'},
+  {id:'in-mum', city:'Mumbai', co:'India', lat:19.08, lon:72.88, title:'Mumbai Tower', yr:'2021', desc:'High-density residential tower exploring vertical community living through shared terraces and transitional spaces.', tags:['Residential','High-rise','Community'], link:'#', img:'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=70'},
+  {id:'in-thr', city:'Thrissur', co:'India', lat:10.53, lon:76.21, title:'Thrissur Cultural', yr:'2016', desc:'Cultural centre rooted in Kerala vernacular tradition, negotiating between climate, ceremony and contemporary program.', tags:['Cultural','Vernacular','Kerala'], link:'#', img:'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=70'},
+  {id:'indo', city:'Jakarta', co:'Indonesia', lat:-6.21, lon:106.85, title:'Jakarta Pavilion', yr:'2023', desc:'Temporary pavilion for the annual architecture biennale exploring the intersection of tropical ecology and urban density.', tags:['Pavilion','Temporary','Biennale'], link:'#', img:'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=800&q=70'},
+  {id:'italy', city:'Terracina', co:'Italy', lat:41.29, lon:13.25, title:'Terracina Ruins', yr:'2019', desc:'Careful insertion of contemporary infrastructure within the Roman archaeological layers of the Tyrrhenian coast.', tags:['Archaeology','Conservation','Infrastructure'], link:'#', img:'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&q=70'},
+  {id:'lebanon', city:'Beirut', co:'Lebanon', lat:33.89, lon:35.50, title:'Beirut Memory', yr:'2021', desc:'Memorial landscape addressing urban trauma and collective memory in the post-explosion reconstruction of the port district.', tags:['Memorial','Landscape','Memory'], link:'#', img:'https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=70'},
+  {id:'morocco', city:'Chefchaouen', co:'Morocco', lat:35.17, lon:-5.27, title:'Chefchaouen Blue', yr:'2018', desc:'Photographic and spatial study of the blue medina — chromatic urbanism as cultural identity and territorial marker.', tags:['Research','Medina','Chromatic'], link:'#', img:'https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=70'},
+  {id:'norway', city:'Stavanger', co:'Norway', lat:58.97, lon:5.73, title:'Stavanger Nordic', yr:'2022', desc:'Nordic landscape observatory integrating into the fjord topography through timber structure and restrained materiality.', tags:['Landscape','Nordic','Observatory'], link:'#', img:'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&q=70'},
+  {id:'portugal', city:'Covilhã', co:'Portugal', lat:40.28, lon:-7.50, title:'Covilhã Wool', yr:'2020', desc:'Textile heritage centre converting abandoned wool factories into a living archive of Portuguese industrial memory.', tags:['Heritage','Conversion','Textile'], link:'#', img:'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&q=70'},
+  {id:'es-mad', city:'Madrid', co:'Spain', lat:40.42, lon:-3.70, title:'Madrid Intervention', yr:'2023', desc:'Public space activation in the historic centre — temporary structures creating new urban rituals and encounters.', tags:['Public Space','Temporary','Intervention'], link:'#', img:'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&q=70'},
+  {id:'es-bcn', city:'Barcelona', co:'Spain', lat:41.39, lon:2.17, title:'Barcelona Housing', yr:'2022', desc:'Cooperative housing model for the Eixample, revisiting the Cerdà block through collective ownership and shared program.', tags:['Housing','Cooperative','Urban'], link:'#', img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=70'},
+  {id:'es-zgz', city:'Zaragoza', co:'Spain', lat:41.65, lon:-0.89, title:'Zaragoza Bridge', yr:'2019', desc:'Pedestrian infrastructure crossing the Ebro river, doubling as linear park and civic connector between districts.', tags:['Infrastructure','Bridge','Civic'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
+  {id:'es-val', city:'Valencia', co:'Spain', lat:39.47, lon:-0.38, title:'Valencia Garden', yr:'2021', desc:'Bioclimatic garden system for the Turia riverbed — extending the linear park with productive and ecological layers.', tags:['Landscape','Ecological','Bioclimatic'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
+  {id:'es-can', city:'Canary Islands', co:'Spain', lat:28.12, lon:-15.44, title:'Canary Volcanic', yr:'2020', desc:'Visitor centre built into the volcanic terrain of Lanzarote, referencing Coderch and Barragán in its tectonic language.', tags:['Landscape','Volcanic','Visitor Centre'], link:'#', img:'https://images.unsplash.com/photo-1564419320461-6870880221ad?w=800&q=70'},
+  {id:'uk', city:'Aberdeen', co:'UK', lat:57.15, lon:-2.09, title:'Aberdeen Granite', yr:'2017', desc:'Granite quarry interpretation centre addressing the material identity and post-extractive landscape of NE Scotland.', tags:['Material','Landscape','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=70'},
+  {id:'usa', city:'Miami', co:'USA', lat:25.76, lon:-80.19, title:'Miami Beach', yr:'2023', desc:'Resilient coastal architecture prototype addressing sea-level rise through adaptive ground levels and amphibious base.', tags:['Resilience','Coastal','Climate'], link:'#', img:'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&q=70'},
+];
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, CX, CY, R;
+function resize(){
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  CX = W / 2;
+  CY = H / 2;
+  R = Math.min(W, H) * 0.37;
+}
+resize();
+window.addEventListener('resize', resize);
+
+let rotY = -10;
+let rotX = 15;
+let vY = 0.05, vX = 0;
+let dragging = false, mx0 = 0, my0 = 0, dragMoved = false;
+let hovered = null, selected = null, frame = 0;
+
+const D2R = Math.PI / 180;
+
+function project(lat, lon){
+  const phi = lat * D2R;
+  const lam = lon * D2R;
+  const ry = rotY * D2R;
+  const rx = rotX * D2R;
+
+  const x0 = Math.cos(phi) * Math.sin(lam);
+  const y0 = Math.sin(phi);
+  const z0 = Math.cos(phi) * Math.cos(lam);
+
+  const x1 = x0 * Math.cos(ry) - z0 * Math.sin(ry);
+  const z1 = x0 * Math.sin(ry) + z0 * Math.cos(ry);
+
+  const y2 = y0 * Math.cos(rx) - z1 * Math.sin(rx);
+  const z2 = y0 * Math.sin(rx) + z1 * Math.cos(rx);
+
+  return { sx: CX + x1 * R, sy: CY - y2 * R, z: z2 };
+}
+
+let rings = null;
+
+fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
+  .then(r => r.json())
+  .then(parseTopo)
+  .catch(() => {});
+
+function parseTopo(topo){
+  const { scale:[sx,sy], translate:[tx,ty] } = topo.transform;
+
+  const arcs = topo.arcs.map(arc => {
+    let ax = 0, ay = 0;
+    return arc.map(([dx,dy]) => {
+      ax += dx;
+      ay += dy;
+      return [ax * sx + tx, ay * sy + ty];
+    });
+  });
+
+  function arc(i){ return i < 0 ? [...arcs[~i]].reverse() : arcs[i]; }
+  function ring(idxs){
+    const pts = [];
+    for(const i of idxs){
+      const a = arc(i);
+      pts.push(...a.slice(pts.length ? 1 : 0));
+    }
+    return pts;
+  }
+
+  const out = [];
+  function walk(g){
+    if(!g) return;
+    if(g.type === 'Polygon') g.arcs.forEach(r => out.push(ring(r)));
+    else if(g.type === 'MultiPolygon') g.arcs.forEach(p => p.forEach(r => out.push(ring(r))));
+    else if(g.type === 'GeometryCollection') g.geometries.forEach(walk);
+  }
+
+  const obj = topo.objects.land || topo.objects.countries || Object.values(topo.objects)[0];
+  walk(obj);
+  rings = out;
+}
+
+function draw(){
+  ctx.clearRect(0, 0, W, H);
+
+  const g = ctx.createRadialGradient(CX, CY, R * .25, CX, CY, R * 1.55);
+  g.addColorStop(0, 'rgba(200,184,154,.04)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  const oc = ctx.createRadialGradient(CX - R * .15, CY - R * .15, R * .03, CX, CY, R);
+  oc.addColorStop(0, '#181811');
+  oc.addColorStop(.65, '#0d0d0b');
+  oc.addColorStop(1, '#040403');
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.fillStyle = oc;
+  ctx.fill();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.lineWidth = .45;
+  ctx.strokeStyle = 'rgba(200,184,154,.055)';
+
+  for(let lat=-80; lat<=80; lat+=20){
+    let open = false;
+    for(let lon=-180; lon<=180; lon+=2){
+      const p = project(lat, lon);
+      if(p.z <= 0){
+        if(open){ ctx.stroke(); open = false; }
+        continue;
+      }
+      if(!open){
+        ctx.beginPath();
+        ctx.moveTo(p.sx, p.sy);
+        open = true;
+      } else {
+        ctx.lineTo(p.sx, p.sy);
+      }
+    }
+    if(open) ctx.stroke();
+  }
+
+  for(let lon=-180; lon<180; lon+=20){
+    let open = false;
+    for(let lat=-88; lat<=88; lat+=2){
+      const p = project(lat, lon);
+      if(p.z <= 0){
+        if(open){ ctx.stroke(); open = false; }
+        continue;
+      }
+      if(!open){
+        ctx.beginPath();
+        ctx.moveTo(p.sx, p.sy);
+        open = true;
+      } else {
+        ctx.lineTo(p.sx, p.sy);
+      }
+    }
+    if(open) ctx.stroke();
+  }
+
+  ctx.lineWidth = .8;
+  ctx.strokeStyle = 'rgba(200,184,154,.13)';
+  {
+    let open = false;
+    for(let lon=-180; lon<=180; lon+=2){
+      const p = project(0, lon);
+      if(p.z <= 0){
+        if(open){ ctx.stroke(); open = false; }
+        continue;
+      }
+      if(!open){
+        ctx.beginPath();
+        ctx.moveTo(p.sx, p.sy);
+        open = true;
+      } else {
+        ctx.lineTo(p.sx, p.sy);
+      }
+    }
+    if(open) ctx.stroke();
+  }
+
+  if(rings){
+    ctx.strokeStyle = 'rgba(212,194,162,.32)';
+    ctx.lineWidth = .55;
+
+    for(const ring of rings){
+      const pts = ring.map(([lon, lat]) => {
+        const p = project(lat, lon);
+        return { x:p.sx, y:p.sy, v:p.z>0 };
+      });
+
+      const n = pts.length;
+      if(!n) continue;
+
+      let i = 0;
+      while(i < n){
+        if(!pts[i].v){ i++; continue; }
+
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        i++;
+
+        while(i < n && pts[i].v){
+          ctx.lineTo(pts[i].x, pts[i].y);
+          i++;
+        }
+        ctx.stroke();
+      }
+    }
+  }
+
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(200,184,154,.09)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  const sp = ctx.createRadialGradient(CX - R * .26, CY - R * .28, 0, CX - R * .26, CY - R * .28, R * .7);
+  sp.addColorStop(0, 'rgba(255,248,230,.055)');
+  sp.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI * 2);
+  ctx.fillStyle = sp;
+  ctx.fill();
+
+  for(const w of W$){
+    const p = project(w.lat, w.lon);
+    if(p.z <= 0) continue;
+
+    const dep = Math.min(1, (p.z + .1) * 1.1);
+    const isH = hovered === w;
+    const isS = selected === w;
+
+    if(isH || isS){
+      const pulse = (Math.sin(frame * .08) + 1) / 2;
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, 11 + pulse * 4, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(200,184,154,${.15 * pulse * dep})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(200,184,154,${.35 * dep})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy, isH || isS ? 5.5 : 3.8, 0, Math.PI * 2);
+    ctx.fillStyle = (isH || isS)
+      ? `rgba(240,226,192,${dep})`
+      : `rgba(200,184,154,${.82 * dep})`;
+    ctx.fill();
+  }
+}
+
+function loop(){
+  frame++;
+  if(!dragging){
+    rotY += vY;
+    rotX += vX;
+    vY += (0.05 - vY) * .007;
+    vX *= .93;
+    rotX = Math.max(-60, Math.min(60, rotX));
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  dragMoved = false;
+  mx0 = e.clientX;
+  my0 = e.clientY;
+  vY = 0;
+  vX = 0;
+});
+
+window.addEventListener('mousemove', e => {
+  if(!dragging){
+    const w = hitTest(e.clientX, e.clientY);
+    hovered = w;
+    canvas.style.cursor = w ? 'pointer' : 'grab';
+
+    const tt = document.getElementById('tt');
+    if(w){
+      tt.style.left = e.clientX + 'px';
+      tt.style.top = e.clientY + 'px';
+      document.getElementById('ttc').textContent = w.city;
+      document.getElementById('ttk').textContent = w.co;
+      tt.classList.add('on');
+    } else {
+      tt.classList.remove('on');
+    }
+    return;
+  }
+
+  const dx = e.clientX - mx0;
+  const dy = e.clientY - my0;
+  if(Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+
+  vY = -dx * .32;
+  vX =  dy * .32;
+  rotY += -dx * .32;
+  rotX +=  dy * .32;
+
+  rotX = Math.max(-60, Math.min(60, rotX));
+  mx0 = e.clientX;
+  my0 = e.clientY;
+});
+
+window.addEventListener('mouseup', () => {
+  dragging = false;
+});
+
+canvas.addEventListener('click', e => {
+  if(!dragMoved){
+    const w = hitTest(e.clientX, e.clientY);
+    if(w) openPanel(w);
+  }
+});
+
+let tx0, ty0;
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  dragging = true;
+  dragMoved = false;
+  mx0 = t.clientX;
+  my0 = t.clientY;
+  tx0 = t.clientX;
+  ty0 = t.clientY;
+  vY = 0;
+  vX = 0;
+}, {passive:true});
+
+canvas.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  const dx = t.clientX - mx0;
+  const dy = t.clientY - my0;
+
+  if(Math.hypot(t.clientX - tx0, t.clientY - ty0) > 5) dragMoved = true;
+
+  vY = -dx * .32;
+  vX =  dy * .32;
+  rotY += -dx * .32;
+  rotX +=  dy * .32;
+
+  rotX = Math.max(-60, Math.min(60, rotX));
+  mx0 = t.clientX;
+  my0 = t.clientY;
+  e.preventDefault();
+}, {passive:false});
+
+canvas.addEventListener('touchend', e => {
+  dragging = false;
+  if(!dragMoved){
+    const t = e.changedTouches[0];
+    const w = hitTest(t.clientX, t.clientY);
+    if(w) openPanel(w);
+  }
+});
+
+function hitTest(mx, my){
+  for(const w of W$){
+    const p = project(w.lat, w.lon);
+    if(p.z <= 0) continue;
+    if(Math.hypot(mx - p.sx, my - p.sy) < 14) return w;
+  }
+  return null;
+}
+
+function openPanel(w){
+  selected = w;
+  document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
+  document.getElementById('ptitle').textContent = w.title;
+  document.getElementById('pyr').textContent = `Project / ${w.yr}`;
+  document.getElementById('pdesc').textContent = w.desc;
+  document.getElementById('pbtn').href = w.link;
+  document.getElementById('ptags').innerHTML = w.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  document.getElementById('pimg').innerHTML = `<img src="${w.img}" alt="${w.title}">`;
+  document.getElementById('panel').classList.add('open');
+  spinTo(w.lon, w.lat);
+}
+
+function spinTo(lon, lat){
+  let dY = -lon;
+
+  while(dY - rotY > 180) dY -= 360;
+  while(rotY - dY > 180) dY += 360;
+
+  const dX = lat * 0.45;
+  const sY = rotY, sX = rotX;
+
+  vY = 0;
+  vX = 0;
+
+  let prog = 0;
+  const id = setInterval(() => {
+    prog += .028;
+    const t = 1 - Math.pow(1 - Math.min(prog, 1), 3);
+    rotY = sY + (dY - sY) * t;
+    rotX = sX + (dX - sX) * t;
+    if(prog >= 1) clearInterval(id);
+  }, 16);
+}
+
+document.getElementById('pcls').addEventListener('click', () => {
+  document.getElementById('panel').classList.remove('open');
+  selected = null;
+});
+</script>
+</body>
+</html>
