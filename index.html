@@ -33,7 +33,7 @@ layout: none
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: min(360px, 92vw);
+      width: min(560px, 92vw);
       background: rgba(10,10,10,.65);
       border: 1px solid rgba(255,255,255,.18);
       padding: 32px;
@@ -63,23 +63,20 @@ layout: none
       color: var(--ivory);
     }
     #panel .tabs {
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
-      justify-content: space-between;
       margin-bottom: 6px;
     }
     #panel .tabLink {
-      flex: 1 1 0;
       background: rgba(255,255,255,0.02);
       border: 1px solid rgba(255,255,255,0.16);
       color: var(--ivory);
       font-family: 'Source Code Pro', monospace;
-      font-size: 11px;
-      letter-spacing: .14em;
+      font-size: 10px;
+      letter-spacing: .12em;
       text-transform: uppercase;
-      padding: 10px 8px;
+      padding: 10px 4px;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
@@ -87,6 +84,8 @@ layout: none
       justify-content: center;
       text-align: center;
       white-space: nowrap;
+      min-width: 0;
+      overflow: hidden;
     }
     #panel .tabLink:hover, #panel .tabLink.active {
       background: rgba(255,255,255,0.06);
@@ -94,8 +93,19 @@ layout: none
       opacity: 1;
     }
 
-    @media (max-width: 520px){
-      #panel { padding: 14px 14px 8px !important; }
+    @media (max-width: 540px){
+      #panel {
+        padding: 20px 16px 14px !important;
+        width: min(320px, 92vw) !important;
+      }
+      #panel .tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      #panel .tabLink {
+        padding: 12px 8px;
+        font-size: 10px;
+      }
     }
   </style>
 </head>
