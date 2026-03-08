@@ -44,8 +44,9 @@ body::before{
 
 #c{
   position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
+  inset:0;
+  width:100%;
+  height:100%;
   cursor:grab;
   z-index:2;
 }
@@ -78,11 +79,18 @@ body::before{
   transition:transform .5s cubic-bezier(.16,1,.3,1);
   pointer-events:none;
   box-shadow:0 0 40px rgba(0,0,0,.28);
+  display:flex;
+  flex-direction:column;
 }
 .panel.open{
   transform:translateY(-50%) translateX(0);
   pointer-events:all;
 }
+.panel-scroll{
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+.panel-scroll::-webkit-scrollbar{ display:none; }
 .ph{
   padding:16px 18px 12px;
   border-bottom:1px solid var(--border);
@@ -104,7 +112,7 @@ body::before{
   font-weight:600;
   letter-spacing:.06em;
   color:var(--accent2);
-  line-height:0.95;
+  line-height:.95;
   text-transform:uppercase;
 }
 .pcls{
@@ -213,8 +221,20 @@ body::before{
 
 @media (max-width: 900px){
   .panel{
-    right:18px;
-    width:min(320px, calc(100vw - 36px));
+    right:0;
+    left:0;
+    top:auto;
+    bottom:0;
+    width:100%;
+    transform:translateY(100%) !important;
+    max-height:55vh;
+  }
+  .panel.open{
+    transform:translateY(0) !important;
+    pointer-events:all;
+  }
+  .panel-scroll{
+    max-height:calc(55vh - 70px);
   }
   .hint{
     right:18px;
@@ -239,12 +259,14 @@ body::before{
     </div>
     <button class="pcls" id="pcls">×</button>
   </div>
-  <div class="pimg" id="pimg"></div>
-  <div class="pbody">
-    <div class="pyr" id="pyr"></div>
-    <div class="pdesc" id="pdesc"></div>
-    <div class="ptags" id="ptags"></div>
-    <a href="#" class="pbtn" id="pbtn">View Project →</a>
+  <div class="panel-scroll">
+    <div class="pimg" id="pimg"></div>
+    <div class="pbody">
+      <div class="pyr" id="pyr"></div>
+      <div class="pdesc" id="pdesc"></div>
+      <div class="ptags" id="ptags"></div>
+      <a href="#" class="pbtn" id="pbtn">View Project →</a>
+    </div>
   </div>
 </div>
 
@@ -252,13 +274,13 @@ body::before{
 
 <script>
 const W$ = [
-  {id:'cyprus', city:'Limassol', co:'Cyprus', lat:34.68, lon:33.05, title:'Limassol Project', yr:'2022', desc:'Architectural intervention on the Mediterranean coastline exploring light and shadow through concrete and glass volumes.', tags:['Architecture','Mediterranean','Public Space'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
-  {id:'fr-ile', city:'Ille-Sur-Têt', co:'France', lat:42.67, lon:2.62, title:'Ille-Sur-Têt', yr:'2019', desc:'Cultural installation within the historic village structures of Catalonia, dialoguing with local stone and vernacular forms.', tags:['Installation','Heritage','Cultural'], link:'#', img:'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=70'},
+
+
   {id:'fr-cf', city:'Clermont-Ferrand', co:'France', lat:45.78, lon:3.09, title:'Clermont-Ferrand', yr:'2020', desc:'Urban regeneration proposal for post-industrial zones, integrating volcanic rock into contemporary building envelopes.', tags:['Urban','Regeneration','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=70'},
   {id:'jordan', city:'Amman', co:'Jordan', lat:31.95, lon:35.91, title:'Amman Study', yr:'2018', desc:'Research and documentation of informal urban growth patterns across the hillside districts of the Jordanian capital.', tags:['Research','Urban','Documentation'], link:'#', img:'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&q=70'},
   {id:'in-coi', city:'Coimbatore', co:'India', lat:11.02, lon:76.96, title:'Coimbatore Textile', yr:'2017', desc:'Adaptive reuse of textile mill infrastructure as mixed-use creative cluster preserving industrial heritage.', tags:['Adaptive Reuse','Heritage','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=70'},
   {id:'in-mum', city:'Mumbai', co:'India', lat:19.08, lon:72.88, title:'Mumbai Tower', yr:'2021', desc:'High-density residential tower exploring vertical community living through shared terraces and transitional spaces.', tags:['Residential','High-rise','Community'], link:'#', img:'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=70'},
-  {id:'in-thr', city:'Thrissur', co:'India', lat:10.53, lon:76.21, title:'Thrissur Cultural', yr:'2016', desc:'Cultural centre rooted in Kerala vernacular tradition, negotiating between climate, ceremony and contemporary program.', tags:['Cultural','Vernacular','Kerala'], link:'#', img:'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=70'},
+
   {id:'indo', city:'Jakarta', co:'Indonesia', lat:-6.21, lon:106.85, title:'Jakarta Pavilion', yr:'2023', desc:'Temporary pavilion for the annual architecture biennale exploring the intersection of tropical ecology and urban density.', tags:['Pavilion','Temporary','Biennale'], link:'#', img:'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=800&q=70'},
   {id:'italy', city:'Terracina', co:'Italy', lat:41.29, lon:13.25, title:'Terracina Ruins', yr:'2019', desc:'Careful insertion of contemporary infrastructure within the Roman archaeological layers of the Tyrrhenian coast.', tags:['Archaeology','Conservation','Infrastructure'], link:'#', img:'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&q=70'},
   {id:'lebanon', city:'Beirut', co:'Lebanon', lat:33.89, lon:35.50, title:'Beirut Memory', yr:'2021', desc:'Memorial landscape addressing urban trauma and collective memory in the post-explosion reconstruction of the port district.', tags:['Memorial','Landscape','Memory'], link:'#', img:'https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=70'},
@@ -278,12 +300,18 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 let W, H, CX, CY, R;
+let userScale = 1.0;
+let pinchDist0 = null;
+let pinchScale0 = 1.0;
+let cyOffset = 0;      // current animated offset
+let cyOffsetTarget = 0; // target offset (always set as fixed value, never accumulated)
+
 function resize(){
   W = canvas.width = window.innerWidth;
   H = canvas.height = window.innerHeight;
   CX = W / 2;
-  CY = H / 2;
-  R = Math.min(W, H) * 0.37;
+  CY = H / 2 + cyOffset;
+  R = Math.min(W, H) * (W < 600 ? 0.46 : 0.37) * userScale;
 }
 resize();
 window.addEventListener('resize', resize);
@@ -522,6 +550,8 @@ function draw(){
 
 function loop(){
   frame++;
+  cyOffset += (cyOffsetTarget - cyOffset) * 0.07;
+  CY = H / 2 + cyOffset;
   if(!dragging){
     rotY += vY;
     rotX += vX;
@@ -548,7 +578,6 @@ window.addEventListener('mousemove', e => {
     const w = hitTest(e.clientX, e.clientY);
     hovered = w;
     canvas.style.cursor = w ? 'pointer' : 'grab';
-
     const tt = document.getElementById('tt');
     if(w){
       tt.style.left = e.clientX + 'px';
@@ -561,24 +590,19 @@ window.addEventListener('mousemove', e => {
     }
     return;
   }
-
   const dx = e.clientX - mx0;
   const dy = e.clientY - my0;
   if(Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
-
   vY = -dx * .32;
   vX =  dy * .32;
   rotY += -dx * .32;
   rotX +=  dy * .32;
-
   rotX = Math.max(-60, Math.min(60, rotX));
   mx0 = e.clientX;
   my0 = e.clientY;
 });
 
-window.addEventListener('mouseup', () => {
-  dragging = false;
-});
+window.addEventListener('mouseup', () => { dragging = false; });
 
 canvas.addEventListener('click', e => {
   if(!dragMoved){
@@ -589,29 +613,42 @@ canvas.addEventListener('click', e => {
 
 let tx0, ty0;
 canvas.addEventListener('touchstart', e => {
+  if(e.touches.length === 2){
+    pinchDist0 = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY
+    );
+    pinchScale0 = userScale;
+    dragging = false;
+    return;
+  }
   const t = e.touches[0];
   dragging = true;
   dragMoved = false;
-  mx0 = t.clientX;
-  my0 = t.clientY;
-  tx0 = t.clientX;
-  ty0 = t.clientY;
-  vY = 0;
-  vX = 0;
+  mx0 = t.clientX; my0 = t.clientY;
+  tx0 = t.clientX; ty0 = t.clientY;
+  vY = 0; vX = 0;
 }, {passive:true});
 
 canvas.addEventListener('touchmove', e => {
+  if(e.touches.length === 2 && pinchDist0 !== null){
+    const dist = Math.hypot(
+      e.touches[1].clientX - e.touches[0].clientX,
+      e.touches[1].clientY - e.touches[0].clientY
+    );
+    userScale = Math.max(0.5, Math.min(3.0, pinchScale0 * (dist / pinchDist0)));
+    resize();
+    e.preventDefault();
+    return;
+  }
   const t = e.touches[0];
   const dx = t.clientX - mx0;
   const dy = t.clientY - my0;
-
   if(Math.hypot(t.clientX - tx0, t.clientY - ty0) > 5) dragMoved = true;
-
   vY = -dx * .32;
   vX =  dy * .32;
   rotY += -dx * .32;
   rotX +=  dy * .32;
-
   rotX = Math.max(-60, Math.min(60, rotX));
   mx0 = t.clientX;
   my0 = t.clientY;
@@ -619,6 +656,7 @@ canvas.addEventListener('touchmove', e => {
 }, {passive:false});
 
 canvas.addEventListener('touchend', e => {
+  pinchDist0 = null;
   dragging = false;
   if(!dragMoved){
     const t = e.changedTouches[0];
@@ -638,6 +676,8 @@ function hitTest(mx, my){
 
 function openPanel(w){
   selected = w;
+  document.getElementById('tt').classList.remove('on');
+  cyOffsetTarget = window.innerWidth < 900 ? -window.innerHeight * 0.13 : 0;
   document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
   document.getElementById('ptitle').textContent = w.title;
   document.getElementById('pyr').textContent = `Project / ${w.yr}`;
@@ -646,34 +686,13 @@ function openPanel(w){
   document.getElementById('ptags').innerHTML = w.tags.map(t => `<span class="tag">${t}</span>`).join('');
   document.getElementById('pimg').innerHTML = `<img src="${w.img}" alt="${w.title}">`;
   document.getElementById('panel').classList.add('open');
-  spinTo(w.lon, w.lat);
-}
-
-function spinTo(lon, lat){
-  let dY = -lon;
-
-  while(dY - rotY > 180) dY -= 360;
-  while(rotY - dY > 180) dY += 360;
-
-  const dX = lat * 0.45;
-  const sY = rotY, sX = rotX;
-
-  vY = 0;
-  vX = 0;
-
-  let prog = 0;
-  const id = setInterval(() => {
-    prog += .028;
-    const t = 1 - Math.pow(1 - Math.min(prog, 1), 3);
-    rotY = sY + (dY - sY) * t;
-    rotX = sX + (dX - sX) * t;
-    if(prog >= 1) clearInterval(id);
-  }, 16);
 }
 
 document.getElementById('pcls').addEventListener('click', () => {
   document.getElementById('panel').classList.remove('open');
   selected = null;
+  cyOffsetTarget = 0;
+  vY = 0.05;
 });
 </script>
 </body>
