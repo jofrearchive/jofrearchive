@@ -334,7 +334,7 @@ function resize(){
   H = canvas.height = window.innerHeight;
   CX = W / 2;
   CY = H / 2 + cyOffset;
-  R = Math.min(W, H) * (W < 600 ? 0.46 : 0.37) * userScale;
+  R = Math.min(W, H) * (W < 600 ? 0.56 : 0.46) * userScale;
 }
 resize();
 window.addEventListener('resize', resize);
