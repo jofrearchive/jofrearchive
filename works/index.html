@@ -52,6 +52,26 @@ body::before{
 }
 #c:active{cursor:grabbing;}
 
+.exit-btn{
+  position:fixed;
+  top:clamp(10px,2vw,22px);
+  right:clamp(10px,2vw,22px);
+  z-index:300;
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink, var(--accent));
+  text-decoration:none;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(10,10,10,.28);
+  backdrop-filter:blur(10px);
+  opacity:.56;
+  transition:opacity .2s;
+}
+.exit-btn:hover{opacity:1;}
+
 .hint{
   position:fixed;
   bottom:28px;
@@ -158,6 +178,7 @@ body::before{
   font-weight:500;
   margin-bottom:14px;
 }
+.pdesc p+p{ margin-top:10px; }
 .ptags{
   display:flex;
   flex-wrap:wrap;
@@ -255,6 +276,7 @@ body::before{
 </head>
 <body>
 <canvas id="c"></canvas>
+<a href="https://jofrearchive.com" class="exit-btn">Exit ×</a>
 
 <div class="tt" id="tt">
   <div class="ttc" id="ttc"></div>
@@ -278,28 +300,21 @@ body::before{
   </div>
 </div>
 
-<div class="hint">Drag to rotate<br>Hover point / click to explore</div>
+<div class="hint">Works across geographies<br>Every point, a story</div>
 
 <script>
 const W$ = [
 
 
-  {id:'fr-cf', city:'Clermont-Ferrand', co:'France', lat:45.78, lon:3.09, title:'Clermont-Ferrand', yr:'2020', desc:'Urban regeneration proposal for post-industrial zones, integrating volcanic rock into contemporary building envelopes.', tags:['Urban','Regeneration','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=70'},
   {id:'jordan', city:'Amman', co:'Jordan', lat:31.95, lon:35.91, title:'The Column', yr:'2021', desc:'A mural depicting a man standing upright while holding the capital of a classical stone column above his head. The image combines references to the ancient architectural heritage of the region—evoking the Nabataean monuments of Petra—with a contemporary human figure dressed in everyday clothing and a traditional keffiyeh. Through this juxtaposition, the work reflects on the relationship between past and present, suggesting that cultural heritage is both a source of strength and a weight carried by current generations. Installed on a large building façade in the historic center of Amman, the mural transforms a familiar architectural symbol into a metaphor for collective responsibility, questioning how societies preserve, reinterpret, and physically sustain the legacy of their history within modern urban life.', tags:[], link:'#', imgs:['http://inside.jofrearchive.com/assets/images/works/2021amman.webp','http://inside.jofrearchive.com/assets/images/works/2021amman1.webp','http://inside.jofrearchive.com/assets/images/works/2021amman2.webp']},
-  {id:'in-coi', city:'Coimbatore', co:'India', lat:11.02, lon:76.96, title:'Coimbatore Textile', yr:'2017', desc:'Adaptive reuse of textile mill infrastructure as mixed-use creative cluster preserving industrial heritage.', tags:['Adaptive Reuse','Heritage','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=70'},
+  {id:'in-coi', city:'Coimbatore', co:'India', lat:11.02, lon:76.96, title:'Communion', yr:'2024', desc:'The mural is centered around the concept of unity despite the apparent division of the wall. For this reason, a group of women clothed in the same fabric submerged in water. This scene symbolizes a moment of purification within a shared environment.\nThe artwork emphasizes the importance of recognizing and celebrating individual differences as essential components of a rich and diverse community. This message feels particularly pertinent when minority voices face marginalization and isolation rather than support and inclusion.', tags:[], link:'#', imgs:['http://inside.jofrearchive.com/assets/images/works/2024Coimbatore1.webp','http://inside.jofrearchive.com/assets/images/works/2024Coimbatore2.webp','http://inside.jofrearchive.com/assets/images/works/2024Coimbatore3.webp']},
   {id:'in-mum', city:'Mumbai', co:'India', lat:19.08, lon:72.88, title:'Mumbai Tower', yr:'2021', desc:'High-density residential tower exploring vertical community living through shared terraces and transitional spaces.', tags:['Residential','High-rise','Community'], link:'#', img:'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=70'},
-
   {id:'indo', city:'Jakarta', co:'Indonesia', lat:-6.21, lon:106.85, title:'Jakarta Pavilion', yr:'2023', desc:'Temporary pavilion for the annual architecture biennale exploring the intersection of tropical ecology and urban density.', tags:['Pavilion','Temporary','Biennale'], link:'#', img:'https://images.unsplash.com/photo-1555899434-94d1368aa7af?w=800&q=70'},
   {id:'italy', city:'Terracina', co:'Italy', lat:41.29, lon:13.25, title:'Terracina Ruins', yr:'2019', desc:'Careful insertion of contemporary infrastructure within the Roman archaeological layers of the Tyrrhenian coast.', tags:['Archaeology','Conservation','Infrastructure'], link:'#', img:'https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&q=70'},
   {id:'lebanon', city:'Beirut', co:'Lebanon', lat:33.89, lon:35.50, title:'Beirut Memory', yr:'2021', desc:'Memorial landscape addressing urban trauma and collective memory in the post-explosion reconstruction of the port district.', tags:['Memorial','Landscape','Memory'], link:'#', img:'https://images.unsplash.com/photo-1590736704728-f4730bb30770?w=800&q=70'},
-  {id:'morocco', city:'Chefchaouen', co:'Morocco', lat:35.17, lon:-5.27, title:'Chefchaouen Blue', yr:'2018', desc:'Photographic and spatial study of the blue medina — chromatic urbanism as cultural identity and territorial marker.', tags:['Research','Medina','Chromatic'], link:'#', img:'https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=70'},
   {id:'norway', city:'Stavanger', co:'Norway', lat:58.97, lon:5.73, title:'Stavanger Nordic', yr:'2022', desc:'Nordic landscape observatory integrating into the fjord topography through timber structure and restrained materiality.', tags:['Landscape','Nordic','Observatory'], link:'#', img:'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&q=70'},
-  {id:'portugal', city:'Covilhã', co:'Portugal', lat:40.28, lon:-7.50, title:'Covilhã Wool', yr:'2020', desc:'Textile heritage centre converting abandoned wool factories into a living archive of Portuguese industrial memory.', tags:['Heritage','Conversion','Textile'], link:'#', img:'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=800&q=70'},
-  {id:'es-mad', city:'Madrid', co:'Spain', lat:40.42, lon:-3.70, title:'Madrid Intervention', yr:'2023', desc:'Public space activation in the historic centre — temporary structures creating new urban rituals and encounters.', tags:['Public Space','Temporary','Intervention'], link:'#', img:'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&q=70'},
+  {id:'portugal', city:'Covilhã', co:'Portugal', lat:40.28, lon:-7.50, title:'Playful Invasion', yr:'2021', desc:'The artwork is an inflatable tank placed in various streets, symbolizing the infiltration of violence into society through education and childhood. The tank\'s playful appearance contrasts with its representation of violence, highlighting how violent behaviors are often normalized and perpetuated. The artwork challenges viewers to reconsider the impact of violence in everyday life and the need to address its root causes.\nThe concept behind the inflatable tank artwork is to provoke contemplation on how violence is ingrained in society from a young age, often through seemingly innocent activities like playing with toy weapons or engaging in competitive games. By placing the tank in public spaces, the artwork confronts viewers with the playful yet insidious nature of violence, urging them to reflect on its presence and influence in their lives. Through this provocative installation, the artist aims to spark dialogue and raise awareness about the need to address and dismantle the structures that perpetuate violence in society.', tags:[], link:'#', imgs:['http://inside.jofrearchive.com/assets/images/works/2021Covilha1.webp','http://inside.jofrearchive.com/assets/images/works/2021Covilha3.webp','http://inside.jofrearchive.com/assets/images/works/2021Covilha4.webp']},
   {id:'es-bcn', city:'Barcelona', co:'Spain', lat:41.39, lon:2.17, title:'Barcelona Housing', yr:'2022', desc:'Cooperative housing model for the Eixample, revisiting the Cerdà block through collective ownership and shared program.', tags:['Housing','Cooperative','Urban'], link:'#', img:'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=70'},
-  {id:'es-zgz', city:'Zaragoza', co:'Spain', lat:41.65, lon:-0.89, title:'Zaragoza Bridge', yr:'2019', desc:'Pedestrian infrastructure crossing the Ebro river, doubling as linear park and civic connector between districts.', tags:['Infrastructure','Bridge','Civic'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
-  {id:'es-val', city:'Valencia', co:'Spain', lat:39.47, lon:-0.38, title:'Valencia Garden', yr:'2021', desc:'Bioclimatic garden system for the Turia riverbed — extending the linear park with productive and ecological layers.', tags:['Landscape','Ecological','Bioclimatic'], link:'#', img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70'},
-  {id:'es-can', city:'Canary Islands', co:'Spain', lat:28.12, lon:-15.44, title:'Canary Volcanic', yr:'2020', desc:'Visitor centre built into the volcanic terrain of Lanzarote, referencing Coderch and Barragán in its tectonic language.', tags:['Landscape','Volcanic','Visitor Centre'], link:'#', img:'https://images.unsplash.com/photo-1564419320461-6870880221ad?w=800&q=70'},
   {id:'uk', city:'Aberdeen', co:'UK', lat:57.15, lon:-2.09, title:'Aberdeen Granite', yr:'2017', desc:'Granite quarry interpretation centre addressing the material identity and post-extractive landscape of NE Scotland.', tags:['Material','Landscape','Industrial'], link:'#', img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=70'},
   {id:'usa', city:'Miami', co:'USA', lat:25.76, lon:-80.19, title:'Miami Beach', yr:'2023', desc:'Resilient coastal architecture prototype addressing sea-level rise through adaptive ground levels and amphibious base.', tags:[], link:'#', img:'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&q=70'},
 ];
@@ -689,7 +704,7 @@ function openPanel(w){
   document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
   document.getElementById('ptitle').textContent = w.title;
   document.getElementById('pyr').textContent = `Project / ${w.yr}`;
-  document.getElementById('pdesc').textContent = w.desc;
+  document.getElementById('pdesc').innerHTML = w.desc.split('\n').map(p => `<p>${p}</p>`).join('');
 
   const pimg = document.getElementById('pimg');
   const imgs = w.imgs || (w.img ? [w.img] : []);
