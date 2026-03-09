@@ -7,21 +7,21 @@
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0b0b; --ink:#e8e2d6;
+  --bg:#141210; --ink:#e8e2d6;
   --panel: rgba(15,15,15,.78);
   --border: rgba(255,255,255,.16);
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
-html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'EB Garamond', serif;}
-#graph{position:fixed;inset:0;z-index:1;}
+html,body{margin:0;height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'EB Garamond', serif;}
+#graph{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
 #vitrine-bg{position:fixed;inset:-2%;z-index:0;pointer-events:none;background:
-radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06) 0%, rgba(255,255,255,.00) 58%),
-radial-gradient(900px 600px at 50% 72%, rgba(232,226,214,.05) 0%, rgba(0,0,0,0) 60%),
-linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0,.42) 100%),
-radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.65) 0%, rgba(0,0,0,.0) 55%),
-radial-gradient(700px 700px at 15% 25%, rgba(255,255,255,.035) 0%, rgba(0,0,0,0) 58%),
-radial-gradient(700px 700px at 85% 30%, rgba(255,255,255,.03) 0%, rgba(0,0,0,0) 60%),
-#0b0b0b;filter:saturate(.92) contrast(1.05);}
+radial-gradient(1200px 800px at 50% 38%, rgba(205,190,168,.06) 0%, rgba(205,190,168,.00) 58%),
+radial-gradient(900px 600px at 50% 72%, rgba(198,182,158,.05) 0%, rgba(0,0,0,0) 60%),
+linear-gradient(180deg, rgba(205,190,168,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0,.32) 100%),
+radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.50) 0%, rgba(0,0,0,.0) 55%),
+radial-gradient(700px 700px at 15% 25%, rgba(196,180,155,.045) 0%, rgba(0,0,0,0) 58%),
+radial-gradient(700px 700px at 85% 30%, rgba(192,176,152,.038) 0%, rgba(0,0,0,0) 60%),
+#141210;filter:saturate(1.0) contrast(1.02);}
 #vitrine-bg::after{content:"";position:absolute;inset:0;background:
 repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px),
 repeating-linear-gradient(90deg, rgba(255,255,255,.009) 0px, rgba(255,255,255,.009) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 6px);
@@ -32,46 +32,29 @@ linear-gradient(245deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 26%),
 radial-gradient(900px 700px at 60% 25%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 55%);
 opacity:.34;mix-blend-mode:screen;}
 #vitrine-frame{position:fixed;inset:clamp(10px,2.2vw,22px);z-index:4;pointer-events:none;border-radius:14px;opacity:.75;}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.94) 100%);z-index:2;opacity:.90;}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.88) 100%);z-index:2;opacity:.72;}
 
-/* WORDPRESS-LIKE TRANSPARENT HEADER (logo centered) */
-.siteHeader{
+/* EXIT BUTTON — top right (same style as Works page) */
+.exitBtn{
   position: fixed;
-  left: 0; right: 0; top: 0;
-  height: calc(96px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
+  top: calc(clamp(10px, 2vw, 22px) + env(safe-area-inset-top));
+  right: calc(clamp(10px, 2vw, 22px) + env(safe-area-inset-right));
   z-index: 10000;
-  pointer-events: none; /* allow orbit/graph interactions around it */
-}
-
-.siteHeader a{
-  pointer-events: auto;  /* clickable */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
+  font-family: "Source Code Pro", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink);
   text-decoration: none;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(10,10,10,.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: .56;
+  transition: opacity .2s;
 }
-
-.siteHeader img{
-  height: 56px;          /* typical WP logo height on desktop */
-  width: auto;
-  max-width: min(260px, 82vw);
-  display: block;
-  opacity: .92;
-}
-
-.siteHeader img:hover{ opacity: 1; }
-
-/* Mobile: slightly smaller to match common WP headers */
-@media (max-width: 520px){
-  .siteHeader{ height: calc(84px + env(safe-area-inset-top)); }
-  .siteHeader img{ height: 44px; }
-}
+.exitBtn:hover{ opacity: 1; }
 
 #infoPanel{
   position:fixed; inset:0;
@@ -454,7 +437,8 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   .panelBox {
     max-height: none;
     height: auto;
-    min-height: min(90vh, 700px);
+    min-height: min(88vh, 700px);
+    width: 100%;
   }
 
   .panelBody{ 
@@ -470,25 +454,31 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   }
 
   .sheet{ 
-    min-height: 400px;
-    height: 50vh;
+    min-height: 360px;
+    height: 48vh;
   }
 }
 
 @media (max-width: 520px){
   #infoPanel {
-    padding: 8px;
+    padding: 0;
+    align-items: stretch;
+    overflow-y: auto;
   }
 
   .panelBox {
     width: 100%;
     max-height: none;
+    height: 100dvh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
   }
 
   .panelHeader{ 
     padding: 14px; 
     height: auto;
-    min-height: 80px;
+    min-height: 70px;
   }
 
   .panelBody {
@@ -496,21 +486,23 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
   }
 
   .meta {
-    max-height: 140px;
+    max-height: 130px;
     order: 2;
   }
 
   .sheet {
     order: 1;
-    min-height: 300px;
-    height: 45vh;
+    min-height: 260px;
+    height: 42vh;
+    flex: 1;
   }
 
   .sheetText{ font-size: 12px; }
 
   .panelFooter {
     height: auto;
-    min-height: 60px;
+    min-height: 56px;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
@@ -815,9 +807,7 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;background:rad
 
 
 /* FORCE INFO PANELS ABOVE HEADER + VR BUTTON */
-.infopanel, .infoPanel, .info-panel, #infopanel, #infoPanel, #info-panel,
-.panel, .panelRoot, .panel-root, .panel-overlay, #panel-overlay, #panels, #modal, .modal, .overlay {
-  position: fixed;
+#infoPanel, #communityFullPanel, #writeInviteOverlay {
   z-index: 100000 !important;
 }
 
@@ -902,11 +892,11 @@ input, textarea{ font-size:16px; }
 
 /* --- Unified background tone (Normal + VR) --- */
 html, body {
-  background-color: #0d0d0d !important;
+  background-color: #141210 !important;
 }
 
 canvas {
-  background-color: #0d0d0d !important;
+  background-color: #141210 !important;
 }
 
 
@@ -1047,10 +1037,10 @@ html, body{
    - When VR is active, slightly lift the base tone so it matches non-VR perception
 =================================*/
 body.vr-on{
-  background-color: #121212 !important;
+  background-color: #161311 !important;
 }
 body.vr-on canvas{
-  background-color: #121212 !important;
+  background-color: #161311 !important;
 }
 
 
@@ -1196,10 +1186,25 @@ body[data-panel-key="MEMORY"] #metaRowClass{
 
 <script>
 (function(){
+  // The 3d-force-graph UMD bundle always ships Three.js internally — there is no
+  // separate "peer deps" UMD build. Loading THREE separately is still required so
+  // our own scene code works. The resulting "Multiple instances" warning is a known
+  // cosmetic side-effect with no functional impact; suppress it cleanly here.
+  const _warn = console.warn.bind(console);
+  console.warn = function(...args){
+    const msg = args[0];
+    if(typeof msg === 'string' && (
+      msg.includes('Multiple instances of Three.js') ||
+      msg.includes('build/three.js') ||
+      msg.includes('build/three.min.js')
+    )) return;
+    _warn(...args);
+  };
+
   const libs = [
-    { key:"THREE", url1:"https://unpkg.com/three@0.160.0/build/three.min.js", url2:"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" },
-    { key:"SpriteText", url1:"https://unpkg.com/three-spritetext@1.10.0/dist/three-spritetext.min.js", url2:"https://cdn.jsdelivr.net/npm/three-spritetext@1.10.0/dist/three-spritetext.min.js" },
-    { key:"ForceGraph3D", url1:"https://unpkg.com/3d-force-graph@1.77.1/dist/3d-force-graph.min.js", url2:"https://cdn.jsdelivr.net/npm/3d-force-graph@1.77.1/dist/3d-force-graph.min.js" }
+    { key:"THREE",        url1:"https://cdn.jsdelivr.net/npm/three@0.148.0/build/three.min.js",                    url2:"https://unpkg.com/three@0.148.0/build/three.min.js" },
+    { key:"SpriteText",   url1:"https://cdn.jsdelivr.net/npm/three-spritetext@1.9.0/dist/three-spritetext.min.js", url2:"https://unpkg.com/three-spritetext@1.9.0/dist/three-spritetext.min.js" },
+    { key:"ForceGraph3D", url1:"https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.0/dist/3d-force-graph.min.js",    url2:"https://unpkg.com/3d-force-graph@1.73.0/dist/3d-force-graph.min.js" }
   ];
   function loadScript(url){
     return new Promise((resolve,reject)=>{
@@ -1211,11 +1216,13 @@ body[data-panel-key="MEMORY"] #metaRowClass{
     });
   }
   async function loadAll(){
-    for (const lib of libs){
-      if (window[lib.key]) continue;
-      try { await loadScript(lib.url1); }
+    for(const lib of libs){
+      if(window[lib.key]) continue;
+      try{ await loadScript(lib.url1); }
       catch(e){ await loadScript(lib.url2); }
     }
+    // Restore original console.warn once all libs are loaded
+    console.warn = _warn;
   }
   window.__load3dLibs = loadAll();
 })();
@@ -1225,11 +1232,8 @@ body[data-panel-key="MEMORY"] #metaRowClass{
 
 <body>
 
-<header class="siteHeader" role="banner" aria-label="Primary">
-  
-    <a href="https://jofrearchive.com/" target="_self" rel="noopener"><img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive"></a>
-  
-</header>
+<a class="exitBtn" href="https://jofrearchive.com/" target="_self" rel="noopener">Exit ×</a>
+
 
 <div id="vitrine-bg" aria-hidden="true"></div>
 <div id="graph"></div>
@@ -1853,7 +1857,7 @@ const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x0d0d0d,
+      color: 0x141210,
       side: THREE.BackSide,
       transparent: true,
       opacity: 0.32,
@@ -2033,7 +2037,7 @@ Graph.nodeThreeObject(node => {
       const manifestoBlock = new THREE.Mesh(
         new THREE.BoxGeometry(W, H, D),
         new THREE.MeshStandardMaterial({
-          color: 0x0b0b0b,
+          color: 0x060606,
           roughness: 0.65,
           metalness: 0.04
         })
@@ -2042,7 +2046,7 @@ Graph.nodeThreeObject(node => {
       const edge = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
         new THREE.LineBasicMaterial({
-          color: 0x1a1a1a,
+          color: 0x1a1816,
           transparent: true,
           opacity: 0.25
         })
@@ -2079,7 +2083,7 @@ Graph.nodeThreeObject(node => {
       const block = new THREE.Mesh(
         new THREE.BoxGeometry(W, H, D),
         new THREE.MeshStandardMaterial({
-          color: 0x0b0b0b,
+          color: 0x060606,
           roughness: 0.65,
           metalness: 0.04
         })
@@ -2088,7 +2092,7 @@ Graph.nodeThreeObject(node => {
       const edge = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
         new THREE.LineBasicMaterial({
-          color: 0x1a1a1a,
+          color: 0x1a1816,
           transparent: true,
           opacity: 0.25
         })
@@ -2120,7 +2124,7 @@ Graph.nodeThreeObject(node => {
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(W, H, D),
       new THREE.MeshStandardMaterial({
-        color: 0x0b0b0b,
+        color: 0x060606,
         roughness: 0.65,
         metalness: 0.04
       })
@@ -2129,7 +2133,7 @@ Graph.nodeThreeObject(node => {
     const edge = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
       new THREE.LineBasicMaterial({
-        color: 0x1a1a1a,
+        color: 0x1a1816,
         transparent: true,
         opacity: 0.25
       })
@@ -2923,7 +2927,7 @@ btnErase.addEventListener("click", async () => {
   const cPanel = document.getElementById('communityFullPanel');
   if(!cPanel) return;
 
-  function close<a href="https://jofrearchive.com/" target="_self" style="text-decoration:none;color:inherit;">Community</a>(){ cPanel.classList.remove('open'); }
+  function closeCommunity(){ cPanel.classList.remove('open'); }
 
   const closeBtn = cPanel.querySelector('.close-btn');
   if(closeBtn) closeBtn.addEventListener('click', closeCommunity);
