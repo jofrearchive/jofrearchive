@@ -1,17 +1,37 @@
+```yml
 title: Jofre Archive
 url: "https://jofrearchive.com"
 baseurl: ""
 
+markdown: kramdown
+permalink: pretty
+
 collections:
+
   studies:
     output: true
-    permalink: /studies/:name/
+    permalink: /studies/:slug/
+
+  artifacts:
+    output: true
+    permalink: /artifacts/:slug/
 
 defaults:
+
   - scope:
       path: ""
       type: studies
     values:
       layout: study
 
-markdown: kramdown
+  - scope:
+      path: ""
+      type: artifacts
+    values:
+      layout: artifact
+
+exclude:
+  - node_modules
+  - vendor
+  - README.md
+```
