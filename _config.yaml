@@ -1,4 +1,3 @@
-```yml
 title: Jofre Archive
 url: "https://jofrearchive.com"
 baseurl: ""
@@ -30,8 +29,13 @@ defaults:
     values:
       layout: artifact
 
+timezone: UTC
+
 exclude:
   - node_modules
   - vendor
   - README.md
-```
+  - package.json
+  - package-lock.json
+  - Gemfile
+  - Gemfile.lock
