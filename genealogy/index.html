@@ -2181,7 +2181,8 @@ __fixLinkDepth();
 
 
 function __faceMenuToCamera(){
-  const camQuat = Graph.camera().quaternion;
+  const camQuat = new THREE.Quaternion();
+  Graph.camera().getWorldQuaternion(camQuat);
   for (let i=0; i<__menuBlocks.length; i++) {
     const block = __menuBlocks[i];
     if (block.userData && block.userData.isManifestoConnector) {
@@ -2203,13 +2204,11 @@ Graph.scene().add(dir);
 const baseRadius = 1050 * SCALE;
 Graph.cameraPosition({ x: baseRadius, y: baseRadius*0.10, z: baseRadius }, { x:0,y:0,z:0 });
 
-  // VR: keep desktop auto-orbit, but add phone look as a relative delta (no roll)
-  if (window.__VR_ACTIVE && window.__VR_DELTAQ) {
-    const cam = Graph.camera();
-    cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
-    cam.updateMatrixWorld(true);
-  }
-
+// Hook into ForceGraph3D's own render cycle so blocks ALWAYS face camera,
+// even on frames triggered by the graph engine itself (not our orbit loop).
+if (typeof Graph.onRenderFramePre === 'function') {
+  Graph.onRenderFramePre(() => { __faceMenuToCamera(); });
+}
 
 __faceMenuToCamera();
 let ang = 0;
@@ -2220,12 +2219,12 @@ let ang = 0;
   cam.position.z = baseRadius * Math.sin(ang);
   cam.position.y = baseRadius * 0.10;
   cam.lookAt(0,0,0);
-  // VR: keep desktop auto-orbit, but add phone look as a relative delta (no roll)
+  // VR: apply gyro delta FIRST, then immediately sync blocks to the final quaternion
   if (window.__VR_ACTIVE && window.__VR_DELTAQ) {
     cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
     cam.updateMatrixWorld(true);
   }
-
+  // Always called AFTER any quaternion changes so blocks are perfectly in sync
   __faceMenuToCamera();
   requestAnimationFrame(orbit);
 })();
