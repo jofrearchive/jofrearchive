@@ -1,14 +1,14 @@
 ---
-layout: default
 title: Artifacts
 permalink: /artifacts/
+layout: null
 ---
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Artifacts</title>
+<title>{{ page.title }}</title>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -37,12 +37,13 @@ body.desktop .cartela .desc{font-size:14px}
 body.mobile .cartela{left:10px;right:10px;bottom:max(48px,calc(env(safe-area-inset-bottom) + 44px));padding:14px 14px 13px}
 body.mobile .cartela h1{font-size:16px}
 body.mobile .cartela .desc{font-size:13px;line-height:1.5}
+.cartela.is-empty{opacity:0;pointer-events:none}
 
 .nav{position:fixed;inset:0;display:flex;justify-content:space-between;align-items:flex-start;padding:0 10px;pointer-events:none;z-index:9}
-.btn{pointer-events:auto;border:1px solid rgba(255,255,255,.14);background:rgba(10,10,10,.26);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-family:var(--mono);backdrop-filter:blur(10px);opacity:0}
+.btn{pointer-events:auto;border:1px solid rgba(255,255,255,.14);background:rgba(10,10,10,.26);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-family:var(--mono);backdrop-filter:blur(10px);visibility:hidden}
 body.desktop .btn{width:38px;height:78px;font-size:20px}
 body.mobile .btn{width:32px;height:64px;font-size:18px}
-.btn.ready{opacity:1}
+.btn.is-visible{visibility:visible}
 
 .slider-ref{position:fixed;left:50%;transform:translateX(-50%);z-index:9;display:flex;padding:7px 10px;border:1px solid rgba(255,255,255,.12);background:rgba(10,10,10,.24);backdrop-filter:blur(10px);border-radius:0}
 body.desktop .slider-ref{bottom:max(14px,env(safe-area-inset-bottom));gap:9px}
@@ -63,12 +64,12 @@ body.mobile .room-item{font-size:9px;padding:9px 11px}
 </style>
 </head>
 <body>
-{% assign chamber1 = site.artifacts | where: "chamber", "chamber-i" | sort: "order" %}
-{% assign chamber2 = site.artifacts | where: "chamber", "chamber-ii" | sort: "order" %}
+{% assign chamber1_items = site.artifacts | where: "chamber", "chamber-i" | sort: "order" %}
+{% assign chamber2_items = site.artifacts | where: "chamber", "chamber-ii" | sort: "order" %}
 <div class="glass"></div>
 <div class="frame"></div>
 
-<div class="cartela">
+<div class="cartela is-empty" id="cartela">
   <h1 id="title"></h1>
   <div class="meta" id="meta"></div>
   <div class="desc" id="desc"></div>
@@ -87,33 +88,6 @@ body.mobile .room-item{font-size:9px;padding:9px 11px}
 
 <div class="slider-ref" id="dots"></div>
 
-<script>
-window.__BASE_URL__ = {{ site.baseurl | jsonify }};
-window.__SITE_URL__ = {{ site.url | jsonify }};
-window.__ROOM1_ITEMS__ = [
-{% for item in chamber1 %}
-  {
-    title: {{ item.title | default: item.slug | jsonify }},
-    meta: {{ ("year. " | append: item.year) | append: "<br>class. " | append: (item.artifact_type | default: "3d object") | append: "<br>id. " | append: (item.id | default: item.slug) | append: (item.materials and item.materials.size > 0 ? "<br>materials. " : "") | jsonify }},
-    materials: {{ item.materials | jsonify }},
-    desc: {{ item.abstract | default: item.description | default: "" | jsonify }},
-    model: {{ item.model | default: "" | jsonify }},
-    image: {{ item.image | default: "" | jsonify }}
-  }{% unless forloop.last %},{% endunless %}
-{% endfor %}
-];
-window.__ROOM2_ITEMS__ = [
-{% for item in chamber2 %}
-  {
-    title: {{ item.title | default: item.slug | jsonify }},
-    meta: {{ ("year. " | append: item.year) | append: "<br>class. " | append: (item.artifact_type | default: "2d work") | append: "<br>id. " | append: (item.id | default: item.slug) | append: (item.materials and item.materials.size > 0 ? "<br>materials. " : "") | jsonify }},
-    materials: {{ item.materials | jsonify }},
-    desc: {{ item.abstract | default: item.description | default: "" | jsonify }},
-    image: {{ item.image | default: "" | jsonify }}
-  }{% unless forloop.last %},{% endunless %}
-{% endfor %}
-];
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
@@ -122,28 +96,39 @@ function applyBodyClass(){
   document.body.classList.toggle('mobile', isPortrait());
   document.body.classList.toggle('desktop', !isPortrait());
 }
-function buildMeta(item){
-  let meta = item.meta || '';
-  if(Array.isArray(item.materials) && item.materials.length){
-    meta += (meta ? '<br>' : '') + 'materials. ' + item.materials.join(' · ');
-  }
-  return meta;
-}
 applyBodyClass();
-let currentRoom=1;
 
-const room1Items = (window.__ROOM1_ITEMS__ && window.__ROOM1_ITEMS__.length)
-  ? window.__ROOM1_ITEMS__.map(item => ({...item, meta: buildMeta(item)}))
-  : [{title:'Chamber I', meta:'catalogue pending', desc:'Pedestal ready. No object assigned yet.', model:'', image:''}];
+const room1Items = [
+{% for item in chamber1_items %}
+  {
+    title: {{ item.title | default: "" | jsonify }},
+    year: {{ item.year | jsonify }},
+    materials: {{ item.materials | default: item.material | jsonify }},
+    artifact_type: {{ item.artifact_type | default: item.type | jsonify }},
+    abstract: {{ item.abstract | default: item.subtitle | default: "" | jsonify }},
+    model: {{ item.model | default: "" | jsonify }},
+    image: {{ item.image | default: "" | jsonify }}
+  }{% unless forloop.last %},{% endunless %}
+{% endfor %}
+];
 
-const room2Items = (window.__ROOM2_ITEMS__ && window.__ROOM2_ITEMS__.length)
-  ? window.__ROOM2_ITEMS__.map(item => ({...item, meta: buildMeta(item)}))
-  : [{title:'Chamber II', meta:'catalogue pending', desc:'Wall ready. No image assigned yet.', image:''}];
+const room2Items = [
+{% for item in chamber2_items %}
+  {
+    title: {{ item.title | default: "" | jsonify }},
+    year: {{ item.year | jsonify }},
+    materials: {{ item.materials | default: item.material | jsonify }},
+    artifact_type: {{ item.artifact_type | default: item.type | jsonify }},
+    abstract: {{ item.abstract | default: item.subtitle | default: "" | jsonify }},
+    image: {{ item.image | default: "" | jsonify }}
+  }{% unless forloop.last %},{% endunless %}
+{% endfor %}
+];
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x070707);
 const camera=new THREE.PerspectiveCamera(40,window.innerWidth/window.innerHeight,0.1,100);
-const renderer=new THREE.WebGLRenderer({antialias:true, alpha:false});
+const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
@@ -152,6 +137,12 @@ document.body.appendChild(renderer.domElement);
 renderer.domElement.style.position='fixed';
 renderer.domElement.style.inset='0';
 renderer.domElement.style.zIndex='1';
+
+let currentRoom=1;
+let room1Index=0;
+let room2Index=0;
+let currentModelRoot = null;
+const gltfLoader = new THREE.GLTFLoader();
 
 function setCamera(){
   if(isPortrait()){
@@ -189,58 +180,59 @@ function setPedestalLayout(){
 setPedestalLayout();
 function getObjectBaseY(){ return slab.position.y + SLAB_H/2 + 2.2; }
 
-const modelHolder = new THREE.Group();
-room1Group.add(modelHolder);
-let currentModel = null;
-const loader = new THREE.GLTFLoader();
-
-function fitModel(object){
-  const box = new THREE.Box3().setFromObject(object);
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  box.getSize(size); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
-  const scale = 3.0 / maxDim;
-  object.scale.setScalar(scale);
-  box.setFromObject(object);
-  box.getCenter(center);
-  object.position.sub(center);
-  const box2 = new THREE.Box3().setFromObject(object);
-  const minY = box2.min.y;
-  object.position.y -= minY;
-}
+const room1Anchor = new THREE.Group();
+room1Anchor.position.y = getObjectBaseY();
+room1Group.add(room1Anchor);
 
 function clearCurrentModel(){
-  while(modelHolder.children.length) modelHolder.remove(modelHolder.children[0]);
-  currentModel = null;
-}
-
-function loadModel(url){
-  clearCurrentModel();
-  if(!url) return;
-  loader.load(url, (gltf) => {
-    const obj = gltf.scene;
-    obj.traverse((child) => {
-      if(child.isMesh){
-        child.castShadow = true;
-        child.receiveShadow = true;
+  if(currentModelRoot){
+    room1Anchor.remove(currentModelRoot);
+    currentModelRoot.traverse(obj => {
+      if(obj.geometry) obj.geometry.dispose?.();
+      if(obj.material){
+        if(Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose?.());
+        else obj.material.dispose?.();
       }
     });
-    fitModel(obj);
-    obj.position.y = getObjectBaseY();
-    modelHolder.add(obj);
-    currentModel = obj;
-  }, undefined, () => {
-    clearCurrentModel();
+    currentModelRoot = null;
+  }
+}
+
+function normalizeModel(root){
+  const box = new THREE.Box3().setFromObject(root);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+  const scale = 3.2 / maxDim;
+  root.scale.setScalar(scale);
+  root.position.sub(center.multiplyScalar(scale));
+  root.traverse(obj => {
+    if(obj.isMesh){
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
   });
+}
+
+function loadRoom1Model(item){
+  clearCurrentModel();
+  if(!item || !item.model) return;
+  gltfLoader.load(item.model, gltf => {
+    if(currentRoom !== 1 || room1Items[room1Index] !== item) return;
+    currentModelRoot = gltf.scene;
+    normalizeModel(currentModelRoot);
+    room1Anchor.add(currentModelRoot);
+  }, undefined, () => {});
 }
 
 const museumWallMat=new THREE.MeshStandardMaterial({color:0x0a0a0a,roughness:.98,metalness:.02});
 const museumWall=new THREE.Mesh(new THREE.PlaneGeometry(22,13),museumWallMat);
 room2Group.add(museumWall);
 const sideLeft=new THREE.Mesh(new THREE.PlaneGeometry(4,13),new THREE.MeshStandardMaterial({color:0x060606,roughness:1}));
-sideLeft.rotation.y=Math.PI/2.9; room2Group.add(sideLeft);
-const sideRight=sideLeft.clone(); sideRight.rotation.y=-Math.PI/2.9; room2Group.add(sideRight);
+room2Group.add(sideLeft);
+const sideRight=sideLeft.clone(); room2Group.add(sideRight);
 const ceilingShadow=new THREE.Mesh(new THREE.PlaneGeometry(22,8),new THREE.MeshStandardMaterial({color:0x050505,roughness:1,transparent:true,opacity:.96}));
 ceilingShadow.rotation.x=Math.PI/2; room2Group.add(ceilingShadow);
 const frameOuter=new THREE.Mesh(new THREE.BoxGeometry(4.68,5.88,.18),new THREE.MeshStandardMaterial({color:0x9b7a2f,roughness:.34,metalness:.72}));
@@ -250,37 +242,19 @@ room2Group.add(frameInnerShadow);
 const frameInnerGold=new THREE.Mesh(new THREE.BoxGeometry(4.18,5.38,.04),new THREE.MeshStandardMaterial({color:0xc4a35a,roughness:.38,metalness:.62}));
 room2Group.add(frameInnerGold);
 
-const texLoader = new THREE.TextureLoader();
-const artPlane=new THREE.Mesh(new THREE.PlaneGeometry(4.02,5.22),new THREE.MeshStandardMaterial({color:0xbdb3a3,roughness:.94,metalness:0}));
+const artCanvas=document.createElement('canvas'); artCanvas.width=800; artCanvas.height=1100;
+const artCtx=artCanvas.getContext('2d');
+const artTexture=new THREE.CanvasTexture(artCanvas);
+artTexture.minFilter=THREE.LinearFilter; artTexture.magFilter=THREE.LinearFilter;
+const artPlane=new THREE.Mesh(new THREE.PlaneGeometry(4.02,5.22),new THREE.MeshStandardMaterial({map:artTexture,roughness:.94,metalness:.0}));
 room2Group.add(artPlane);
-let activeArtTexture = null;
-function setArtwork(url){
-  if(activeArtTexture){
-    activeArtTexture.dispose();
-    activeArtTexture = null;
-  }
-  if(!url){
-    artPlane.material.map = null;
-    artPlane.material.needsUpdate = true;
-    return;
-  }
-  texLoader.load(url, (texture) => {
-    activeArtTexture = texture;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    artPlane.material.map = texture;
-    artPlane.material.needsUpdate = true;
-  }, undefined, () => {
-    artPlane.material.map = null;
-    artPlane.material.needsUpdate = true;
-  });
-}
 
 const wallHaloCanvas=document.createElement('canvas'); wallHaloCanvas.width=900; wallHaloCanvas.height=900;
 const wallHaloCtx=wallHaloCanvas.getContext('2d');
 const wallHaloTexture=new THREE.CanvasTexture(wallHaloCanvas);
 const wallHalo=new THREE.Mesh(new THREE.PlaneGeometry(10.8,8.8),new THREE.MeshBasicMaterial({map:wallHaloTexture,transparent:true,opacity:.54,depthWrite:false}));
 room2Group.add(wallHalo);
+
 function paintWallHalo(){
   const g=wallHaloCtx.createRadialGradient(450,170,40,450,270,360);
   g.addColorStop(0,'rgba(214,197,169,.22)');
@@ -294,24 +268,88 @@ function paintWallHalo(){
 }
 paintWallHalo();
 
+function getDisplayCenterY(){ return getObjectBaseY(); }
 function setRoom2Layout(){
   const anchorY = getObjectBaseY();
   if(isPortrait()){
-    museumWall.position.set(0,anchorY-0.4,-5.6); museumWall.scale.set(1,1.08,1);
-    sideLeft.position.set(-11.5,anchorY-0.4,-3.2); sideRight.position.set(11.5,anchorY-0.4,-3.2);
+    museumWall.position.set(0,anchorY-0.4,-5.6);
+    museumWall.scale.set(1,1.08,1);
+    sideLeft.position.set(-11.5,anchorY-0.4,-3.2);
+    sideLeft.rotation.y=Math.PI/2.9;
+    sideRight.position.set(11.5,anchorY-0.4,-3.2);
+    sideRight.rotation.y=-Math.PI/2.9;
     ceilingShadow.position.set(0,anchorY+5.9,-2.4);
-    frameOuter.position.set(0,anchorY,-4.95); frameInnerShadow.position.set(0,anchorY,-4.85); frameInnerGold.position.set(0,anchorY,-4.80);
-    artPlane.position.set(0,anchorY,-4.74); wallHalo.position.set(0,anchorY+0.55,-5.42); wallHalo.scale.set(1.02,1.1,1);
-    room2Spot.position.set(0,anchorY+5.9,-1.9); room2Spot.target.position.set(0,anchorY,-4.85); room2CeilingGlow.position.set(0,anchorY+4.8,-2.2);
+    frameOuter.position.set(0,anchorY,-4.95);
+    frameInnerShadow.position.set(0,anchorY,-4.85);
+    frameInnerGold.position.set(0,anchorY,-4.80);
+    artPlane.position.set(0,anchorY,-4.74);
+    wallHalo.position.set(0,anchorY+0.55,-5.42);
+    wallHalo.scale.set(1.02,1.1,1);
+    room2Spot.position.set(0,anchorY+5.9,-1.9);
+    room2Spot.target.position.set(0,anchorY,-4.85);
+    room2CeilingGlow.position.set(0,anchorY+4.8,-2.2);
   }else{
-    museumWall.position.set(0,anchorY-0.2,-4.8); museumWall.scale.set(1,1,1);
-    sideLeft.position.set(-11.5,anchorY-0.2,-2.5); sideRight.position.set(11.5,anchorY-0.2,-2.5);
+    museumWall.position.set(0,anchorY-0.2,-4.8);
+    museumWall.scale.set(1,1,1);
+    sideLeft.position.set(-11.5,anchorY-0.2,-2.5);
+    sideLeft.rotation.y=Math.PI/2.9;
+    sideRight.position.set(11.5,anchorY-0.2,-2.5);
+    sideRight.rotation.y=-Math.PI/2.9;
     ceilingShadow.position.set(0,anchorY+6.2,-1.8);
-    frameOuter.position.set(0,anchorY,-4.22); frameInnerShadow.position.set(0,anchorY,-4.12); frameInnerGold.position.set(0,anchorY,-4.07);
-    artPlane.position.set(0,anchorY,-4.02); wallHalo.position.set(0,anchorY+0.5,-4.64); wallHalo.scale.set(1,1,1);
-    room2Spot.position.set(0,anchorY+5.6,-1.2); room2Spot.target.position.set(0,anchorY,-4.1); room2CeilingGlow.position.set(0,anchorY+4.9,-1.5);
+    frameOuter.position.set(0,anchorY,-4.22);
+    frameInnerShadow.position.set(0,anchorY,-4.12);
+    frameInnerGold.position.set(0,anchorY,-4.07);
+    artPlane.position.set(0,anchorY,-4.02);
+    wallHalo.position.set(0,anchorY+0.5,-4.64);
+    wallHalo.scale.set(1,1,1);
+    room2Spot.position.set(0,anchorY+5.6,-1.2);
+    room2Spot.target.position.set(0,anchorY,-4.1);
+    room2CeilingGlow.position.set(0,anchorY+4.9,-1.5);
   }
   room2Spot.target.updateMatrixWorld();
+}
+
+function drawBlankArtwork(){
+  const w=artCanvas.width, h=artCanvas.height;
+  artCtx.clearRect(0,0,w,h);
+  const bg=artCtx.createLinearGradient(0,0,0,h);
+  bg.addColorStop(0,'#d9d1c4');
+  bg.addColorStop(.5,'#cfc5b6');
+  bg.addColorStop(1,'#b8ad9b');
+  artCtx.fillStyle=bg; artCtx.fillRect(0,0,w,h);
+  artCtx.strokeStyle='rgba(34,34,34,.18)';
+  artCtx.lineWidth=2;
+  artCtx.strokeRect(44,44,w-88,h-88);
+  const vignette=artCtx.createRadialGradient(w/2,h/2,300,w/2,h/2,560);
+  vignette.addColorStop(0,'rgba(255,255,255,0)'); vignette.addColorStop(1,'rgba(0,0,0,.13)');
+  artCtx.fillStyle=vignette; artCtx.fillRect(0,0,w,h);
+  artTexture.needsUpdate=true;
+}
+
+drawBlankArtwork();
+
+function drawArtworkFromImage(src){
+  drawBlankArtwork();
+  if(!src) return;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const w=artCanvas.width, h=artCanvas.height;
+    const imgRatio = img.width / img.height;
+    const frameRatio = w / h;
+    let dw, dh, dx, dy;
+    if(imgRatio > frameRatio){
+      dh = h; dw = dh * imgRatio; dx = (w - dw) / 2; dy = 0;
+    }else{
+      dw = w; dh = dw / imgRatio; dx = 0; dy = (h - dh) / 2;
+    }
+    artCtx.drawImage(img, dx, dy, dw, dh);
+    artCtx.strokeStyle='rgba(34,34,34,.18)';
+    artCtx.lineWidth=2;
+    artCtx.strokeRect(44,44,w-88,h-88);
+    artTexture.needsUpdate=true;
+  };
+  img.src = src;
 }
 
 const room1Spot=new THREE.SpotLight(0xffe0b0,2.75);
@@ -322,11 +360,11 @@ scene.add(room1Spot); scene.add(room1Spot.target);
 const room2Spot=new THREE.SpotLight(0xf5dfbf,2.4);
 room2Spot.position.set(0,12.2,-1.2); room2Spot.angle=Math.PI/8.8; room2Spot.penumbra=.92; room2Spot.decay=1.6; room2Spot.distance=24; room2Spot.castShadow=true;
 room2Spot.shadow.mapSize.width=2048; room2Spot.shadow.mapSize.height=2048; room2Spot.shadow.camera.near=.5; room2Spot.shadow.camera.far=32;
-scene.add(room2Spot); scene.add(room2Spot.target);
+scene.add(room2Spot); scene.add(room2Spot.target); room2Spot.target.position.set(0,6.65,-4.1);
 const room2CeilingGlow=new THREE.PointLight(0xd5bf95,.24,12); scene.add(room2CeilingGlow);
 setRoom2Layout();
 
-let room1Index=0; let room2Index=0;
+const cartelaEl=document.getElementById('cartela');
 const titleEl=document.getElementById('title');
 const metaEl=document.getElementById('meta');
 const descEl=document.getElementById('desc');
@@ -336,27 +374,34 @@ const room2Btn=document.getElementById('room2Btn');
 const prevBtn=document.getElementById('prev');
 const nextBtn=document.getElementById('next');
 
-function buildDots(){
-  dotsEl.innerHTML='';
-  const data = currentRoom===1 ? room1Items : room2Items;
-  const active = currentRoom===1 ? room1Index : room2Index;
-  data.forEach((_,i)=>{
-    const d=document.createElement('button');
-    d.className='dot'+(i===active?' active':'');
-    d.addEventListener('click',()=>showItem(i));
-    dotsEl.appendChild(d);
-  });
+function metaHTML(item){
+  if(!item) return '';
+  const lines = [];
+  if(item.year) lines.push(`year. ${item.year}`);
+  if(item.materials){
+    if(Array.isArray(item.materials)) lines.push(`materials. ${item.materials.join(' · ')}`);
+    else lines.push(`materials. ${item.materials}`);
+  }
+  if(item.artifact_type) lines.push(`class. ${item.artifact_type}`);
+  return lines.join('<br>');
 }
 
 function updateCartela(){
-  const item = currentRoom===1 ? room1Items[room1Index] : room2Items[room2Index];
-  titleEl.textContent = item.title || '';
-  metaEl.innerHTML = item.meta || '';
-  descEl.textContent = item.desc || '';
-  Array.from(dotsEl.children).forEach((d,i)=>{
-    const active = currentRoom===1 ? room1Index : room2Index;
-    d.classList.toggle('active',i===active);
-  });
+  const data = currentRoom===1 ? room1Items : room2Items;
+  const active = currentRoom===1 ? room1Index : room2Index;
+  const item = data[active] || null;
+  if(!item || (!item.title && !item.year && !item.materials && !item.artifact_type && !item.abstract)){
+    titleEl.textContent='';
+    metaEl.innerHTML='';
+    descEl.textContent='';
+    cartelaEl.classList.add('is-empty');
+  }else{
+    titleEl.textContent=item.title || '';
+    metaEl.innerHTML=metaHTML(item);
+    descEl.textContent=item.abstract || '';
+    cartelaEl.classList.remove('is-empty');
+  }
+  Array.from(dotsEl.children).forEach((d,i)=>d.classList.toggle('active',i===active));
 }
 
 function updateRoomButtons(){
@@ -371,22 +416,39 @@ function updateArrows(){
   const bh = isPortrait() ? 64 : 78;
   prevBtn.style.transform = `translateY(${sy - bh/2}px)`;
   nextBtn.style.transform = `translateY(${sy - bh/2}px)`;
-  prevBtn.classList.add('ready');
-  nextBtn.classList.add('ready');
+  const hasItems = (currentRoom===1 ? room1Items : room2Items).length > 0;
+  prevBtn.classList.toggle('is-visible', hasItems);
+  nextBtn.classList.toggle('is-visible', hasItems);
+}
+
+function buildDots(){
+  dotsEl.innerHTML='';
+  const data = currentRoom===1 ? room1Items : room2Items;
+  const active = currentRoom===1 ? room1Index : room2Index;
+  data.forEach((_,i)=>{
+    const d=document.createElement('button');
+    d.className='dot'+(i===active?' active':'');
+    d.addEventListener('click',()=>showItem(i));
+    dotsEl.appendChild(d);
+  });
 }
 
 function showRoom1(i){
+  if(!room1Items.length){ clearCurrentModel(); return; }
   room1Index=(i+room1Items.length)%room1Items.length;
-  loadModel(room1Items[room1Index].model || '');
+  loadRoom1Model(room1Items[room1Index]);
 }
+
 function showRoom2(i){
+  if(!room2Items.length){ drawBlankArtwork(); return; }
   room2Index=(i+room2Items.length)%room2Items.length;
-  setArtwork(room2Items[room2Index].image || '');
+  drawArtworkFromImage(room2Items[room2Index].image);
 }
 
 function showItem(i){
   if(currentRoom===1) showRoom1(i); else showRoom2(i);
   updateCartela();
+  updateArrows();
 }
 
 function setRoom(id){
@@ -398,42 +460,41 @@ function setRoom(id){
   room2CeilingGlow.visible=id===2;
   setCamera();
   setRoom2Layout();
+  if(id===1){
+    if(room1Items.length) loadRoom1Model(room1Items[room1Index]);
+    else clearCurrentModel();
+  }else{
+    if(room2Items.length) drawArtworkFromImage(room2Items[room2Index].image);
+    else drawBlankArtwork();
+  }
   buildDots();
   updateCartela();
   updateRoomButtons();
   updateArrows();
 }
 
-showRoom1(0);
-showRoom2(0);
-setRoom(1);
-
 room1Btn.onclick=()=>setRoom(1);
 room2Btn.onclick=()=>setRoom(2);
-document.getElementById('exitBtn').onclick=()=>window.location.href=(window.__SITE_URL__ || '') + (window.__BASE_URL__ || '') + '/';
+document.getElementById('exitBtn').onclick=()=>window.location.href='{{ "/" | relative_url }}';
 nextBtn.onclick=()=>showItem((currentRoom===1?room1Index:room2Index)+1);
 prevBtn.onclick=()=>showItem((currentRoom===1?room1Index:room2Index)-1);
+
+setRoom(1);
 
 const clock=new THREE.Clock();
 function animate(){
   requestAnimationFrame(animate);
   const t=clock.getElapsedTime();
-  if(currentRoom===1){
-    if(currentModel){
-      currentModel.rotation.y += 0.01;
-      modelHolder.position.y = Math.sin(t*1.4)*0.14;
-    } else {
-      modelHolder.position.y = 0;
-    }
-    room1Spot.target.position.set(0,slab.position.y,0);
-    room1Spot.target.updateMatrixWorld();
-  }else{
-    const zArt = isPortrait() ? -4.74 : -4.02;
-    const zOuter = isPortrait() ? -4.95 : -4.22;
-    const zGold = isPortrait() ? -4.80 : -4.07;
-    artPlane.position.z = zArt + Math.sin(t*.7)*0.004;
-    frameOuter.position.z = zOuter + Math.sin(t*.7)*0.002;
-    frameInnerGold.position.z = zGold + Math.sin(t*.7)*0.0015;
+  room1Anchor.position.y = getObjectBaseY()+Math.sin(t*1.4)*0.14;
+  if(currentModelRoot){
+    currentModelRoot.rotation.y += 0.01;
+  }
+  room1Spot.target.position.set(0,slab.position.y,0);
+  room1Spot.target.updateMatrixWorld();
+  if(currentRoom===2){
+    artPlane.position.z=(isPortrait()?-4.74:-4.02) + Math.sin(t*.7)*0.004;
+    frameOuter.position.z=(isPortrait()?-4.95:-4.22) + Math.sin(t*.7)*0.002;
+    frameInnerGold.position.z=(isPortrait()?-4.80:-4.07) + Math.sin(t*.7)*0.0015;
     room2Spot.intensity=2.3 + Math.sin(t*.6)*0.04;
   }
   renderer.render(scene,camera);
@@ -445,21 +506,23 @@ window.addEventListener('resize',()=>{
   renderer.setSize(window.innerWidth,window.innerHeight);
   camera.aspect=window.innerWidth/window.innerHeight;
   setPedestalLayout();
+  room1Anchor.position.y = getObjectBaseY();
   setRoom2Layout();
   setCamera();
-  if(currentModel){
-    currentModel.position.y = getObjectBaseY();
-  }
   updateArrows();
 });
 
 let tx=0;
 window.addEventListener('touchstart',e=>{tx=e.changedTouches[0].clientX},{passive:true});
 window.addEventListener('touchend',e=>{
+  const data = currentRoom===1 ? room1Items : room2Items;
+  if(!data.length) return;
   const dx=e.changedTouches[0].clientX-tx;
   if(Math.abs(dx)>40) dx<0?showItem((currentRoom===1?room1Index:room2Index)+1):showItem((currentRoom===1?room1Index:room2Index)-1);
 },{passive:true});
 window.addEventListener('keydown',e=>{
+  const data = currentRoom===1 ? room1Items : room2Items;
+  if(!data.length) return;
   if(e.key==='ArrowRight') showItem((currentRoom===1?room1Index:room2Index)+1);
   if(e.key==='ArrowLeft') showItem((currentRoom===1?room1Index:room2Index)-1);
 });
