@@ -242,7 +242,7 @@ function renderDetail(p){
 const viewers=new Map();
 const modelCache=new Map(); // url -> THREE.Group (cloned per viewer)
 const FALLBACK_GEOS=[()=>new THREE.IcosahedronGeometry(0.9,1),()=>new THREE.TorusKnotGeometry(0.6,0.22,120,16),()=>new THREE.OctahedronGeometry(1.0,0),()=>new THREE.TorusGeometry(0.75,0.28,20,60),()=>new THREE.DodecahedronGeometry(0.9,0),()=>new THREE.ConeGeometry(0.8,1.6,7,1),()=>new THREE.CylinderGeometry(0.5,0.9,1.4,8,1)];
-function buildFallbackMesh(p){const idx=parseInt((p.id||'S-000').split('-')[1]||'0',10)%FALLBACK_GEOS.length;const geo=FALLBACK_GEOS[idx]();const hue=(idx*41)%360;const group=new THREE.Group();group.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.55,metalness:0.3})));group.add(new THREE.Mesh(geo.clone(),new THREE.MeshBasicMaterial({color:new THREE.Color(`hsl(${hue},22%,80%)`),wireframe:true,transparent:true,opacity:0.16})));return group;}
+function buildFallbackMesh(p){const idx=parseInt((p.id||'S-000').split('-')[1]||'0',10)%FALLBACK_GEOS.length;const geo=FALLBACK_GEOS[idx]();const group=new THREE.Group();group.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:new THREE.Color('hsl(36,24%,68%)'),roughness:0.55,metalness:0.3})));group.add(new THREE.Mesh(geo.clone(),new THREE.MeshBasicMaterial({color:new THREE.Color('hsl(38,30%,82%)'),wireframe:true,transparent:true,opacity:0.16})));return group;}
 
 function mount3DViewer(canvas,p){
   if(!canvas||viewers.has(canvas))return;
@@ -271,11 +271,10 @@ function mount3DViewer(canvas,p){
   function loadFallback(){const mesh=buildFallbackMesh(p);scene.add(mesh);state.object=mesh;startLoop();}
   if(p.model){
     function applyModel(sourceObj){
-      const hue=parseInt((p.id||'S-000').split('-')[1]||'0',10)*41%360;
       // Wrap in a pivot group so rotation is always around the true center
       const pivot=new THREE.Group();
       const obj=sourceObj.clone(true);
-      obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},18%,62%)`),roughness:0.6,metalness:0.15,transparent:false,opacity:1.0});});
+      obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color('hsl(36,24%,68%)'),roughness:0.6,metalness:0.15,transparent:false,opacity:1.0});});
       // Center the obj inside the pivot
       const box=new THREE.Box3().setFromObject(obj);
       const center=box.getCenter(new THREE.Vector3());
