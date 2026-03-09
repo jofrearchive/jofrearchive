@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b0b0b; --ink:#e8e2d6;
+  --bg:#141210; --ink:#e8e2d6;
   --panel: rgba(15,15,15,.78);
   --border: rgba(255,255,255,.16);
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -21,7 +21,7 @@ linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0
 radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.65) 0%, rgba(0,0,0,.0) 55%),
 radial-gradient(700px 700px at 15% 25%, rgba(255,255,255,.035) 0%, rgba(0,0,0,0) 58%),
 radial-gradient(700px 700px at 85% 30%, rgba(255,255,255,.03) 0%, rgba(0,0,0,0) 60%),
-#0b0b0b;filter:saturate(.92) contrast(1.05);}
+#141210;filter:saturate(.98) contrast(1.02);}
 #vitrine-bg::after{content:"";position:absolute;inset:0;background:
 repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px),
 repeating-linear-gradient(90deg, rgba(255,255,255,.009) 0px, rgba(255,255,255,.009) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 6px);
@@ -32,46 +32,28 @@ linear-gradient(245deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 26%),
 radial-gradient(900px 700px at 60% 25%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 55%);
 opacity:.34;mix-blend-mode:screen;}
 #vitrine-frame{position:fixed;inset:clamp(10px,2.2vw,22px);z-index:4;pointer-events:none;border-radius:14px;opacity:.75;}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.94) 100%);z-index:2;opacity:.90;}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.88) 100%);z-index:2;opacity:.75;}
 
-/* WORDPRESS-LIKE TRANSPARENT HEADER (logo centered) */
-.siteHeader{
-  position: fixed;
-  left: 0; right: 0; top: 0;
-  height: calc(96px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  z-index: 10000;
-  pointer-events: none; /* allow orbit/graph interactions around it */
+.exit-btn{
+  position:fixed;
+  top:calc(clamp(10px,2vw,22px) + env(safe-area-inset-top));
+  right:calc(clamp(10px,2vw,22px) + env(safe-area-inset-right));
+  z-index:10000;
+  font-family:"Source Code Pro", ui-monospace, monospace;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink);
+  text-decoration:none;
+  padding:10px 12px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(10,10,10,.28);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  opacity:.56;
+  transition:opacity .2s;
 }
-
-.siteHeader a{
-  pointer-events: auto;  /* clickable */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 0;
-  text-decoration: none;
-}
-
-.siteHeader img{
-  height: 56px;          /* typical WP logo height on desktop */
-  width: auto;
-  max-width: min(260px, 82vw);
-  display: block;
-  opacity: .92;
-}
-
-.siteHeader img:hover{ opacity: 1; }
-
-/* Mobile: slightly smaller to match common WP headers */
-@media (max-width: 520px){
-  .siteHeader{ height: calc(84px + env(safe-area-inset-top)); }
-  .siteHeader img{ height: 44px; }
-}
+.exit-btn:hover{opacity:1;}
 
 #infoPanel{
   position:fixed; inset:0;
@@ -902,11 +884,11 @@ input, textarea{ font-size:16px; }
 
 /* --- Unified background tone (Normal + VR) --- */
 html, body {
-  background-color: #0d0d0d !important;
+  background-color: #141210 !important;
 }
 
 canvas {
-  background-color: #0d0d0d !important;
+  background-color: #141210 !important;
 }
 
 
@@ -1047,10 +1029,10 @@ html, body{
    - When VR is active, slightly lift the base tone so it matches non-VR perception
 =================================*/
 body.vr-on{
-  background-color: #121212 !important;
+  background-color: #161311 !important;
 }
 body.vr-on canvas{
-  background-color: #121212 !important;
+  background-color: #161311 !important;
 }
 
 
@@ -1211,11 +1193,14 @@ body[data-panel-key="MEMORY"] #metaRowClass{
     });
   }
   async function loadAll(){
+    const _warn = console.warn.bind(console);
+    console.warn = function(...a){ const m=a[0]; if(typeof m==='string'&&(m.includes('Multiple instances')||m.includes('build/three')))return; _warn(...a); };
     for (const lib of libs){
       if (window[lib.key]) continue;
       try { await loadScript(lib.url1); }
       catch(e){ await loadScript(lib.url2); }
     }
+    console.warn = _warn;
   }
   window.__load3dLibs = loadAll();
 })();
@@ -1225,11 +1210,7 @@ body[data-panel-key="MEMORY"] #metaRowClass{
 
 <body>
 
-<header class="siteHeader" role="banner" aria-label="Primary">
-  
-    <a href="https://inside.jofrearchive.com/origin/" target="_self" rel="noopener"><img src="https://inside.jofrearchive.com/assets/images/logo.png" alt="Jofre Archive"></a>
-  
-</header>
+<a href="https://jofrearchive.com/" class="exit-btn" target="_self" rel="noopener">Exit ×</a>
 
 <div id="vitrine-bg" aria-hidden="true"></div>
 <div id="graph"></div>
@@ -2923,7 +2904,7 @@ btnErase.addEventListener("click", async () => {
   const cPanel = document.getElementById('communityFullPanel');
   if(!cPanel) return;
 
-  function close<a href="https://inside.jofrearchive.com/origin/" target="_self" style="text-decoration:none;color:inherit;">Community</a>(){ cPanel.classList.remove('open'); }
+  function closeCommunity(){ cPanel.classList.remove('open'); }
 
   const closeBtn = cPanel.querySelector('.close-btn');
   if(closeBtn) closeBtn.addEventListener('click', closeCommunity);
