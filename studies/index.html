@@ -303,6 +303,12 @@ function mount3DViewer(canvas,p){
       // Sutil enlargement overall
       let scaleBoost = 1.08;
 
+// Specific adjustment for leaf-scan models
+if((p.id && p.id.toLowerCase().includes('leaf')) || (p.model && p.model.toLowerCase().includes('leaf'))){
+  scaleBoost *= 1.18;
+}
+
+
       // Rounder / more compact objects can read too small, so boost them slightly
       const compactness = height / maxDim;
       if (compactness < 0.82) scaleBoost *= 1.05;
