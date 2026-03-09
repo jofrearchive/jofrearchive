@@ -1659,9 +1659,17 @@ Graph.enableNavigationControls(true);
 
 const controls = Graph.controls();
 if (controls) {
+  const isMobile = window.innerWidth < 901 || ('ontouchstart' in window);
   controls.enableRotate = false;
-  controls.enableZoom = true;
   controls.enablePan = false;
+  if (isMobile) {
+    // On mobile, disable ALL controls — our orbit loop + gyro handle everything.
+    // OrbitControls on mobile intercept deviceorientation and move the scene,
+    // causing nodes to drift while labels stay rigid.
+    controls.enabled = false;
+  } else {
+    controls.enableZoom = true;
+  }
 }
 
 
@@ -1895,9 +1903,10 @@ const ensureDome = () => {
       ensureDome();
       Graph.scene().add(dome);
 
-      // Keep your default: controls disabled unless TOUCH mode
+      // Keep controls disabled on mobile always — our gyro/orbit handles everything
       const controls = Graph.controls();
-      controls.enabled = !!vrTouchMode;
+      const isMobile = window.innerWidth < 901 || ('ontouchstart' in window);
+      controls.enabled = !isMobile && !!vrTouchMode;
 
       window.addEventListener('deviceorientation', handleDeviceOrientation, true);
     } else {
@@ -2204,9 +2213,10 @@ Graph.scene().add(dir);
 const baseRadius = 1050 * SCALE;
 Graph.cameraPosition({ x: baseRadius, y: baseRadius*0.10, z: baseRadius }, { x:0,y:0,z:0 });
 
-// Hook into ForceGraph3D's own render cycle so blocks ALWAYS face camera,
-// even on frames triggered by the graph engine itself (not our orbit loop).
-if (typeof Graph.onRenderFramePre === 'function') {
+// Sync blocks AFTER ForceGraph3D finishes its own render so it can't overwrite our quaternion.
+if (typeof Graph.onRenderFramePost === 'function') {
+  Graph.onRenderFramePost(() => { __faceMenuToCamera(); });
+} else if (typeof Graph.onRenderFramePre === 'function') {
   Graph.onRenderFramePre(() => { __faceMenuToCamera(); });
 }
 
@@ -2224,7 +2234,7 @@ let ang = 0;
     cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
     cam.updateMatrixWorld(true);
   }
-  // Always called AFTER any quaternion changes so blocks are perfectly in sync
+  // Always sync AFTER any quaternion change
   __faceMenuToCamera();
   requestAnimationFrame(orbit);
 })();
