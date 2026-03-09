@@ -275,15 +275,39 @@ function mount3DViewer(canvas,p){
       const pivot=new THREE.Group();
       const obj=sourceObj.clone(true);
       obj.traverse(c=>{if(c.isMesh)c.material=new THREE.MeshStandardMaterial({color:new THREE.Color('hsl(36,24%,68%)'),roughness:0.6,metalness:0.15,transparent:false,opacity:1.0});});
-      // Center the obj inside the pivot
+      // Center and adapt the model automatically to the card frame
       const box=new THREE.Box3().setFromObject(obj);
       const center=box.getCenter(new THREE.Vector3());
       const size=box.getSize(new THREE.Vector3());
-      const maxDim=Math.max(size.x,size.y,size.z);
-      obj.position.sub(center); // shift mesh so its center is at pivot origin
+      const maxDim=Math.max(size.x,size.y,size.z) || 1;
+      const height=size.y || maxDim;
+      const width=size.x || maxDim;
+      const depth=size.z || maxDim;
+
+      // Shift mesh so its center is at pivot origin
+      obj.position.sub(center);
+
+      // Slightly lift objects that feel visually heavy at the bottom
+      const yLift=(height < maxDim*0.72 ? 0.06 : 0.0);
+      obj.position.y += yLift;
+
       pivot.add(obj);
-      // Scale pivot to fit snugly — 1.1 units max dim leaves breathing room
-      pivot.scale.setScalar(1.1/maxDim);
+
+      // Fit by both height and width so each object fills the frame better.
+      // A subtle global boost makes pieces like skull.glb read a bit larger.
+      const fitByHeight = 1.34 / height;
+      const fitByWidth  = 1.18 / width;
+      const fitByDepth  = 1.16 / depth;
+      const baseScale = Math.min(fitByHeight, fitByWidth, fitByDepth);
+
+      // Sutil enlargement overall
+      let scaleBoost = 1.08;
+
+      // Rounder / more compact objects can read too small, so boost them slightly
+      const compactness = height / maxDim;
+      if (compactness < 0.82) scaleBoost *= 1.05;
+
+      pivot.scale.setScalar(baseScale * scaleBoost);
       scene.add(pivot);state.object=pivot;startLoop();
     }
     if(modelCache.has(p.model)){
