@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Source+Code+Pro:wght@300;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#141210; --ink:#e8e2d6;
+  --bg:#0b0b0b; --ink:#e8e2d6;
   --panel: rgba(15,15,15,.78);
   --border: rgba(255,255,255,.16);
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -15,13 +15,13 @@
 html,body{margin:0;height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:'EB Garamond', serif;}
 #graph{position:fixed;inset:0;width:100%;height:100%;z-index:1;}
 #vitrine-bg{position:fixed;inset:-2%;z-index:0;pointer-events:none;background:
-radial-gradient(1200px 800px at 50% 38%, rgba(205,190,168,.06) 0%, rgba(205,190,168,.00) 58%),
-radial-gradient(900px 600px at 50% 72%, rgba(198,182,158,.05) 0%, rgba(0,0,0,0) 60%),
-linear-gradient(180deg, rgba(205,190,168,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0,.32) 100%),
-radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.50) 0%, rgba(0,0,0,.0) 55%),
-radial-gradient(700px 700px at 15% 25%, rgba(196,180,155,.045) 0%, rgba(0,0,0,0) 58%),
-radial-gradient(700px 700px at 85% 30%, rgba(192,176,152,.038) 0%, rgba(0,0,0,0) 60%),
-#141210;filter:saturate(1.0) contrast(1.02);}
+radial-gradient(1200px 800px at 50% 38%, rgba(255,255,255,.06) 0%, rgba(255,255,255,.00) 58%),
+radial-gradient(900px 600px at 50% 72%, rgba(232,226,214,.05) 0%, rgba(0,0,0,0) 60%),
+linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(0,0,0,.0) 45%, rgba(0,0,0,.42) 100%),
+radial-gradient(1000px 1000px at 50% 120%, rgba(0,0,0,.65) 0%, rgba(0,0,0,.0) 55%),
+radial-gradient(700px 700px at 15% 25%, rgba(255,255,255,.035) 0%, rgba(0,0,0,0) 58%),
+radial-gradient(700px 700px at 85% 30%, rgba(255,255,255,.03) 0%, rgba(0,0,0,0) 60%),
+#0b0b0b;filter:saturate(.92) contrast(1.05);}
 #vitrine-bg::after{content:"";position:absolute;inset:0;background:
 repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 4px),
 repeating-linear-gradient(90deg, rgba(255,255,255,.009) 0px, rgba(255,255,255,.009) 1px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 6px);
@@ -32,7 +32,7 @@ linear-gradient(245deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 26%),
 radial-gradient(900px 700px at 60% 25%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 55%);
 opacity:.34;mix-blend-mode:screen;}
 #vitrine-frame{position:fixed;inset:clamp(10px,2.2vw,22px);z-index:4;pointer-events:none;border-radius:14px;opacity:.75;}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.88) 100%);z-index:2;opacity:.72;}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%, rgba(0,0,0,0) 36%, rgba(0,0,0,.94) 100%);z-index:2;opacity:.90;}
 
 /* EXIT BUTTON — top right (same style as Works page) */
 .exitBtn{
@@ -892,11 +892,11 @@ input, textarea{ font-size:16px; }
 
 /* --- Unified background tone (Normal + VR) --- */
 html, body {
-  background-color: #141210 !important;
+  background-color: #0d0d0d !important;
 }
 
 canvas {
-  background-color: #141210 !important;
+  background-color: #0d0d0d !important;
 }
 
 
@@ -1037,10 +1037,10 @@ html, body{
    - When VR is active, slightly lift the base tone so it matches non-VR perception
 =================================*/
 body.vr-on{
-  background-color: #161311 !important;
+  background-color: #121212 !important;
 }
 body.vr-on canvas{
-  background-color: #161311 !important;
+  background-color: #121212 !important;
 }
 
 
@@ -1857,7 +1857,7 @@ const ensureDome = () => {
     if (dome) return;
     const geo = new THREE.SphereGeometry(1000, 32, 32);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0x141210,
+      color: 0x0d0d0d,
       side: THREE.BackSide,
       transparent: true,
       opacity: 0.32,
@@ -2021,8 +2021,39 @@ Graph.nodeThreeObject(node => {
   if (isMenu) {
     const { W, H, D, textHeight, isMemory } = menuDims(node.title);
 
-    function makeLabel(title, depth) {
-      const label = new SpriteText(title);
+    if (node.title === "MANIFESTO") {
+      const connectorSize = 3.6 * SCALE;
+      const connector = new THREE.Mesh(
+        new THREE.BoxGeometry(connectorSize, connectorSize, connectorSize),
+        new THREE.MeshStandardMaterial({
+          color: 0xe8e2d6,
+          roughness: 0.88,
+          metalness: 0.03,
+          transparent: true,
+          opacity: 0.32
+        })
+      );
+
+      const manifestoBlock = new THREE.Mesh(
+        new THREE.BoxGeometry(W, H, D),
+        new THREE.MeshStandardMaterial({
+          color: 0x0b0b0b,
+          roughness: 0.65,
+          metalness: 0.04
+        })
+      );
+
+      const edge = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+        new THREE.LineBasicMaterial({
+          color: 0x1a1a1a,
+          transparent: true,
+          opacity: 0.25
+        })
+      );
+      manifestoBlock.add(edge);
+
+      const label = new SpriteText(node.title);
       label.fontFace = "Source Code Pro";
       label.color = "rgba(232,226,214,0.98)";
       label.textHeight = textHeight;
@@ -2034,27 +2065,13 @@ Graph.nodeThreeObject(node => {
       label.material.polygonOffset = true;
       label.material.polygonOffsetFactor = -1;
       label.material.polygonOffsetUnits = -4;
-      label.position.set(0, 0, (depth * 0.5) + 2 * SCALE);
-      return label;
-    }
+      label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
+      manifestoBlock.add(label);
 
-    if (node.title === "MANIFESTO") {
-      const connectorSize = 3.6 * SCALE;
-      const connector = new THREE.Mesh(
-        new THREE.BoxGeometry(connectorSize, connectorSize, connectorSize),
-        new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.88, metalness: 0.03, transparent: true, opacity: 0.32 })
-      );
-      const manifestoBlock = new THREE.Mesh(
-        new THREE.BoxGeometry(W, H, D),
-        new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.65, metalness: 0.04 })
-      );
-      manifestoBlock.add(new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
-        new THREE.LineBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.25 })
-      ));
-      manifestoBlock.add(makeLabel(node.title, D));
       manifestoBlock.position.y = H * 0.55;
+
       connector.add(manifestoBlock);
+
       connector.userData = { isManifestoConnector: true, manifestoVisual: manifestoBlock };
       node.__menuBlock = connector;
       node.__manifestoVisual = manifestoBlock;
@@ -2062,15 +2079,84 @@ Graph.nodeThreeObject(node => {
       return connector;
     }
 
+    if (isMemory) {
+      const block = new THREE.Mesh(
+        new THREE.BoxGeometry(W, H, D),
+        new THREE.MeshStandardMaterial({
+          color: 0x0b0b0b,
+          roughness: 0.65,
+          metalness: 0.04
+        })
+      );
+
+      const edge = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
+        new THREE.LineBasicMaterial({
+          color: 0x1a1a1a,
+          transparent: true,
+          opacity: 0.25
+        })
+      );
+      block.add(edge);
+
+      const label = new SpriteText(node.title);
+      label.fontFace = "Source Code Pro";
+      label.color = "rgba(232,226,214,0.98)";
+      label.textHeight = textHeight;
+      label.backgroundColor = "rgba(0,0,0,0)";
+      label.borderWidth = 0;
+      label.padding = 0;
+
+      label.material.depthTest = true;
+      label.material.depthWrite = false;
+      label.material.polygonOffset = true;
+      label.material.polygonOffsetFactor = -1;
+      label.material.polygonOffsetUnits = -4;
+
+      label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
+      block.add(label);
+
+      node.__menuBlock = block;
+      __menuBlocks.push(block);
+      return block;
+    }
+
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(W, H, D),
-      new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.65, metalness: 0.04 })
+      new THREE.MeshStandardMaterial({
+        color: 0x0b0b0b,
+        roughness: 0.65,
+        metalness: 0.04
+      })
     );
-    block.add(new THREE.LineSegments(
+
+    const edge = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
-      new THREE.LineBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.25 })
-    ));
-    block.add(makeLabel(node.title, D));
+      new THREE.LineBasicMaterial({
+        color: 0x1a1a1a,
+        transparent: true,
+        opacity: 0.25
+      })
+    );
+    block.add(edge);
+
+    const label = new SpriteText(node.title);
+    label.fontFace = "Source Code Pro";
+    label.color = "rgba(232,226,214,0.98)";
+    label.textHeight = textHeight;
+    label.backgroundColor = "rgba(0,0,0,0)";
+    label.borderWidth = 0;
+    label.padding = 0;
+
+    label.material.depthTest = true;
+    label.material.depthWrite = false;
+    label.material.polygonOffset = true;
+    label.material.polygonOffsetFactor = -1;
+    label.material.polygonOffsetUnits = -4;
+
+    label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
+    block.add(label);
+
     node.__menuBlock = block;
     __menuBlocks.push(block);
     return block;
@@ -2079,7 +2165,13 @@ Graph.nodeThreeObject(node => {
   const size = 3.6 * SCALE;
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(size, size, size),
-    new THREE.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.88, metalness: 0.03, transparent: true, opacity: 0.32 })
+    new THREE.MeshStandardMaterial({
+      color: 0xe8e2d6,
+      roughness: 0.88,
+      metalness: 0.03,
+      transparent: true,
+      opacity: 0.32
+    })
   );
   return mesh;
 });
@@ -2090,11 +2182,13 @@ __fixLinkDepth();
 
 function __faceMenuToCamera(){
   const camQuat = Graph.camera().quaternion;
-  for (let i = 0; i < __menuBlocks.length; i++) {
+  for (let i=0; i<__menuBlocks.length; i++) {
     const block = __menuBlocks[i];
     if (block.userData && block.userData.isManifestoConnector) {
-      const mv = block.userData.manifestoVisual;
-      if (mv) mv.quaternion.copy(camQuat);
+      const manifestoVisual = block.userData.manifestoVisual;
+      if (manifestoVisual) {
+        manifestoVisual.quaternion.copy(camQuat);
+      }
     } else {
       block.quaternion.copy(camQuat);
     }
@@ -2109,6 +2203,14 @@ Graph.scene().add(dir);
 const baseRadius = 1050 * SCALE;
 Graph.cameraPosition({ x: baseRadius, y: baseRadius*0.10, z: baseRadius }, { x:0,y:0,z:0 });
 
+  // VR: keep desktop auto-orbit, but add phone look as a relative delta (no roll)
+  if (window.__VR_ACTIVE && window.__VR_DELTAQ) {
+    const cam = Graph.camera();
+    cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
+    cam.updateMatrixWorld(true);
+  }
+
+
 __faceMenuToCamera();
 let ang = 0;
 (function orbit(){
@@ -2118,16 +2220,13 @@ let ang = 0;
   cam.position.z = baseRadius * Math.sin(ang);
   cam.position.y = baseRadius * 0.10;
   cam.lookAt(0,0,0);
-
+  // VR: keep desktop auto-orbit, but add phone look as a relative delta (no roll)
   if (window.__VR_ACTIVE && window.__VR_DELTAQ) {
     cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
     cam.updateMatrixWorld(true);
-    // In VR, also update blocks to match camera so they face viewer correctly
-    __faceMenuToCamera();
-  } else {
-    __faceMenuToCamera();
   }
 
+  __faceMenuToCamera();
   requestAnimationFrame(orbit);
 })();
 const panel = document.getElementById("infoPanel");
