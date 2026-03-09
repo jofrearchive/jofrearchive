@@ -2118,10 +2118,15 @@ let ang = 0;
   cam.position.z = baseRadius * Math.sin(ang);
   cam.position.y = baseRadius * 0.10;
   cam.lookAt(0,0,0);
+
+  // VR gyro: rotate the SCENE (not the camera) so everything moves together —
+  // blocks, labels, links all stay in sync because they're all children of the scene.
   if (window.__VR_ACTIVE && window.__VR_DELTAQ) {
-    cam.quaternion.multiplyQuaternions(cam.quaternion, window.__VR_DELTAQ);
-    cam.updateMatrixWorld(true);
+    Graph.scene().quaternion.copy(window.__VR_DELTAQ);
+  } else {
+    Graph.scene().quaternion.identity();
   }
+
   __faceMenuToCamera();
   requestAnimationFrame(orbit);
 })();
