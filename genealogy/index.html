@@ -2030,156 +2030,87 @@ Graph.nodeThreeObject(node => {
   if (isMenu) {
     const { W, H, D, textHeight, isMemory } = menuDims(node.title);
 
+    // Helper to build a label sprite
+    function makeLabel(title, depth) {
+      const label = new SpriteText(title);
+      label.fontFace = "Source Code Pro";
+      label.color = "rgba(232,226,214,0.98)";
+      label.textHeight = textHeight;
+      label.backgroundColor = "rgba(0,0,0,0)";
+      label.borderWidth = 0;
+      label.padding = 0;
+      label.material.depthTest = true;
+      label.material.depthWrite = false;
+      label.material.polygonOffset = true;
+      label.material.polygonOffsetFactor = -1;
+      label.material.polygonOffsetUnits = -4;
+      // Position in GROUP space (group is never rotated, so this is stable world-aligned)
+      label.position.set(0, 0, (depth * 0.5) + 2 * SCALE);
+      return label;
+    }
+
     if (node.title === "MANIFESTO") {
+      const group = new THREE.Group();
+
       const connectorSize = 3.6 * SCALE;
       const connector = new THREE.Mesh(
         new THREE.BoxGeometry(connectorSize, connectorSize, connectorSize),
         new THREE.MeshStandardMaterial({
-          color: 0xe8e2d6,
-          roughness: 0.88,
-          metalness: 0.03,
-          transparent: true,
-          opacity: 0.32
+          color: 0xe8e2d6, roughness: 0.88, metalness: 0.03,
+          transparent: true, opacity: 0.32
         })
       );
 
       const manifestoBlock = new THREE.Mesh(
         new THREE.BoxGeometry(W, H, D),
-        new THREE.MeshStandardMaterial({
-          color: 0x060606,
-          roughness: 0.65,
-          metalness: 0.04
-        })
+        new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.65, metalness: 0.04 })
       );
-
-      const edge = new THREE.LineSegments(
+      manifestoBlock.add(new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
-        new THREE.LineBasicMaterial({
-          color: 0x1a1816,
-          transparent: true,
-          opacity: 0.25
-        })
-      );
-      manifestoBlock.add(edge);
-
-      const label = new SpriteText(node.title);
-      label.fontFace = "Source Code Pro";
-      label.color = "rgba(232,226,214,0.98)";
-      label.textHeight = textHeight;
-      label.backgroundColor = "rgba(0,0,0,0)";
-      label.borderWidth = 0;
-      label.padding = 0;
-      label.material.depthTest = true;
-      label.material.depthWrite = false;
-      label.material.polygonOffset = true;
-      label.material.polygonOffsetFactor = -1;
-      label.material.polygonOffsetUnits = -4;
-      label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
-      manifestoBlock.add(label);
-
+        new THREE.LineBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.25 })
+      ));
       manifestoBlock.position.y = H * 0.55;
-
       connector.add(manifestoBlock);
 
-      connector.userData = { isManifestoConnector: true, manifestoVisual: manifestoBlock };
-      node.__menuBlock = connector;
+      group.add(connector);
+      // Label is child of GROUP, not of block — never inherits block rotation
+      group.add(makeLabel(node.title, D));
+
+      group.userData = { isManifestoConnector: true, manifestoVisual: manifestoBlock };
+      node.__menuBlock = group;
       node.__manifestoVisual = manifestoBlock;
-      __menuBlocks.push(connector);
-      return connector;
+      __menuBlocks.push(group);
+      return group;
     }
 
-    if (isMemory) {
-      const block = new THREE.Mesh(
-        new THREE.BoxGeometry(W, H, D),
-        new THREE.MeshStandardMaterial({
-          color: 0x060606,
-          roughness: 0.65,
-          metalness: 0.04
-        })
-      );
-
-      const edge = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
-        new THREE.LineBasicMaterial({
-          color: 0x1a1816,
-          transparent: true,
-          opacity: 0.25
-        })
-      );
-      block.add(edge);
-
-      const label = new SpriteText(node.title);
-      label.fontFace = "Source Code Pro";
-      label.color = "rgba(232,226,214,0.98)";
-      label.textHeight = textHeight;
-      label.backgroundColor = "rgba(0,0,0,0)";
-      label.borderWidth = 0;
-      label.padding = 0;
-
-      label.material.depthTest = true;
-      label.material.depthWrite = false;
-      label.material.polygonOffset = true;
-      label.material.polygonOffsetFactor = -1;
-      label.material.polygonOffsetUnits = -4;
-
-      label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
-      block.add(label);
-
-      node.__menuBlock = block;
-      __menuBlocks.push(block);
-      return block;
-    }
+    // MEMORY and all other menu nodes
+    const group = new THREE.Group();
 
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(W, H, D),
-      new THREE.MeshStandardMaterial({
-        color: 0x060606,
-        roughness: 0.65,
-        metalness: 0.04
-      })
+      new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.65, metalness: 0.04 })
     );
-
-    const edge = new THREE.LineSegments(
+    block.add(new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(W, H, D)),
-      new THREE.LineBasicMaterial({
-        color: 0x1a1816,
-        transparent: true,
-        opacity: 0.25
-      })
-    );
-    block.add(edge);
+      new THREE.LineBasicMaterial({ color: 0x1a1816, transparent: true, opacity: 0.25 })
+    ));
 
-    const label = new SpriteText(node.title);
-    label.fontFace = "Source Code Pro";
-    label.color = "rgba(232,226,214,0.98)";
-    label.textHeight = textHeight;
-    label.backgroundColor = "rgba(0,0,0,0)";
-    label.borderWidth = 0;
-    label.padding = 0;
+    group.add(block);
+    // Label is child of GROUP, not of block — never inherits block rotation
+    group.add(makeLabel(node.title, D));
 
-    label.material.depthTest = true;
-    label.material.depthWrite = false;
-    label.material.polygonOffset = true;
-    label.material.polygonOffsetFactor = -1;
-    label.material.polygonOffsetUnits = -4;
-
-    label.position.set(0, 0, (D * 0.5) + 2 * SCALE);
-    block.add(label);
-
+    // Store the block (not the group) in __menuBlocks so we rotate only the block
     node.__menuBlock = block;
     __menuBlocks.push(block);
-    return block;
+    return group;
   }
 
   const size = 3.6 * SCALE;
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(size, size, size),
     new THREE.MeshStandardMaterial({
-      color: 0xe8e2d6,
-      roughness: 0.88,
-      metalness: 0.03,
-      transparent: true,
-      opacity: 0.32
+      color: 0xe8e2d6, roughness: 0.88, metalness: 0.03,
+      transparent: true, opacity: 0.32
     })
   );
   return mesh;
@@ -2192,13 +2123,13 @@ __fixLinkDepth();
 function __faceMenuToCamera(){
   const camQuat = new THREE.Quaternion();
   Graph.camera().getWorldQuaternion(camQuat);
-  for (let i=0; i<__menuBlocks.length; i++) {
+  for (let i = 0; i < __menuBlocks.length; i++) {
     const block = __menuBlocks[i];
+    // For MANIFESTO: the group has userData.isManifestoConnector,
+    // rotate the manifestoVisual block inside it
     if (block.userData && block.userData.isManifestoConnector) {
-      const manifestoVisual = block.userData.manifestoVisual;
-      if (manifestoVisual) {
-        manifestoVisual.quaternion.copy(camQuat);
-      }
+      const mv = block.userData.manifestoVisual;
+      if (mv) mv.quaternion.copy(camQuat);
     } else {
       block.quaternion.copy(camQuat);
     }
