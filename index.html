@@ -24,9 +24,9 @@ layout: none
     *{box-sizing:border-box}
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
     body{font-family:'Source Code Pro', monospace;color:var(--text);background:#000}
-    canvas{display:block;width:100vw;height:100vh}
+    canvas{display:block;width:100vw;height:100vh;opacity:0;transition:opacity 2s ease}
 
-    #hud{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:0;transition:opacity .8s ease}
+    #hud{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:1;}
     #hud.show{opacity:1}
     #hud::before{
       content:"";position:absolute;inset:0;
@@ -89,6 +89,11 @@ layout: none
     .access-btn.ready{border-color:rgba(255,187,88,.55);background:rgba(255,187,88,.09);color:#f0ddbd;cursor:pointer;box-shadow:0 0 0 1px rgba(255,187,88,.12), inset 0 1px 0 rgba(255,255,255,.03)}
     .access-btn.ready:hover{background:rgba(255,187,88,.14)}
 
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes nodeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .node { opacity: 0; }
+    .node.visible { animation: nodeIn .35s ease forwards; }
+
     @media (max-width: 640px){
       #meta{left:12px;top:12px;width:min(230px,68vw)}
       #meta h1{font-size:26px}
@@ -114,9 +119,8 @@ layout: none
   <div id="hud">
     <div id="meta">
       <h1>Jofre Oliveras</h1>
-      <div class="submeta">EXPERIMENTAL ARCHIVE<br><span class="nowrap">ARTIST · EXPLORER · LANDSCAPER</span><br>BASED BETWEEN DISCIPLINES</div>
+      <div class="submeta"><span id="typewriter"></span><span id="cursor" style="display:inline-block;width:1ch;animation:blink .7s step-end infinite">▋</span></div>
     </div>
-
 
     <div id="module-field" aria-hidden="true">
     </div>
@@ -205,6 +209,7 @@ layout: none
     let activeRoute = null;
     let autoRoute = null;
     let dragMoved = false;
+    let backboneVisible = false;
 
     const DEFAULT_STATUS = {
       title: 'No route',
@@ -503,6 +508,7 @@ layout: none
 
     function drawAll(){
       svg.innerHTML = '';
+      if (!backboneVisible) return;
       const route = activeRoute || buildEffectiveRoute();
       const usedBackbone = new Set(route.conns.filter(c => c.auto).map(c => `${nodeId(c.from)}>${nodeId(c.to)}`));
       const allBackbone = route.backboneMap ? route.backboneMap.autoConns : buildBackboneMap().autoConns;
@@ -790,7 +796,69 @@ layout: none
       sockets.forEach(bindSocket);
       recomputeRoute();
       requestAnimationFrame(animate);
-      setTimeout(() => hud.classList.add('show'), 650);
+
+      // --- Intro sequence ---
+      const typeEl = document.getElementById('typewriter');
+      const cursorEl = document.getElementById('cursor');
+
+      const lines = [
+        { text: 'EXPERIMENTAL ARCHIVE', br: true },
+        { text: 'ARTIST · EXPLORER · LANDSCAPER', br: true, nowrap: true },
+        { text: 'BASED BETWEEN DISCIPLINES', br: false }
+      ];
+
+      function typeLines(callback) {
+        let lineIdx = 0;
+        function typeLine() {
+          if (lineIdx >= lines.length) { callback(); return; }
+          const line = lines[lineIdx];
+          const span = document.createElement('span');
+          if (line.nowrap) span.className = 'nowrap';
+          typeEl.appendChild(span);
+          let charIdx = 0;
+          const interval = setInterval(() => {
+            span.textContent = line.text.slice(0, ++charIdx);
+            if (charIdx >= line.text.length) {
+              clearInterval(interval);
+              if (line.br) { typeEl.appendChild(document.createElement('br')); }
+              lineIdx++;
+              setTimeout(typeLine, 120);
+            }
+          }, 38);
+        }
+        typeLine();
+      }
+
+      function showNode(node, delay) {
+        setTimeout(() => {
+          node.classList.add('visible');
+          recomputeRoute();
+        }, delay);
+      }
+
+      // 1. Typewriter starts immediately
+      typeLines(() => {
+        // 2. After typing done, hide cursor
+        setTimeout(() => { cursorEl.style.display = 'none'; }, 400);
+      });
+
+      // 3. Archive appears
+      setTimeout(() => showNode(archiveNode, 0), 800);
+
+      // 4. Output appears
+      setTimeout(() => showNode(outputNode, 0), 1600);
+
+      // 5. Backbone draws after output animation settles + canvas fade starts
+      setTimeout(() => {
+        backboneVisible = true;
+        drawAll();
+        canvas.style.opacity = '1';
+      }, 2200);
+
+      // 6. Modules appear one by one
+      moduleNodes.forEach((node, i) => {
+        setTimeout(() => showNode(node, 0), 2600 + i * 180);
+      });
     });
   </script>
 
