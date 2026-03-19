@@ -108,13 +108,13 @@ layout: none
     }
   
 @media (max-width: 640px){
-  #node-archive{ top:26vh !important; }
-  #node-output{ top:60vh !important; }
+  #node-archive{ top:30vh !important; }
+  #node-output{ top:64vh !important; }
 
-  #node-works{ transform: translate(-40px,-20px); }
-  #node-studies{ transform: translate(-10px,0px); }
-  #node-artifacts{ transform: translate(20px,20px); }
-  #node-genealogy{ transform: translate(50px,40px); }
+  #node-works{ transform: translate(-46px,-26px); }
+  #node-studies{ transform: translate(-16px,-6px); }
+  #node-artifacts{ transform: translate(14px,14px); }
+  #node-genealogy{ transform: translate(44px,34px); }
 }
 
 </style>
@@ -591,6 +591,8 @@ layout: none
         px: Math.random()*Math.PI*2,
         py: Math.random()*Math.PI*2
       };
+      node.style.right = 'auto';
+      node.style.bottom = 'auto';
       node.style.left = `${rect.left}px`;
       node.style.top = `${rect.top}px`;
     }
@@ -599,15 +601,11 @@ layout: none
       if (!node.classList.contains('module')) return false;
       const guide = getBackboneGuide();
       const c = nodeCenter(node);
-      const lineY = (guide.from.y + guide.to.y) / 2;
       const mobile = window.innerWidth <= 640;
-      const corridor = mobile ? Math.max(90, window.innerWidth * 0.12) : Math.max(64, window.innerWidth * 0.07);
+      const corridor = mobile ? Math.max(96, window.innerWidth * 0.14) : Math.max(64, window.innerWidth * 0.07);
       const withinX = c.x > Math.min(guide.from.x, guide.to.x) + 8 && c.x < Math.max(guide.from.x, guide.to.x) - 8;
-      const touchesLine = withinX && Math.abs(c.y - lineY) < corridor;
+      const touchesLine = withinX && Math.abs(c.y - ((guide.from.y + guide.to.y) / 2)) < corridor;
       if (!touchesLine) return false;
-
-      const snappedTop = clamp(lineY - c.height/2, 8, window.innerHeight - c.height - 8);
-      node.style.top = `${snappedTop}px`;
 
       const archiveOut = archiveNode.querySelector('.socket.out');
       const moduleIn = node.querySelector('.socket.in');
