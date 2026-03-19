@@ -15,7 +15,10 @@
   --accent2:#e8d5b0;
   --text:#d4cfc8;
   --muted:#5a5550;
+  --muted2:#3a3830;
   --panel-bg:rgba(8,8,6,0.97);
+  --hud:#c8b89a;
+  --hud-dim:rgba(200,184,154,.28);
   --serif:"EB Garamond", ui-serif, Georgia, serif;
   --mono:"Source Code Pro", ui-monospace, monospace;
 }
@@ -30,6 +33,7 @@ html,body{
   overflow:hidden;
 }
 
+/* scanlines */
 body::before{
   content:"";
   position:fixed;
@@ -42,6 +46,24 @@ body::before{
   z-index:1;
 }
 
+/* corner bracket decoration */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:3;
+  background:
+    linear-gradient(to right, var(--border) 1px, transparent 1px) 16px 16px / 18px 18px no-repeat,
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px) 16px 16px / 18px 18px no-repeat,
+    linear-gradient(to left,  var(--border) 1px, transparent 1px) calc(100% - 16px) 16px / 18px 18px no-repeat,
+    linear-gradient(to bottom,var(--border) 1px, transparent 1px) calc(100% - 16px) 16px / 18px 18px no-repeat,
+    linear-gradient(to right, var(--border) 1px, transparent 1px) 16px calc(100% - 16px) / 18px 18px no-repeat,
+    linear-gradient(to top,   var(--border) 1px, transparent 1px) 16px calc(100% - 16px) / 18px 18px no-repeat,
+    linear-gradient(to left,  var(--border) 1px, transparent 1px) calc(100% - 16px) calc(100% - 16px) / 18px 18px no-repeat,
+    linear-gradient(to top,   var(--border) 1px, transparent 1px) calc(100% - 16px) calc(100% - 16px) / 18px 18px no-repeat;
+}
+
 #c{
   position:fixed;
   inset:0;
@@ -52,6 +74,7 @@ body::before{
 }
 #c:active{cursor:grabbing;}
 
+/* ── EXIT ── */
 .exit-btn{
   position:fixed;
   top:clamp(10px,2vw,22px);
@@ -72,6 +95,54 @@ body::before{
 }
 .exit-btn:hover{opacity:1;}
 
+/* ── HUD TOP-LEFT ── */
+.hud-tl{
+  position:fixed;
+  top:clamp(10px,2vw,22px);
+  left:clamp(10px,2vw,22px);
+  z-index:50;
+  pointer-events:none;
+  line-height:1.8;
+}
+.hud-tl .hud-label{
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  color:var(--muted);
+  display:block;
+}
+.hud-tl .hud-val{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.12em;
+  color:var(--accent);
+}
+.hud-tl .hud-sep{
+  display:block;
+  width:32px;
+  height:1px;
+  background:var(--border);
+  margin:6px 0;
+}
+
+/* ── HUD BOTTOM-LEFT (coords live) ── */
+.hud-coords{
+  position:fixed;
+  bottom:28px;
+  left:clamp(10px,2vw,22px);
+  z-index:50;
+  pointer-events:none;
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.16em;
+  color:var(--muted);
+  text-transform:uppercase;
+  line-height:1.9;
+}
+.hud-coords span{ color:var(--accent); }
+
+/* ── HINT ── */
 .hint{
   position:fixed;
   bottom:28px;
@@ -86,7 +157,7 @@ body::before{
   text-transform:uppercase;
 }
 
-/* PANEL */
+/* ── PANEL ── */
 .panel{
   position:fixed;
   right:36px;
@@ -98,7 +169,7 @@ body::before{
   border:1px solid var(--border);
   transition:transform .5s cubic-bezier(.16,1,.3,1);
   pointer-events:none;
-  box-shadow:0 0 40px rgba(0,0,0,.28);
+  box-shadow:0 0 40px rgba(0,0,0,.28), inset 0 0 0 1px rgba(200,184,154,.03);
   display:flex;
   flex-direction:column;
 }
@@ -106,6 +177,17 @@ body::before{
   transform:translateY(-50%) translateX(0);
   pointer-events:all;
 }
+/* panel scanline strip */
+.panel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(200,184,154,.008) 3px, rgba(200,184,154,.008) 4px);
+  z-index:0;
+}
+.panel > *{ position:relative; z-index:1; }
+
 .panel-scroll{
   overflow-y:auto;
   scrollbar-width:none;
@@ -118,6 +200,15 @@ body::before{
   justify-content:space-between;
   align-items:flex-start;
 }
+/* panel header bar */
+.ph::before{
+  content:"";
+  position:absolute;
+  top:0; left:0; right:0;
+  height:2px;
+  background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+  opacity:.18;
+}
 .ploc{
   font-family:var(--mono);
   font-size:8px;
@@ -126,6 +217,16 @@ body::before{
   text-transform:uppercase;
   margin-bottom:4px;
 }
+/* geo coords inside panel */
+.pgeo{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.16em;
+  color:var(--muted2);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.pgeo span{ color:var(--muted); }
 .ptitle{
   font-family:var(--serif);
   font-size:30px;
@@ -169,6 +270,9 @@ body::before{
   color:var(--muted);
   margin-bottom:10px;
   text-transform:uppercase;
+  /* add a ▶ data-prefix feel */
+  padding-left:10px;
+  border-left:2px solid var(--border);
 }
 .pdesc{
   font-family:var(--serif);
@@ -208,7 +312,7 @@ body::before{
 }
 .pbtn:hover{background:#f0e2c0;}
 
-/* SLIDER */
+/* ── SLIDER ── */
 .slider{position:relative;width:100%;aspect-ratio:16/9;background:var(--surface);overflow:hidden;border-bottom:1px solid var(--border);}
 .slider img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.82) contrast(1.02) brightness(.92);opacity:0;transition:opacity .4s;}
 .slider img.active{opacity:1;}
@@ -219,6 +323,8 @@ body::before{
 .slider-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:10;}
 .slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(200,184,154,.35);cursor:pointer;transition:background .2s;}
 .slider-dot.active{background:var(--accent2);}
+
+/* ── TOOLTIP ── */
 .tt{
   position:fixed;
   z-index:300;
@@ -230,6 +336,13 @@ body::before{
   white-space:nowrap;
   opacity:0;
   transition:opacity .15s;
+}
+.tt::before{
+  content:"";
+  position:absolute;
+  bottom:-5px; left:50%; transform:translateX(-50%);
+  width:1px; height:5px;
+  background:var(--border);
 }
 .tt.on{opacity:1;}
 .ttc{
@@ -249,6 +362,146 @@ body::before{
   text-transform:uppercase;
   margin-top:4px;
 }
+.ttgeo{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.14em;
+  color:var(--muted2);
+  margin-top:3px;
+}
+.ttgeo span{ color:var(--muted); }
+
+/* ── CLUSTER PICKER ── */
+.cluster-picker{
+  position:fixed;
+  z-index:400;
+  background:rgba(8,8,6,.97);
+  border:1px solid var(--border);
+  min-width:200px;
+  max-width:260px;
+  transform:translate(-50%, calc(-100% - 14px));
+  pointer-events:all;
+  box-shadow:0 0 24px rgba(0,0,0,.5);
+  display:none;
+}
+.cluster-picker.on{ display:block; }
+.cluster-picker::after{
+  content:"";
+  position:absolute;
+  bottom:-5px; left:50%; transform:translateX(-50%);
+  width:1px; height:5px;
+  background:var(--border);
+}
+.cp-head{
+  padding:7px 11px 5px;
+  border-bottom:1px solid var(--border);
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.2em;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+.cp-item{
+  padding:9px 12px;
+  cursor:pointer;
+  border-bottom:1px solid var(--muted2);
+  transition:background .15s;
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+.cp-item:last-child{ border-bottom:none; }
+.cp-item:hover{ background:rgba(200,184,154,.06); }
+.cp-item-title{
+  font-family:var(--serif);
+  font-size:15px;
+  color:var(--accent2);
+  line-height:1;
+}
+.cp-item-yr{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.12em;
+  color:var(--muted);
+  text-transform:uppercase;
+  flex-shrink:0;
+}
+
+/* ── DATA BOX ── */
+.databox{
+  position:fixed;
+  bottom:28px;
+  right:36px;
+  z-index:50;
+  width:200px;
+  background:rgba(8,8,6,.82);
+  border:1px solid var(--border);
+  backdrop-filter:blur(8px);
+  padding:14px 16px;
+  pointer-events:none;
+}
+.databox::before{
+  content:"";
+  position:absolute;
+  top:0; left:0; right:0;
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity:.3;
+}
+.db-title{
+  font-family:var(--mono);
+  font-size:8px;
+  letter-spacing:.18em;
+  color:var(--muted);
+  text-transform:uppercase;
+  line-height:1.8;
+}
+.db-title span{
+  color:var(--accent);
+  opacity:.7;
+}
+.db-divider{
+  height:1px;
+  background:var(--border);
+  margin:10px 0;
+}
+.db-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 8px;
+  margin-bottom:2px;
+}
+.db-cell{ text-align:left; }
+.db-val{
+  font-family:var(--mono);
+  font-size:14px;
+  font-weight:600;
+  color:var(--accent2);
+  line-height:1;
+  letter-spacing:.04em;
+}
+.db-label{
+  font-family:var(--mono);
+  font-size:7px;
+  letter-spacing:.18em;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-top:3px;
+}
+.db-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-top:6px;
+}
+.db-row .db-label{ margin-top:0; }
+.db-accent{
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.1em;
+  color:var(--accent);
+  text-transform:uppercase;
+}
 
 @media (max-width: 900px){
   .panel{
@@ -267,10 +520,13 @@ body::before{
   .panel-scroll{
     max-height:calc(55vh - 70px);
   }
-  .hint{
+  .databox{
     right:18px;
     bottom:18px;
+    width:160px;
   }
+  .db-val{ font-size:12px; }
+  .hud-tl{ display:none; }
 }
 </style>
 </head>
@@ -278,15 +534,38 @@ body::before{
 <canvas id="c"></canvas>
 <a href="https://jofrearchive.com" class="exit-btn">Exit ×</a>
 
+<!-- HUD top-left -->
+<div class="hud-tl" id="hudTl">
+  <span class="hud-label">Works mapped</span>
+  <span class="hud-val" id="hudCount">—</span>
+  <span class="hud-sep"></span>
+  <span class="hud-label">Geographies</span>
+  <span class="hud-val" id="hudGeo">—</span>
+</div>
+
+<!-- HUD bottom-left: live rotation coords -->
+<div class="hud-coords" id="hudCoords">
+  <div>Rot·Y <span id="hudRotY">0.0°</span></div>
+  <div>Rot·X <span id="hudRotX">0.0°</span></div>
+</div>
+
 <div class="tt" id="tt">
   <div class="ttc" id="ttc"></div>
   <div class="ttk" id="ttk"></div>
+  <div class="ttgeo" id="ttgeo"></div>
+</div>
+
+<!-- Cluster picker (multiple works at same location) -->
+<div class="cluster-picker" id="clusterPicker">
+  <div class="cp-head" id="cpHead"></div>
+  <div id="cpList"></div>
 </div>
 
 <div class="panel" id="panel">
   <div class="ph">
     <div>
       <div class="ploc" id="ploc"></div>
+      <div class="pgeo" id="pgeo"></div>
       <div class="ptitle" id="ptitle"></div>
     </div>
     <button class="pcls" id="pcls">×</button>
@@ -300,7 +579,26 @@ body::before{
   </div>
 </div>
 
-<div class="hint">Works across geographies<br>Every point, a story</div>
+<div class="databox" id="databox">
+  <div class="db-grid">
+    <div class="db-cell">
+      <div class="db-val" id="dbWorks">—</div>
+      <div class="db-label">Works</div>
+    </div>
+    <div class="db-cell">
+      <div class="db-val" id="dbCountries">—</div>
+      <div class="db-label">Countries</div>
+    </div>
+    <div class="db-cell">
+      <div class="db-val" id="dbCities">—</div>
+      <div class="db-label">Cities</div>
+    </div>
+    <div class="db-cell">
+      <div class="db-val" id="dbSpan">—</div>
+      <div class="db-label">Year span</div>
+    </div>
+  </div>
+</div>
 
 <script>
 const W$ = [
@@ -321,6 +619,30 @@ const W$ = [
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+
+// ── HUD counts ──
+document.getElementById('hudCount').textContent = W$.length;
+document.getElementById('hudGeo').textContent = new Set(W$.map(w => w.co)).size;
+
+// ── DATA BOX ──
+(function(){
+  const years = W$.map(w => parseInt(w.yr)).filter(Boolean);
+  const minYr = Math.min(...years);
+  const maxYr = Math.max(...years);
+  const countries = new Set(W$.map(w => w.co));
+  const cities    = new Set(W$.map(w => w.city));
+  // country with most works
+  const coCount = {};
+  W$.forEach(w => coCount[w.co] = (coCount[w.co]||0)+1);
+  const topCo = Object.entries(coCount).sort((a,b)=>b[1]-a[1])[0];
+  // latest work title
+  const latest = W$.reduce((a,b) => parseInt(b.yr) > parseInt(a.yr) ? b : a);
+
+  document.getElementById('dbWorks').textContent    = W$.length;
+  document.getElementById('dbCountries').textContent = countries.size;
+  document.getElementById('dbCities').textContent    = cities.size;
+  document.getElementById('dbSpan').textContent      = minYr + '–' + maxYr;
+})();
 
 let W, H, CX, CY, R;
 let userScale = 1.0;
@@ -568,6 +890,16 @@ function draw(){
       ? `rgba(240,226,192,${dep})`
       : `rgba(200,184,154,${.82 * dep})`;
     ctx.fill();
+
+    // floating label: city · year — same line, same tone
+    const labelAlpha = isH || isS ? dep : dep * 0.48;
+    const ox = 9, oy = 3;
+    const label = w.city.toUpperCase() + ' ' + w.yr;
+    ctx.font = `400 8px "Source Code Pro", monospace`;
+    ctx.fillStyle = (isH || isS)
+      ? `rgba(232,213,176,${labelAlpha})`
+      : `rgba(160,148,130,${labelAlpha})`;
+    ctx.fillText(label, p.sx + ox, p.sy + oy);
   }
 }
 
@@ -582,6 +914,9 @@ function loop(){
     vX *= .93;
     rotX = Math.max(-60, Math.min(60, rotX));
   }
+  // HUD rotation display
+  document.getElementById('hudRotY').textContent = (((rotY % 360) + 360) % 360).toFixed(1) + '°';
+  document.getElementById('hudRotX').textContent = rotX.toFixed(1) + '°';
   draw();
   requestAnimationFrame(loop);
 }
@@ -607,6 +942,8 @@ window.addEventListener('mousemove', e => {
       tt.style.top = e.clientY + 'px';
       document.getElementById('ttc').textContent = w.city;
       document.getElementById('ttk').textContent = w.co;
+      document.getElementById('ttgeo').innerHTML =
+        `<span>${w.lat >= 0 ? w.lat.toFixed(2)+'°N' : Math.abs(w.lat).toFixed(2)+'°S'}</span> / <span>${w.lon >= 0 ? w.lon.toFixed(2)+'°E' : Math.abs(w.lon).toFixed(2)+'°W'}</span>`;
       tt.classList.add('on');
     } else {
       tt.classList.remove('on');
@@ -629,8 +966,13 @@ window.addEventListener('mouseup', () => { dragging = false; });
 
 canvas.addEventListener('click', e => {
   if(!dragMoved){
-    const w = hitTest(e.clientX, e.clientY);
-    if(w) openPanel(w);
+    closeCluster();
+    const hits = hitTestAll(e.clientX, e.clientY);
+    if(hits.length === 1){
+      openPanel(hits[0]);
+    } else if(hits.length > 1){
+      openCluster(hits, e.clientX, e.clientY);
+    }
   }
 });
 
@@ -683,8 +1025,13 @@ canvas.addEventListener('touchend', e => {
   dragging = false;
   if(!dragMoved){
     const t = e.changedTouches[0];
-    const w = hitTest(t.clientX, t.clientY);
-    if(w) openPanel(w);
+    closeCluster();
+    const hits = hitTestAll(t.clientX, t.clientY);
+    if(hits.length === 1){
+      openPanel(hits[0]);
+    } else if(hits.length > 1){
+      openCluster(hits, t.clientX, t.clientY);
+    }
   }
 });
 
@@ -697,12 +1044,51 @@ function hitTest(mx, my){
   return null;
 }
 
+// returns all works within hit radius (for cluster detection)
+function hitTestAll(mx, my){
+  const radius = window.innerWidth < 900 ? 22 : 14;
+  return W$.filter(w => {
+    const p = project(w.lat, w.lon);
+    return p.z > 0 && Math.hypot(mx - p.sx, my - p.sy) < radius;
+  });
+}
+
+function openCluster(works, mx, my){
+  const cp = document.getElementById('clusterPicker');
+  const head = document.getElementById('cpHead');
+  const list = document.getElementById('cpList');
+  head.textContent = `${works[0].city}, ${works[0].co} — ${works.length} works`;
+  list.innerHTML = works.map((w,i) =>
+    `<div class="cp-item" data-idx="${i}">
+      <span class="cp-item-title">${w.title}</span>
+      <span class="cp-item-yr">${w.yr}</span>
+    </div>`
+  ).join('');
+  list.querySelectorAll('.cp-item').forEach((el, i) => {
+    el.addEventListener('click', () => { closeCluster(); openPanel(works[i]); });
+  });
+  cp.style.left = mx + 'px';
+  cp.style.top  = my + 'px';
+  cp.classList.add('on');
+}
+
+function closeCluster(){
+  document.getElementById('clusterPicker').classList.remove('on');
+}
+
+// close cluster on drag start
+canvas.addEventListener('mousedown', () => closeCluster());
+
 function openPanel(w){
   selected = w;
   hovered = null;
   document.getElementById('tt').classList.remove('on');
   cyOffsetTarget = window.innerWidth < 900 ? -window.innerHeight * 0.13 : 0;
   document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
+  // geo coords in panel
+  const latStr = w.lat >= 0 ? w.lat.toFixed(4)+'° N' : Math.abs(w.lat).toFixed(4)+'° S';
+  const lonStr = w.lon >= 0 ? w.lon.toFixed(4)+'° E' : Math.abs(w.lon).toFixed(4)+'° W';
+  document.getElementById('pgeo').innerHTML = `<span>${latStr}</span> / <span>${lonStr}</span>`;
   document.getElementById('ptitle').textContent = w.title;
   document.getElementById('pyr').textContent = w.meta || `Project / ${w.yr}`;
   document.getElementById('pdesc').innerHTML = w.desc.split('\n').map(p => `<p>${p}</p>`).join('');
