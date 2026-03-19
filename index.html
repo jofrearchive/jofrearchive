@@ -103,10 +103,21 @@ layout: none
       .node .subtitle{font-size:7px}
       .socket{width:9px;height:9px}
       #module-field{width:min(96vw, 420px);height:116px;bottom:5vh}
-      #node-archive{left:4vw;top:18vh}
-      #node-output{right:4vw;top:48vh}
+      #node-archive{left:4vw;top:24vh}
+      #node-output{right:4vw;top:56vh}
     }
-  </style>
+  
+@media (max-width: 640px){
+  #node-archive{ top:26vh !important; }
+  #node-output{ top:60vh !important; }
+
+  #node-works{ transform: translate(-40px,-20px); }
+  #node-studies{ transform: translate(-10px,0px); }
+  #node-artifacts{ transform: translate(20px,20px); }
+  #node-genealogy{ transform: translate(50px,40px); }
+}
+
+</style>
 </head>
 <body>
   <canvas id="gl"></canvas>
@@ -494,18 +505,38 @@ layout: none
       const tray = document.getElementById('module-field');
       const r = tray.getBoundingClientRect();
       const count = moduleNodes.length;
-      const gap = window.innerWidth <= 640 ? 8 : 12;
-      const usable = r.width - gap * (count + 1);
+      const isMobile = window.innerWidth <= 640;
       const cardW = Math.min(...moduleNodes.map(n => n.offsetWidth));
+      const centerY = r.top + (r.height / 2);
+
+      if (isMobile){
+        const overlap = Math.round(cardW * 0.48);
+        const visibleStep = Math.max(42, cardW - overlap);
+        const totalW = visibleStep * (count - 1) + cardW;
+        const startX = r.left + Math.max(10, (r.width - totalW) / 2);
+        const baseTop = centerY - moduleNodes[0].offsetHeight / 2 + 6;
+        moduleNodes.forEach((node, i) => {
+          if (!force && node.dataset.userPlaced === '1') return;
+          const left = clamp(startX + i * visibleStep, 8, window.innerWidth - node.offsetWidth - 8);
+          const top = clamp(baseTop - i * 10, 8, window.innerHeight - node.offsetHeight - 8);
+          node.style.left = `${left}px`;
+          node.style.top = `${top}px`;
+          node.style.zIndex = String(12 + i);
+          node.dataset.userPlaced = '0';
+        });
+        return;
+      }
+
+      const gap = 12;
       const totalW = cardW * count + gap * (count - 1);
       const startX = r.left + Math.max(gap, (r.width - totalW) / 2);
-      const centerY = r.top + (r.height / 2);
       moduleNodes.forEach((node, i) => {
         if (!force && node.dataset.userPlaced === '1') return;
         const left = clamp(startX + i * (cardW + gap), 8, window.innerWidth - node.offsetWidth - 8);
-        const top = clamp(centerY - node.offsetHeight / 2 + (window.innerWidth <= 640 ? 6 : 10), 8, window.innerHeight - node.offsetHeight - 8);
+        const top = clamp(centerY - node.offsetHeight / 2 + 10, 8, window.innerHeight - node.offsetHeight - 8);
         node.style.left = `${left}px`;
         node.style.top = `${top}px`;
+        node.style.zIndex = String(12 + i);
         node.dataset.userPlaced = '0';
       });
     }
