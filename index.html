@@ -553,6 +553,32 @@ layout: none
       });
     }
 
+    function layoutCoreNodes(force=false){
+      const mobile = window.innerWidth <= 640;
+      archiveNode.style.right = 'auto';
+      outputNode.style.right = 'auto';
+
+      if (mobile){
+        if (force || archiveNode.dataset.userPlaced !== '1'){
+          archiveNode.style.left = `${Math.round(window.innerWidth * 0.08)}px`;
+          archiveNode.style.top = `${Math.round(window.innerHeight * 0.26)}px`;
+        }
+        if (force || outputNode.dataset.userPlaced !== '1'){
+          outputNode.style.left = `${Math.round(window.innerWidth - outputNode.offsetWidth - window.innerWidth * 0.08)}px`;
+          outputNode.style.top = `${Math.round(window.innerHeight * 0.60)}px`;
+        }
+      } else {
+        if (force || archiveNode.dataset.userPlaced !== '1'){
+          archiveNode.style.left = `${Math.round(window.innerWidth * 0.06)}px`;
+          archiveNode.style.top = `${Math.round(window.innerHeight * 0.34)}px`;
+        }
+        if (force || outputNode.dataset.userPlaced !== '1'){
+          outputNode.style.left = `${Math.round(window.innerWidth - outputNode.offsetWidth - window.innerWidth * 0.06)}px`;
+          outputNode.style.top = `${Math.round(window.innerHeight * 0.34)}px`;
+        }
+      }
+    }
+
 
     function initMotion(node){
       const rect = node.getBoundingClientRect();
@@ -570,14 +596,32 @@ layout: none
     }
 
     function maybeSnapToBackbone(node){
-      if (!node.classList.contains('module')) return;
+      if (!node.classList.contains('module')) return false;
       const guide = getBackboneGuide();
       const c = nodeCenter(node);
       const lineY = (guide.from.y + guide.to.y) / 2;
-      const corridor = Math.max(56, window.innerWidth * 0.06);
-      if (c.x > Math.min(guide.from.x, guide.to.x) + 20 && c.x < Math.max(guide.from.x, guide.to.x) - 20 && Math.abs(c.y - lineY) < corridor){
-        node.style.top = `${clamp(lineY - c.height/2, 8, window.innerHeight - c.height - 8)}px`;
-      }
+      const mobile = window.innerWidth <= 640;
+      const corridor = mobile ? Math.max(90, window.innerWidth * 0.12) : Math.max(64, window.innerWidth * 0.07);
+      const withinX = c.x > Math.min(guide.from.x, guide.to.x) + 8 && c.x < Math.max(guide.from.x, guide.to.x) - 8;
+      const touchesLine = withinX && Math.abs(c.y - lineY) < corridor;
+      if (!touchesLine) return false;
+
+      const snappedTop = clamp(lineY - c.height/2, 8, window.innerHeight - c.height - 8);
+      node.style.top = `${snappedTop}px`;
+
+      const archiveOut = archiveNode.querySelector('.socket.out');
+      const moduleIn = node.querySelector('.socket.in');
+      const moduleOut = node.querySelector('.socket.out');
+      const outputIn = outputNode.querySelector('.socket.in');
+
+      removeConnectionsForSocket(archiveOut);
+      removeConnectionsForSocket(moduleIn);
+      removeConnectionsForSocket(moduleOut);
+      removeConnectionsForSocket(outputIn);
+
+      connections.push({ from: archiveOut, to: moduleIn, active:false, preview:false, auto:false, backbone:false });
+      connections.push({ from: moduleOut, to: outputIn, active:false, preview:false, auto:false, backbone:false });
+      return true;
     }
 
     function animate(now){
@@ -619,11 +663,13 @@ layout: none
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragMoved = true;
-        const pad = window.innerWidth <= 640 ? 6 : 14;
+        const mobile = window.innerWidth <= 640;
+        const pad = mobile ? 6 : 14;
         const maxL = window.innerWidth - node.offsetWidth - pad;
         const maxT = window.innerHeight - node.offsetHeight - pad;
         node.style.left = `${clamp(originL + dx, pad, maxL)}px`;
         node.style.top = `${clamp(originT + dy, pad, maxT)}px`;
+        if (node.classList.contains('module') && dragMoved) maybeSnapToBackbone(node);
         recomputeRoute();
         e.preventDefault();
       });
@@ -634,7 +680,7 @@ layout: none
         pid = null;
         node.classList.remove('dragging');
         node._motion.dragging = false;
-        if (node.classList.contains('module') && dragMoved) node.dataset.userPlaced = '1';
+        if (dragMoved) node.dataset.userPlaced = '1';
         maybeSnapToBackbone(node);
         recomputeRoute();
         setTimeout(() => { dragMoved = false; }, 60);
@@ -747,10 +793,11 @@ layout: none
       });
     });
 
-    window.addEventListener('resize', () => { clampNodesToViewport(); recomputeRoute(); });
+    window.addEventListener('resize', () => { layoutCoreNodes(false); clampNodesToViewport(); recomputeRoute(); });
 
     window.addEventListener('load', () => {
       nodes.forEach(node => { initMotion(node); bindNodeDrag(node); });
+      layoutCoreNodes(true);
       placeModulesInDock(true);
       sockets.forEach(bindSocket);
       recomputeRoute();
