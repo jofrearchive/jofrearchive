@@ -632,7 +632,6 @@ layout: none
       let pid = null, startX = 0, startY = 0, originL = 0, originT = 0;
       node.addEventListener('pointerdown', (e) => {
         if (e.target.classList.contains('socket')) return;
-        if (e.target.closest('#access-btn')) return;
         pid = e.pointerId;
         dragMoved = false;
         node.setPointerCapture(pid);
@@ -1086,7 +1085,7 @@ layout: none
     }
   }
 
-  let start = performance.now() - 4000;
+  let start = performance.now();
   function render(now) {
     resize();
     gl.uniform2f(uResolution, canvas.width, canvas.height);
