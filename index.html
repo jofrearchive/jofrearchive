@@ -24,7 +24,7 @@ layout: none
     *{box-sizing:border-box}
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
     body{font-family:'Source Code Pro', monospace;color:var(--text);background:#000}
-    canvas{display:block;width:100vw;height:100vh;opacity:0;transition:opacity 2s ease}
+    canvas{display:block;width:100vw;height:100vh;opacity:0;transition:opacity 5s ease}
 
     #hud{position:fixed;inset:0;z-index:8;pointer-events:none;opacity:1;}
     #hud.show{opacity:1}
@@ -1154,7 +1154,7 @@ layout: none
     }
   }
 
-  let start = performance.now() - 4000;
+  let start = performance.now() - 19000;
   function render(now) {
     resize();
     gl.uniform2f(uResolution, canvas.width, canvas.height);
