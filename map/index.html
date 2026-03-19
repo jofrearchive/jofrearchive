@@ -814,8 +814,8 @@ function draw(){
     ctx.fillStyle = (isH || isS)
       ? `rgba(240,226,192,${labelAlpha})`
       : `rgba(180,165,145,${labelAlpha})`;
-    ctx.textAlign = ox1 >= 0 ? 'left' : 'right';
-    ctx.fillText(label, lsx + (ox1 >= 0 ? 3 : -3), lsy + 3);
+    ctx.textAlign = 'left';
+    ctx.fillText(label, lsx + 3, lsy + 3);
     ctx.textAlign = 'left';
   }
 }
