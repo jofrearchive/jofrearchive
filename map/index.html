@@ -308,52 +308,7 @@ body::before{
 .slider-dot{width:5px;height:5px;border-radius:50%;background:rgba(200,184,154,.35);cursor:pointer;transition:background .2s;}
 .slider-dot.active{background:var(--accent2);}
 
-/* ── TOOLTIP ── */
-.tt{
-  position:fixed;
-  z-index:300;
-  pointer-events:none;
-  background:rgba(8,8,6,.96);
-  border:1px solid var(--border);
-  padding:8px 11px;
-  transform:translate(-50%,-145%);
-  white-space:nowrap;
-  opacity:0;
-  transition:opacity .15s;
-}
-.tt::before{
-  content:"";
-  position:absolute;
-  bottom:-5px; left:50%; transform:translateX(-50%);
-  width:1px; height:5px;
-  background:var(--border);
-}
-.tt.on{opacity:1;}
-.ttc{
-  font-family:var(--serif);
-  font-size:18px;
-  font-weight:600;
-  letter-spacing:.04em;
-  color:var(--accent2);
-  text-transform:uppercase;
-  line-height:1;
-}
-.ttk{
-  font-family:var(--mono);
-  font-size:7px;
-  letter-spacing:.16em;
-  color:var(--muted);
-  text-transform:uppercase;
-  margin-top:4px;
-}
-.ttgeo{
-  font-family:var(--mono);
-  font-size:7px;
-  letter-spacing:.14em;
-  color:var(--muted2);
-  margin-top:3px;
-}
-.ttgeo span{ color:var(--muted); }
+/* tooltip removed */
 
 /* ── CLUSTER PICKER ── */
 .cluster-picker{
@@ -423,8 +378,9 @@ body::before{
 .databox::before{ display:none; }
 .db-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px 10px;
+  grid-template-columns:auto auto;
+  gap:8px 12px;
+  justify-content:end;
 }
 .db-cell{ text-align:left; }
 .db-val{
@@ -488,11 +444,7 @@ body::before{
   <div>Lon <span id="hudRotX">0.00°</span></div>
 </div>
 
-<div class="tt" id="tt">
-  <div class="ttc" id="ttc"></div>
-  <div class="ttk" id="ttk"></div>
-  <div class="ttgeo" id="ttgeo"></div>
-</div>
+
 
 <!-- Cluster picker (multiple works at same location) -->
 <div class="cluster-picker" id="clusterPicker">
@@ -829,15 +781,42 @@ function draw(){
       : `rgba(200,184,154,${.82 * dep})`;
     ctx.fill();
 
-    // floating label: city · year — same line, same tone
-    const labelAlpha = isH || isS ? dep : dep * 0.48;
-    const ox = 9, oy = 3;
+    // 3D floating label — projected at radius * 1.18, rotates with globe
+    const labelAlpha = isH || isS ? dep : dep * 0.75;
     const label = w.city.toUpperCase() + ' ' + w.yr;
-    ctx.font = `400 8px "Source Code Pro", monospace`;
+
+    // project label at a larger radius (outside sphere surface)
+    const phi = w.lat * D2R;
+    const lam = w.lon * D2R;
+    const ry2 = rotY * D2R;
+    const rx2 = rotX * D2R;
+    const ox = Math.cos(phi) * Math.sin(lam);
+    const oy2 = Math.sin(phi);
+    const oz = Math.cos(phi) * Math.cos(lam);
+    const ox1 = ox * Math.cos(ry2) - oz * Math.sin(ry2);
+    const oz1 = ox * Math.sin(ry2) + oz * Math.cos(ry2);
+    const oy3 = oy2 * Math.cos(rx2) - oz1 * Math.sin(rx2);
+    const oz2 = oy2 * Math.sin(rx2) + oz1 * Math.cos(rx2);
+    const labelR = R * 1.22;
+    const lsx = CX + ox1 * labelR;
+    const lsy = CY - oy3 * labelR;
+
+    // leader line from dot to label anchor
+    ctx.beginPath();
+    ctx.moveTo(p.sx, p.sy);
+    ctx.lineTo(lsx, lsy);
+    ctx.strokeStyle = `rgba(90,85,80,${labelAlpha * 0.55})`;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // label
+    ctx.font = `400 9px "Source Code Pro", monospace`;
     ctx.fillStyle = (isH || isS)
-      ? `rgba(232,213,176,${labelAlpha})`
-      : `rgba(160,148,130,${labelAlpha})`;
-    ctx.fillText(label, p.sx + ox, p.sy + oy);
+      ? `rgba(240,226,192,${labelAlpha})`
+      : `rgba(180,165,145,${labelAlpha})`;
+    ctx.textAlign = ox1 >= 0 ? 'left' : 'right';
+    ctx.fillText(label, lsx + (ox1 >= 0 ? 3 : -3), lsy + 3);
+    ctx.textAlign = 'left';
   }
 }
 
@@ -852,11 +831,18 @@ function loop(){
     vX *= .93;
     rotX = Math.max(-60, Math.min(60, rotX));
   }
-  // Real geo coords: center of globe = inverse of rotation
-  const centerLon = -(((rotY % 360) + 540) % 360 - 180);
-  const centerLat = -Math.max(-90, Math.min(90, rotX));
-  const latStr = (centerLat >= 0 ? centerLat.toFixed(2) + '° N' : Math.abs(centerLat).toFixed(2) + '° S');
-  const lonStr = (centerLon >= 0 ? centerLon.toFixed(2) + '° E' : Math.abs(centerLon).toFixed(2) + '° W');
+  // Exact geo coords: inverse rotate the center vector (0,0,1)
+  const ry = rotY * D2R, rx = rotX * D2R;
+  // Undo rotX first, then rotY
+  const y2 =  Math.sin(rx);
+  const z2 =  Math.cos(rx);
+  const x1 =  0;
+  const z1 =  z2 * Math.cos(-ry) - x1 * Math.sin(-ry);  // = z2*cos(ry)
+  const x0 =  z2 * Math.sin(-ry) + x1 * Math.cos(-ry);  // = -z2*sin(ry)
+  const centerLat = Math.asin(Math.max(-1, Math.min(1, y2))) / D2R;
+  const centerLon = Math.atan2(-x0, z1) / D2R;
+  const latStr = centerLat >= 0 ? centerLat.toFixed(2)+'° N' : Math.abs(centerLat).toFixed(2)+'° S';
+  const lonStr = centerLon >= 0 ? centerLon.toFixed(2)+'° E' : Math.abs(centerLon).toFixed(2)+'° W';
   document.getElementById('hudRotY').textContent = latStr;
   document.getElementById('hudRotX').textContent = lonStr;
   draw();
@@ -878,18 +864,6 @@ window.addEventListener('mousemove', e => {
     const w = hitTest(e.clientX, e.clientY);
     hovered = w;
     canvas.style.cursor = w ? 'pointer' : 'grab';
-    const tt = document.getElementById('tt');
-    if(w && !selected){
-      tt.style.left = e.clientX + 'px';
-      tt.style.top = e.clientY + 'px';
-      document.getElementById('ttc').textContent = w.city;
-      document.getElementById('ttk').textContent = w.co;
-      document.getElementById('ttgeo').innerHTML =
-        `<span>${w.lat >= 0 ? w.lat.toFixed(2)+'°N' : Math.abs(w.lat).toFixed(2)+'°S'}</span> / <span>${w.lon >= 0 ? w.lon.toFixed(2)+'°E' : Math.abs(w.lon).toFixed(2)+'°W'}</span>`;
-      tt.classList.add('on');
-    } else {
-      tt.classList.remove('on');
-    }
     return;
   }
   const dx = e.clientX - mx0;
@@ -1024,7 +998,6 @@ canvas.addEventListener('mousedown', () => closeCluster());
 function openPanel(w){
   selected = w;
   hovered = null;
-  document.getElementById('tt').classList.remove('on');
   cyOffsetTarget = window.innerWidth < 900 ? -window.innerHeight * 0.13 : 0;
   document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
   document.getElementById('ptitle').textContent = w.title;
@@ -1056,7 +1029,6 @@ document.getElementById('pcls').addEventListener('click', () => {
   document.getElementById('panel').classList.remove('open');
   selected = null;
   hovered = null;
-  document.getElementById('tt').classList.remove('on');
   cyOffsetTarget = 0;
   vY = 0.05;
 });
