@@ -102,9 +102,9 @@ layout: none
       .node .title{font-size:11px}
       .node .subtitle{font-size:7px}
       .socket{width:9px;height:9px}
-      #module-field{width:min(98vw, 430px);height:118px;bottom:5vh}
-      #node-archive{left:4vw;top:26vh}
-      #node-output{right:4vw;top:58vh}
+      #module-field{width:calc(100vw - 12px);height:116px;bottom:5vh}
+      #node-archive{left:4vw;top:24vh}
+      #node-output{right:4vw;top:56vh}
     }
   </style>
 </head>
@@ -264,16 +264,40 @@ layout: none
       return { from: socketCenter(s.from), to: socketCenter(s.to) };
     }
 
+    // Distance from point (px,py) to the segment from→to, and Y on line at px
+    function distToBackbone(px, py, guide){
+      const dx = guide.to.x - guide.from.x;
+      const dy = guide.to.y - guide.from.y;
+      const len2 = dx*dx + dy*dy;
+      if (len2 === 0) return { dist: Math.hypot(px - guide.from.x, py - guide.from.y), lineY: guide.from.y };
+      const t = Math.max(0, Math.min(1, ((px - guide.from.x)*dx + (py - guide.from.y)*dy) / len2));
+      const nearX = guide.from.x + t * dx;
+      const nearY = guide.from.y + t * dy;
+      return { dist: Math.hypot(px - nearX, py - nearY), lineY: nearY };
+    }
+
     function corridorModules(excludeIds = new Set()){
       const guide = getBackboneGuide();
       const minX = Math.min(guide.from.x, guide.to.x);
       const maxX = Math.max(guide.from.x, guide.to.x);
-      const lineY = (guide.from.y + guide.to.y) / 2;
-      const corridor = Math.max(56, window.innerWidth * 0.06);
+
       return moduleNodes
         .filter(node => !excludeIds.has(node.id))
         .map(node => ({ node, c: nodeCenter(node) }))
-        .filter(item => item.c.x > minX + 20 && item.c.x < maxX - 20 && Math.abs(item.c.y - lineY) < corridor)
+        .filter(item => {
+          if (item.c.x < minX - item.c.width/2 || item.c.x > maxX + item.c.width/2) return false;
+          // Check all 4 corners + center against the line — connect if any part touches
+          const hw = item.c.width / 2;
+          const hh = item.c.height / 2;
+          const points = [
+            { x: item.c.x,      y: item.c.y      }, // center
+            { x: item.c.x - hw, y: item.c.y - hh }, // top-left
+            { x: item.c.x + hw, y: item.c.y - hh }, // top-right
+            { x: item.c.x - hw, y: item.c.y + hh }, // bottom-left
+            { x: item.c.x + hw, y: item.c.y + hh }, // bottom-right
+          ];
+          return points.some(p => distToBackbone(p.x, p.y, guide).dist < 30);
+        })
         .sort((a,b) => a.c.x - b.c.x)
         .map(item => item.node);
     }
@@ -495,22 +519,22 @@ layout: none
       const r = tray.getBoundingClientRect();
       const count = moduleNodes.length;
       const mobile = window.innerWidth <= 640;
-      const gap = mobile ? 8 : 12;
-      const cardW = Math.min(...moduleNodes.map(n => n.offsetWidth));
-      const centerY = r.top + (r.height / 2);
 
       if (mobile){
-        const leftPad = 12;
-        const rightPad = 12;
-        const usableW = r.width - leftPad - rightPad - cardW;
-        const stepX = usableW / Math.max(1, count - 1);
-        const baseTop = r.top + 16;
-        const stepY = 11;
-
+        const count = moduleNodes.length;
+        const pad = 8;
+        const usableW = window.innerWidth - pad * 2;
         moduleNodes.forEach((node, i) => {
           if (!force && node.dataset.userPlaced === '1') return;
-          const left = clamp(r.left + leftPad + i * stepX, 8, window.innerWidth - node.offsetWidth - 8);
-          const top = clamp(baseTop + i * stepY, 8, window.innerHeight - node.offsetHeight - 8);
+          const nodeW = node.offsetWidth || 126;
+          const nodeH = node.offsetHeight || 58;
+          // Distribute evenly across full screen width
+          const slot = usableW / count;
+          const left = clamp(pad + i * slot + (slot - nodeW) / 2, pad, window.innerWidth - nodeW - pad);
+          // Stagger vertically: use tray area with small step per card
+          const trayTop = r.top + 8;
+          const maxStep = Math.min(20, (r.height - nodeH - 16) / Math.max(1, count - 1));
+          const top = clamp(trayTop + i * maxStep, 8, window.innerHeight - nodeH - 8);
           node.style.left = `${left}px`;
           node.style.top = `${top}px`;
           node.dataset.userPlaced = '0';
@@ -518,9 +542,11 @@ layout: none
         return;
       }
 
+      const gap = 12;
+      const cardW = Math.min(...moduleNodes.map(n => n.offsetWidth));
       const totalW = cardW * count + gap * (count - 1);
       const startX = r.left + Math.max(gap, (r.width - totalW) / 2);
-
+      const centerY = r.top + (r.height / 2);
       moduleNodes.forEach((node, i) => {
         if (!force && node.dataset.userPlaced === '1') return;
         const left = clamp(startX + i * (cardW + gap), 8, window.innerWidth - node.offsetWidth - 8);
@@ -529,7 +555,6 @@ layout: none
         node.style.top = `${top}px`;
         node.dataset.userPlaced = '0';
       });
-    });
     }
 
     function clampNodesToViewport(){
@@ -566,18 +591,23 @@ layout: none
       if (!node.classList.contains('module')) return;
       const guide = getBackboneGuide();
       const c = nodeCenter(node);
-      const lineY = (guide.from.y + guide.to.y) / 2;
-      const mobile = window.innerWidth <= 640;
-      const corridor = mobile ? 96 : Math.max(72, window.innerWidth * 0.08);
-      const xPad = mobile ? 8 : 20;
-      if (
-        c.x > Math.min(guide.from.x, guide.to.x) - xPad &&
-        c.x < Math.max(guide.from.x, guide.to.x) + xPad &&
-        Math.abs(c.y - lineY) < corridor
-      ){
-        node.style.top = `${clamp(lineY - c.height/2, 8, window.innerHeight - c.height - 8)}px`;
+      const hw = c.width / 2;
+      const hh = c.height / 2;
+      const minX = Math.min(guide.from.x, guide.to.x);
+      const maxX = Math.max(guide.from.x, guide.to.x);
+      if (c.x < minX - hw || c.x > maxX + hw) return;
+      const points = [
+        { x: c.x,      y: c.y      },
+        { x: c.x - hw, y: c.y - hh },
+        { x: c.x + hw, y: c.y - hh },
+        { x: c.x - hw, y: c.y + hh },
+        { x: c.x + hw, y: c.y + hh },
+      ];
+      const hit = points.find(p => distToBackbone(p.x, p.y, guide).dist < 30);
+      if (hit) {
+        const { lineY } = distToBackbone(c.x, c.y, guide);
+        node.style.top = `${clamp(lineY - hh, 8, window.innerHeight - c.height - 8)}px`;
       }
-    }
     }
 
     function animate(now){
@@ -624,6 +654,7 @@ layout: none
         const maxT = window.innerHeight - node.offsetHeight - pad;
         node.style.left = `${clamp(originL + dx, pad, maxL)}px`;
         node.style.top = `${clamp(originT + dy, pad, maxT)}px`;
+        maybeSnapToBackbone(node);
         recomputeRoute();
         e.preventDefault();
       });
@@ -650,7 +681,7 @@ layout: none
         if (s === originSocket) continue;
         const c = socketCenter(s);
         const d = Math.hypot(c.x - x, c.y - y);
-        const limit = window.innerWidth <= 640 ? 56 : 38;
+        const limit = window.innerWidth <= 640 ? 80 : 40;
         if (d < limit && d < bestD){
           best = s;
           bestD = d;
