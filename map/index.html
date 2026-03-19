@@ -424,12 +424,12 @@ body::before{
 .db-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px 20px;
+  gap:8px 10px;
 }
 .db-cell{ text-align:left; }
 .db-val{
   font-family:var(--mono);
-  font-size:14px;
+  font-size:11px;
   font-weight:600;
   color:var(--accent);
   line-height:1;
@@ -438,11 +438,11 @@ body::before{
 }
 .db-label{
   font-family:var(--mono);
-  font-size:7px;
-  letter-spacing:.18em;
+  font-size:6px;
+  letter-spacing:.16em;
   color:var(--muted);
   text-transform:uppercase;
-  margin-top:3px;
+  margin-top:2px;
   opacity:.7;
 }
 
@@ -482,10 +482,10 @@ body::before{
   <span class="hud-val" id="hudGeo">—</span>
 </div>
 
-<!-- HUD bottom-left: live rotation coords -->
+<!-- HUD bottom-left: real geo coords of globe center -->
 <div class="hud-coords" id="hudCoords">
-  <div>Rot·Y <span id="hudRotY">0.0°</span></div>
-  <div>Rot·X <span id="hudRotX">0.0°</span></div>
+  <div>Lat <span id="hudRotY">0.00°</span></div>
+  <div>Lon <span id="hudRotX">0.00°</span></div>
 </div>
 
 <div class="tt" id="tt">
@@ -504,7 +504,6 @@ body::before{
   <div class="ph">
     <div>
       <div class="ploc" id="ploc"></div>
-      <div class="pgeo" id="pgeo"></div>
       <div class="ptitle" id="ptitle"></div>
     </div>
     <button class="pcls" id="pcls">×</button>
@@ -853,9 +852,13 @@ function loop(){
     vX *= .93;
     rotX = Math.max(-60, Math.min(60, rotX));
   }
-  // HUD rotation display
-  document.getElementById('hudRotY').textContent = (((rotY % 360) + 360) % 360).toFixed(1) + '°';
-  document.getElementById('hudRotX').textContent = rotX.toFixed(1) + '°';
+  // Real geo coords: center of globe = inverse of rotation
+  const centerLon = -(((rotY % 360) + 540) % 360 - 180);
+  const centerLat = -Math.max(-90, Math.min(90, rotX));
+  const latStr = (centerLat >= 0 ? centerLat.toFixed(2) + '° N' : Math.abs(centerLat).toFixed(2) + '° S');
+  const lonStr = (centerLon >= 0 ? centerLon.toFixed(2) + '° E' : Math.abs(centerLon).toFixed(2) + '° W');
+  document.getElementById('hudRotY').textContent = latStr;
+  document.getElementById('hudRotX').textContent = lonStr;
   draw();
   requestAnimationFrame(loop);
 }
@@ -1024,10 +1027,6 @@ function openPanel(w){
   document.getElementById('tt').classList.remove('on');
   cyOffsetTarget = window.innerWidth < 900 ? -window.innerHeight * 0.13 : 0;
   document.getElementById('ploc').textContent = `${w.co.toUpperCase()} — ${w.city.toUpperCase()}`;
-  // geo coords in panel
-  const latStr = w.lat >= 0 ? w.lat.toFixed(4)+'° N' : Math.abs(w.lat).toFixed(4)+'° S';
-  const lonStr = w.lon >= 0 ? w.lon.toFixed(4)+'° E' : Math.abs(w.lon).toFixed(4)+'° W';
-  document.getElementById('pgeo').innerHTML = `<span>${latStr}</span> / <span>${lonStr}</span>`;
   document.getElementById('ptitle').textContent = w.title;
   document.getElementById('pyr').textContent = w.meta || `Project / ${w.yr}`;
   document.getElementById('pdesc').innerHTML = w.desc.split('\n').map(p => `<p>${p}</p>`).join('');
