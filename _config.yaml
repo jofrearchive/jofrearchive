@@ -11,9 +11,9 @@ collections:
     output: true
     permalink: /studies/:slug/
 
-  artifacts:
+  gallery:
     output: true
-    permalink: /artifacts/:slug/
+    permalink: /gallery/:slug/
 
 defaults:
 
@@ -25,9 +25,9 @@ defaults:
 
   - scope:
       path: ""
-      type: artifacts
+      type: gallery
     values:
-      layout: artifact
+      layout: gallery
 
 timezone: UTC
 
