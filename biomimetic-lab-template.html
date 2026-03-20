@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biomimetic Solar / Experimental Publication</title>
+  <style>
+    :root {
+      --bg: #07080b;
+      --bg-2: #0d1118;
+      --panel: rgba(10, 14, 20, 0.78);
+      --panel-strong: rgba(7, 10, 15, 0.92);
+      --line: rgba(171, 197, 255, 0.14);
+      --line-strong: rgba(171, 197, 255, 0.28);
+      --text: #e7ecf3;
+      --muted: #93a0b4;
+      --accent: #b6c6ff;
+      --accent-2: #74f0d7;
+      --danger: #ff8e8e;
+      --warm: #e7d3a8;
+      --max: 1440px;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: "EB Garamond", Garamond, Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(116, 240, 215, 0.05), transparent 24%),
+        radial-gradient(circle at 85% 15%, rgba(182, 198, 255, 0.08), transparent 28%),
+        linear-gradient(180deg, #06070a 0%, #07080b 100%);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    canvas#system-bg {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .grid-overlay,
+    .scan-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .grid-overlay {
+      background-image:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.12));
+      opacity: 0.4;
+    }
+
+    .scan-overlay::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 0%, rgba(182,198,255,0.03) 48%, transparent 52%, transparent 100%);
+      animation: scan 9s linear infinite;
+      opacity: 0.55;
+    }
+
+    @keyframes scan {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 2;
+    }
+
+    .frame {
+      width: min(calc(100% - 40px), var(--max));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(6, 7, 10, 0.88), rgba(6, 7, 10, 0.42));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .topbar .frame {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 62px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .brand-mark {
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--accent);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      background: var(--accent);
+    }
+
+    .brand-mark::before {
+      left: 50%;
+      top: 2px;
+      bottom: 2px;
+      width: 1px;
+      transform: translateX(-50%);
+    }
+
+    .brand-mark::after {
+      top: 50%;
+      left: 2px;
+      right: 2px;
+      height: 1px;
+      transform: translateY(-50%);
+    }
+
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    .topnav a {
+      opacity: 0.8;
+      transition: opacity 0.25s ease;
+    }
+
+    .topnav a:hover { opacity: 1; }
+
+    .hero {
+      min-height: 100svh;
+      display: grid;
+      align-items: end;
+      padding: 110px 0 36px;
+    }
+
+    .hero-shell {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .hero-main,
+    .hero-side,
+    .panel,
+    .lab-box,
+    .media-box,
+    .caption-strip,
+    .data-strip,
+    .footer-box,
+    .terminal,
+    .step-text,
+    .step-visual {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before,
+    .hero-main::before,
+    .hero-side::before,
+    .lab-box::before,
+    .media-box::before,
+    .footer-box::before,
+    .terminal::before,
+    .step-text::before,
+    .step-visual::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(182,198,255,0.35) 50%, transparent 100%);
+      opacity: 0.8;
+    }
+
+    .hero-main {
+      min-height: 78svh;
+      padding: 24px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 22px;
+      background:
+        linear-gradient(180deg, rgba(10,14,20,0.84), rgba(7,10,15,0.94)),
+        radial-gradient(circle at 70% 20%, rgba(116,240,215,0.06), transparent 28%),
+        radial-gradient(circle at 30% 80%, rgba(182,198,255,0.08), transparent 34%);
+    }
+
+    .hero-side {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 18px;
+      padding: 18px;
+      min-height: 78svh;
+      background: linear-gradient(180deg, rgba(9,12,18,0.9), rgba(7,10,15,0.94));
+    }
+
+    .eyebrow,
+    .meta-row,
+    .micro-label {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .meta-pill {
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 5px 7px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-weight: 400;
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      font-size: clamp(60px, 10vw, 132px);
+      max-width: 10ch;
+    }
+
+    .hero-copy {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 18px;
+      align-items: end;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 36ch;
+      font-size: clamp(15px, 1.55vw, 19px);
+      line-height: 1.55;
+      color: #d8dfe8;
+    }
+
+    .system-stage {
+      position: relative;
+      min-height: 360px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(182,198,255,0.08), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      overflow: hidden;
+    }
+
+    .system-stage .ring,
+    .system-stage .vein,
+    .system-stage .node,
+    .system-stage .trace,
+    .system-stage .layer-card {
+      position: absolute;
+    }
+
+    .ring {
+      border: 1px solid rgba(182,198,255,0.18);
+      border-radius: 50%;
+      animation: rotateSlow 24s linear infinite;
+    }
+
+    .ring.r1 { width: 340px; height: 340px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+    .ring.r2 { width: 250px; height: 250px; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(14deg); animation-direction: reverse; }
+    .ring.r3 { width: 460px; height: 460px; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-10deg); opacity: 0.4; }
+
+    @keyframes rotateSlow {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .trace {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(116,240,215,0.65), transparent);
+      transform-origin: left center;
+      opacity: 0.6;
+    }
+
+    .node {
+      width: 8px;
+      height: 8px;
+      border: 1px solid var(--accent);
+      background: rgba(10,14,20,1);
+      box-shadow: 0 0 18px rgba(182,198,255,0.22);
+    }
+
+    .node::before {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border: 1px solid rgba(182,198,255,0.12);
+      animation: pulse 4s linear infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.7); opacity: 0.75; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .vein {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(182,198,255,0.05), rgba(182,198,255,0.32), rgba(116,240,215,0.08));
+      transform-origin: left center;
+      opacity: 0.8;
+    }
+
+    .layer-card {
+      min-width: 140px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(5,7,11,0.76);
+      backdrop-filter: blur(10px);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .layer-card strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--text);
+      letter-spacing: 0.02em;
+      font-size: 12px;
+      text-transform: none;
+      font-weight: 500;
+    }
+
+    .caption-strip,
+    .data-strip {
+      padding: 12px 14px;
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(7,10,15,0.72);
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .data-grid div {
+      padding: 10px 10px 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .data-grid strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      font-weight: 500;
+    }
+
+    .hero-side .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .terminal {
+      padding: 14px;
+      background: rgba(4, 7, 10, 0.86);
+      min-height: 220px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #c7d4ea;
+    }
+
+    .terminal .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+      font-size: 10px;
+    }
+
+    .terminal .line { white-space: pre-wrap; }
+    .terminal .ok { color: var(--accent-2); }
+    .terminal .warn { color: var(--warm); }
+    .terminal .err { color: var(--danger); }
+
+    .signal-box {
+      border: 1px solid rgba(255,255,255,0.08);
+      min-height: 164px;
+      padding: 12px;
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    }
+
+    .signal-graph {
+      height: 92px;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 100% 18px, 26px 100%;
+    }
+
+    .signal-graph svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .section {
+      padding: 38px 0 64px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(34px, 4.5vw, 64px);
+      font-weight: 400;
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+    }
+
+    .section-head p {
+      margin: 0;
+      max-width: 60ch;
+      color: #cfd7e2;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    .lab-layout {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .lab-box {
+      padding: 18px;
+    }
+
+    .sticky-box {
+      position: sticky;
+      top: 84px;
+    }
+
+    .abstract-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .abstract-grid .row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .abstract-grid .row:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .abstract-grid .key {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      padding-top: 4px;
+    }
+
+    .abstract-grid .value {
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .tall-media {
+      min-height: 680px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .media-box {
+      min-height: 220px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      background:
+        linear-gradient(180deg, rgba(8,11,17,0.94), rgba(7,10,15,0.84));
+    }
+
+    .fake-image,
+    .fake-diagram,
+    .fake-map {
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      overflow: hidden;
+      min-height: 220px;
+      background: rgba(255,255,255,0.015);
+    }
+
+    .fake-image::before,
+    .fake-diagram::before,
+    .fake-map::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 24px 24px;
+      opacity: 0.55;
+    }
+
+    .fake-image {
+      background:
+        radial-gradient(circle at 55% 35%, rgba(116,240,215,0.1), transparent 18%),
+        radial-gradient(circle at 30% 70%, rgba(182,198,255,0.12), transparent 24%),
+        linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    }
+
+    .leaf-core,
+    .panel-core {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 2;
+    }
+
+    .panel-shape {
+      width: min(66%, 440px);
+      aspect-ratio: 1.25;
+      border: 1px solid rgba(182,198,255,0.26);
+      transform: rotate(-8deg);
+      position: relative;
+      background:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        radial-gradient(circle at 50% 50%, rgba(116,240,215,0.06), transparent 60%);
+      background-size: 100% 22px, 22px 100%, 100% 100%;
+      box-shadow: 0 0 40px rgba(0,0,0,0.25);
+    }
+
+    .panel-shape::before,
+    .panel-shape::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(182,198,255,0.15);
+    }
+
+    .panel-shape::after {
+      inset: auto 18px 18px 18px;
+      height: 14px;
+      background: rgba(182,198,255,0.06);
+      border-top: 1px solid rgba(182,198,255,0.2);
+      border-bottom: 0;
+    }
+
+    .leaf-shape {
+      width: min(56%, 340px);
+      aspect-ratio: 0.76;
+      position: relative;
+      border: 1px solid rgba(116,240,215,0.22);
+      clip-path: polygon(50% 0%, 67% 8%, 81% 20%, 90% 34%, 95% 48%, 91% 62%, 84% 76%, 70% 90%, 50% 100%, 30% 90%, 16% 76%, 9% 62%, 5% 48%, 10% 34%, 19% 20%, 33% 8%);
+      background:
+        radial-gradient(circle at center, rgba(116,240,215,0.08), rgba(116,240,215,0.02) 50%, transparent 75%),
+        linear-gradient(180deg, rgba(182,198,255,0.04), rgba(116,240,215,0.03));
+      box-shadow: 0 0 30px rgba(116,240,215,0.12);
+    }
+
+    .leaf-shape .midrib,
+    .leaf-shape .branch {
+      position: absolute;
+      background: linear-gradient(90deg, rgba(116,240,215,0.04), rgba(182,198,255,0.42), rgba(116,240,215,0.05));
+      transform-origin: left center;
+    }
+
+    .leaf-shape .midrib {
+      width: 74%;
+      height: 1px;
+      left: 13%;
+      top: 50%;
+      transform: rotate(90deg);
+    }
+
+    .leaf-shape .branch { height: 1px; }
+
+    .media-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .media-meta strong {
+      color: var(--text);
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 13px;
+      display: block;
+      margin-top: 6px;
+    }
+
+    .sequence {
+      display: grid;
+      gap: 18px;
+    }
+
+    .step {
+      min-height: 85svh;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .step-text {
+      padding: 18px;
+      position: sticky;
+      top: 84px;
+      min-height: calc(100svh - 120px);
+      display: grid;
+      align-content: start;
+      gap: 20px;
+    }
+
+    .step-text h3 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(30px, 4vw, 56px);
+      font-weight: 400;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      max-width: 12ch;
+    }
+
+    .step-text p {
+      margin: 0;
+      line-height: 1.65;
+      color: #d6dce6;
+      font-size: 15px;
+      max-width: 42ch;
+    }
+
+    .step-index {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .step-visual {
+      min-height: 85svh;
+      padding: 18px;
+      display: grid;
+      align-items: stretch;
+    }
+
+    .visual-stage {
+      min-height: calc(85svh - 36px);
+      border: 1px solid rgba(255,255,255,0.07);
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(182,198,255,0.06), transparent 40%),
+        linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+    }
+
+    .layer-stack,
+    .morph-field,
+    .network-field,
+    .archive-field {
+      position: absolute;
+      inset: 0;
+    }
+
+    .slab {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: min(58%, 440px);
+      aspect-ratio: 1.35;
+      border: 1px solid rgba(182,198,255,0.24);
+      transform: translate(-50%, -50%) rotate(-7deg);
+      background: linear-gradient(180deg, rgba(182,198,255,0.06), rgba(182,198,255,0.02));
+    }
+
+    .slab.s1 { transform: translate(-50%, calc(-50% - 70px)) rotate(-8deg); opacity: 0.95; }
+    .slab.s2 { transform: translate(-50%, calc(-50% - 24px)) rotate(-6deg); opacity: 0.78; }
+    .slab.s3 { transform: translate(-50%, calc(-50% + 22px)) rotate(-4deg); opacity: 0.62; }
+    .slab.s4 { transform: translate(-50%, calc(-50% + 68px)) rotate(-2deg); opacity: 0.4; }
+
+    .tag {
+      position: absolute;
+      padding: 8px 10px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(6,8,12,0.7);
+    }
+
+    .morph-leaf,
+    .morph-panel {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .morph-panel {
+      width: min(62%, 520px);
+      aspect-ratio: 1.35;
+      border: 1px solid rgba(182,198,255,0.24);
+      background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        radial-gradient(circle at center, rgba(182,198,255,0.08), transparent 50%);
+      background-size: 100% 26px, 26px 100%, 100% 100%;
+      opacity: 0.72;
+    }
+
+    .morph-leaf {
+      width: min(48%, 360px);
+      aspect-ratio: 0.76;
+      clip-path: polygon(50% 0%, 67% 8%, 81% 20%, 90% 34%, 95% 48%, 91% 62%, 84% 76%, 70% 90%, 50% 100%, 30% 90%, 16% 76%, 9% 62%, 5% 48%, 10% 34%, 19% 20%, 33% 8%);
+      border: 1px solid rgba(116,240,215,0.22);
+      background: radial-gradient(circle at center, rgba(116,240,215,0.08), transparent 64%);
+      opacity: 0.92;
+    }
+
+    .network-field .cluster,
+    .archive-field .cell {
+      position: absolute;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .cluster {
+      width: 10px;
+      height: 10px;
+      box-shadow: 0 0 20px rgba(182,198,255,0.12);
+    }
+
+    .network-field .link {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(182,198,255,0.04), rgba(182,198,255,0.26), rgba(116,240,215,0.04));
+      transform-origin: left center;
+    }
+
+    .archive-field.grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: 1fr;
+      gap: 10px;
+      padding: 18px;
+    }
+
+    .archive-field.grid .cell {
+      position: relative;
+      min-height: 72px;
+      display: grid;
+      place-items: center;
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .archive-field.grid .cell.active {
+      background: linear-gradient(180deg, rgba(182,198,255,0.08), rgba(116,240,215,0.04));
+      color: var(--text);
+    }
+
+    .lab-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .lab-columns .panel {
+      padding: 16px;
+      min-height: 240px;
+      display: grid;
+      align-content: start;
+      gap: 14px;
+    }
+
+    .panel h4 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 400;
+      letter-spacing: -0.03em;
+    }
+
+    .panel p,
+    .panel li {
+      margin: 0;
+      color: #d4dbe6;
+      line-height: 1.65;
+      font-size: 14px;
+    }
+
+    .panel ul {
+      margin: 0;
+      padding-left: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .footer {
+      padding: 24px 0 36px;
+    }
+
+    .footer-box {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .footer-box strong {
+      display: block;
+      color: var(--text);
+      font-size: 16px;
+      text-transform: none;
+      letter-spacing: -0.01em;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    .ghost-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid rgba(255,255,255,0.09);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      color: var(--text);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .ghost-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    @media (max-width: 1100px) {
+      .hero-shell,
+      .lab-layout,
+      .step,
+      .section-head,
+      .hero-copy,
+      .lab-columns,
+      .footer-box {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main,
+      .hero-side,
+      .step-visual,
+      .step-text {
+        min-height: auto;
+      }
+
+      .step-text,
+      .sticky-box {
+        position: relative;
+        top: auto;
+        min-height: auto;
+      }
+
+      .visual-stage,
+      .step-visual {
+        min-height: 72svh;
+      }
+
+      .section-head {
+        gap: 10px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .frame { width: min(calc(100% - 24px), var(--max)); }
+      .topnav { display: none; }
+      .hero { padding-top: 88px; }
+      .hero-main,
+      .hero-side,
+      .lab-box,
+      .panel,
+      .step-text,
+      .step-visual,
+      .media-box,
+      .footer-box { padding: 14px; }
+      h1 { font-size: clamp(46px, 16vw, 88px); }
+      .system-stage,
+      .visual-stage,
+      .fake-image,
+      .fake-diagram,
+      .fake-map { min-height: 340px; }
+      .data-grid { grid-template-columns: 1fr; }
+      .abstract-grid .row,
+      .media-meta { grid-template-columns: 1fr; display: grid; }
+      .archive-field.grid { grid-template-columns: repeat(6, 1fr); gap: 8px; }
+      .archive-field.grid .cell { min-height: 56px; }
+    }
+  </style>
+</head>
+<body id="top">
+  <canvas id="system-bg"></canvas>
+  <div class="grid-overlay"></div>
+  <div class="scan-overlay"></div>
+
+  <div class="page">
+    <header class="topbar">
+      <div class="frame">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <span>Experimental Publication / System Prototype / 2026</span>
+        </div>
+        <nav class="topnav">
+          <a href="#abstract">Abstract</a>
+          <a href="#sequence">Sequence</a>
+          <a href="#atlas">Atlas</a>
+          <a href="#notes">Notes</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero frame">
+        <div class="hero-shell">
+          <div class="hero-main">
+            <div class="eyebrow">
+              <span class="meta-pill">Biomimetic Solar</span>
+              <span class="meta-pill">Experimental Publication</span>
+              <span class="meta-pill">Live System Mockup</span>
+            </div>
+
+            <div class="hero-copy">
+              <div>
+                <h1>Paper as living interface.</h1>
+              </div>
+              <p class="lead">
+                A full-screen project template designed as a contemporary research system: dark, technical, diagrammatic, and cinematic. It behaves more like a software instrument or lab interface than a conventional project page.
+              </p>
+            </div>
+
+            <div class="system-stage" aria-hidden="true">
+              <div class="ring r3"></div>
+              <div class="ring r1"></div>
+              <div class="ring r2"></div>
+
+              <div class="vein" style="width: 200px; left: 22%; top: 51%; transform: rotate(-8deg);"></div>
+              <div class="vein" style="width: 180px; left: 41%; top: 44%; transform: rotate(18deg);"></div>
+              <div class="vein" style="width: 148px; left: 41%; top: 56%; transform: rotate(-18deg);"></div>
+              <div class="vein" style="width: 154px; left: 31%; top: 37%; transform: rotate(-34deg);"></div>
+              <div class="vein" style="width: 154px; left: 31%; top: 63%; transform: rotate(34deg);"></div>
+              <div class="vein" style="width: 210px; left: 28%; top: 50%; transform: rotate(0deg);"></div>
+
+              <div class="trace" style="width: 280px; left: 14%; top: 28%; transform: rotate(18deg);"></div>
+              <div class="trace" style="width: 240px; left: 46%; top: 66%; transform: rotate(-18deg);"></div>
+              <div class="trace" style="width: 180px; left: 52%; top: 22%; transform: rotate(116deg);"></div>
+
+              <div class="node" style="left: 23%; top: 49%;"></div>
+              <div class="node" style="left: 38%; top: 34%;"></div>
+              <div class="node" style="left: 38%; top: 64%;"></div>
+              <div class="node" style="left: 56%; top: 51%;"></div>
+              <div class="node" style="left: 68%; top: 38%;"></div>
+              <div class="node" style="left: 68%; top: 63%;"></div>
+
+              <div class="layer-card" style="left: 6%; top: 10%;">
+                Module / 01
+                <strong>Energy Flow Atlas</strong>
+              </div>
+              <div class="layer-card" style="right: 7%; top: 17%;">
+                Phase / 02
+                <strong>Leaf-to-Cell Morphology</strong>
+              </div>
+              <div class="layer-card" style="right: 12%; bottom: 8%;">
+                Dataset / 17
+                <strong>Surface Distribution Logic</strong>
+              </div>
+            </div>
+          </div>
+
+          <aside class="hero-side">
+            <div class="data-strip">
+              <div class="micro-label">System overview / live diagnostics</div>
+              <div class="data-grid">
+                <div><strong>04</strong> Active scenes</div>
+                <div><strong>17</strong> Visual layers</div>
+                <div><strong>128</strong> Simulated nodes</div>
+              </div>
+            </div>
+
+            <div class="terminal">
+              <div class="head">
+                <span>research-log / boot</span>
+                <span>status: active</span>
+              </div>
+              <div class="line">&gt; publication.init(mode="immersive-interface")</div>
+              <div class="line ok">[ok] grid overlay online</div>
+              <div class="line ok">[ok] node-field rendered</div>
+              <div class="line warn">[warn] replace placeholder assets</div>
+              <div class="line">&gt; inject project title / author / year / datasets</div>
+              <div class="line">&gt; assign visual states to scroll sequence</div>
+              <div class="line">&gt; map experiments to archive atlas</div>
+              <div class="line err">[pending] connect real media and diagrams</div>
+            </div>
+
+            <div class="signal-box">
+              <div class="micro-label">Signal / visual density</div>
+              <div class="signal-graph">
+                <svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline fill="none" stroke="rgba(182,198,255,0.85)" stroke-width="0.4"
+                    points="0,19 5,17 10,14 15,15 20,12 25,18 30,20 35,10 40,12 45,7 50,8 55,14 60,13 65,9 70,11 75,5 80,8 85,15 90,13 95,9 100,12" />
+                  <polyline fill="none" stroke="rgba(116,240,215,0.8)" stroke-width="0.4"
+                    points="0,22 5,23 10,16 15,18 20,20 25,12 30,13 35,16 40,15 45,18 50,12 55,10 60,8 65,11 70,17 75,14 80,13 85,8 90,6 95,9 100,10" />
+                </svg>
+              </div>
+              <div class="caption-strip">
+                Use this right column for status panels, metadata, fragments of text, animated graphs, live counters, or note streams. The page should feel like a running research environment.
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section frame" id="abstract">
+        <div class="section-head">
+          <div class="micro-label">Abstract / protocol / logic</div>
+          <div>
+            <h2>Structure of a visual paper-system.</h2>
+            <p>
+              This template is laid out as an experimental publication rather than a standard portfolio page. It keeps the discipline of an academic structure, but the reading experience is distributed across diagnostic panels, full-screen visual states, sticky analysis sections, sequence frames, and an archive-like atlas of fragments.
+            </p>
+          </div>
+        </div>
+
+        <div class="lab-layout">
+          <div class="lab-box sticky-box">
+            <div class="abstract-grid">
+              <div class="row">
+                <div class="key">Premise</div>
+                <div class="value">A project page can function like a piece of software or a lab instrument, where text, diagrams, motion and evidence all coexist as parts of a single argument.</div>
+              </div>
+              <div class="row">
+                <div class="key">Display mode</div>
+                <div class="value">Dark interface, grid background, terminal fragments, signal visualizations, section indexing, and persistent technical metadata.</div>
+              </div>
+              <div class="row">
+                <div class="key">Use</div>
+                <div class="value">Replace placeholder text and fake diagrams with your own project abstract, methods, prototypes, experiments, maps, process images, datasets, or citations.</div>
+              </div>
+              <div class="row">
+                <div class="key">Behaviour</div>
+                <div class="value">Sections are built to support motion later: sticky analysis columns, stage-based visual storytelling, and wide panels for WebGL, video, diagrams or interactive systems.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tall-media">
+            <div class="media-box">
+              <div class="media-meta">
+                <div>Visual state / 01<strong>Monocrystalline panel logic</strong></div>
+                <div>Block type<strong>Large system diagram</strong></div>
+              </div>
+              <div class="fake-image">
+                <div class="panel-core">
+                  <div class="panel-shape"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="media-box">
+              <div class="media-meta">
+                <div>Visual state / 02<strong>Biomimetic venation logic</strong></div>
+                <div>Block type<strong>Comparative diagram</strong></div>
+              </div>
+              <div class="fake-diagram">
+                <div class="leaf-core">
+                  <div class="leaf-shape">
+                    <div class="midrib"></div>
+                    <div class="branch" style="width: 45%; left: 49%; top: 27%; transform: rotate(-20deg);"></div>
+                    <div class="branch" style="width: 45%; left: 49%; top: 39%; transform: rotate(-10deg);"></div>
+                    <div class="branch" style="width: 45%; left: 49%; top: 61%; transform: rotate(10deg);"></div>
+                    <div class="branch" style="width: 45%; left: 49%; top: 73%; transform: rotate(20deg);"></div>
+                    <div class="branch" style="width: 42%; right: 49%; top: 27%; transform: rotate(20deg); transform-origin: right center;"></div>
+                    <div class="branch" style="width: 42%; right: 49%; top: 39%; transform: rotate(10deg); transform-origin: right center;"></div>
+                    <div class="branch" style="width: 42%; right: 49%; top: 61%; transform: rotate(-10deg); transform-origin: right center;"></div>
+                    <div class="branch" style="width: 42%; right: 49%; top: 73%; transform: rotate(-20deg); transform-origin: right center;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="media-box">
+              <div class="media-meta">
+                <div>Visual state / 03<strong>Spatial deployment / archive field</strong></div>
+                <div>Block type<strong>Map / atlas / relation layer</strong></div>
+              </div>
+              <div class="fake-map">
+                <div class="node" style="left: 22%; top: 42%;"></div>
+                <div class="node" style="left: 35%; top: 26%;"></div>
+                <div class="node" style="left: 52%; top: 38%;"></div>
+                <div class="node" style="left: 64%; top: 57%;"></div>
+                <div class="node" style="left: 76%; top: 31%;"></div>
+                <div class="trace" style="width: 200px; left: 22%; top: 43%; transform: rotate(-25deg);"></div>
+                <div class="trace" style="width: 180px; left: 35%; top: 27%; transform: rotate(17deg);"></div>
+                <div class="trace" style="width: 150px; left: 52%; top: 39%; transform: rotate(32deg);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section frame" id="sequence">
+        <div class="section-head">
+          <div class="micro-label">Sequence / sticky analysis / stage logic</div>
+          <div>
+            <h2>Scroll as experimental sequence.</h2>
+            <p>
+              Each step below is a model for a full-screen chapter. On the left, you can place dense but controlled fragments of analysis. On the right, the visual state occupies almost the entire viewport and can later be animated with canvas, video, SVG, WebGL or motion libraries.
+            </p>
+          </div>
+        </div>
+
+        <div class="sequence">
+          <article class="step">
+            <div class="step-text">
+              <div class="step-index">Step / 01</div>
+              <h3>Decompose the object into readable layers.</h3>
+              <p>
+                Use this state to show how a device, material system or sculpture unfolds into technical parts. The left column can hold method notes, fabrication logic, references, performance metrics or conceptual framing, while the right side stages a large exploded diagram.
+              </p>
+              <div class="caption-strip">Good for solar cells, layered materials, artifact anatomy, installation diagrams, publication metadata, or technical taxonomies.</div>
+            </div>
+            <div class="step-visual">
+              <div class="visual-stage">
+                <div class="layer-stack">
+                  <div class="slab s1"></div>
+                  <div class="slab s2"></div>
+                  <div class="slab s3"></div>
+                  <div class="slab s4"></div>
+                  <div class="tag" style="left: 10%; top: 16%;">glass substrate</div>
+                  <div class="tag" style="right: 12%; top: 32%;">conductive layer</div>
+                  <div class="tag" style="left: 14%; bottom: 24%;">active junction</div>
+                  <div class="tag" style="right: 9%; bottom: 16%;">back contact</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-text">
+              <div class="step-index">Step / 02</div>
+              <h3>Morph the technical grid into an organic logic.</h3>
+              <p>
+                This frame is for transformations. It can shift from industrial geometry to biological pattern, from archive document to spatial network, or from scan to speculation. The important part is to preserve clarity while letting the visual argument feel alive.
+              </p>
+              <div class="caption-strip">Ideal for panel-to-leaf transitions, material growth diagrams, image distortion, shader-based morphs, or scroll-controlled transformations.</div>
+            </div>
+            <div class="step-visual">
+              <div class="visual-stage">
+                <div class="morph-field">
+                  <div class="morph-panel"></div>
+                  <div class="morph-leaf"></div>
+                  <div class="trace" style="width: 280px; left: 20%; top: 48%; transform: rotate(-4deg);"></div>
+                  <div class="trace" style="width: 180px; left: 43%; top: 36%; transform: rotate(24deg);"></div>
+                  <div class="trace" style="width: 180px; left: 42%; top: 60%; transform: rotate(-24deg);"></div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="step">
+            <div class="step-text">
+              <div class="step-index">Step / 03</div>
+              <h3>Build a networked field of relations, signals and positions.</h3>
+              <p>
+                This is where the project behaves like a developer tool or a data lab. Think nodes, coordinates, events, objects, routes, references, or energy flows. The page stops looking like an article and starts looking like a system under analysis.
+              </p>
+              <div class="caption-strip">Use for maps, object constellations, material dependencies, timelines, project genealogies, or artifact return simulations.</div>
+            </div>
+            <div class="step-visual">
+              <div class="visual-stage">
+                <div class="network-field">
+                  <div class="cluster" style="left: 14%; top: 58%;"></div>
+                  <div class="cluster" style="left: 25%; top: 30%;"></div>
+                  <div class="cluster" style="left: 38%; top: 46%;"></div>
+                  <div class="cluster" style="left: 52%; top: 24%;"></div>
+                  <div class="cluster" style="left: 61%; top: 64%;"></div>
+                  <div class="cluster" style="left: 76%; top: 38%;"></div>
+                  <div class="cluster" style="left: 84%; top: 56%;"></div>
+
+                  <div class="link" style="width: 180px; left: 14%; top: 59%; transform: rotate(-36deg);"></div>
+                  <div class="link" style="width: 132px; left: 25%; top: 31%; transform: rotate(28deg);"></div>
+                  <div class="link" style="width: 210px; left: 38%; top: 47%; transform: rotate(-31deg);"></div>
+                  <div class="link" style="width: 170px; left: 52%; top: 25%; transform: rotate(47deg);"></div>
+                  <div class="link" style="width: 110px; left: 61%; top: 65%; transform: rotate(-31deg);"></div>
+                  <div class="link" style="width: 128px; left: 76%; top: 39%; transform: rotate(25deg);"></div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section frame" id="atlas">
+        <div class="section-head">
+          <div class="micro-label">Atlas / fragments / evidence</div>
+          <div>
+            <h2>An archive that feels computational.</h2>
+            <p>
+              The final section can behave like a data atlas or a wall of evidence. Instead of ending with a flat gallery, it continues the system language: gridded fragments, indexed samples, active cells, and placeholders for notes, image crops, file references or micro-essays.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel" style="padding: 16px;">
+          <div class="archive-field grid">
+            <div class="cell active">A-01</div>
+            <div class="cell">A-02</div>
+            <div class="cell active">B-03</div>
+            <div class="cell">B-04</div>
+            <div class="cell active">B-05</div>
+            <div class="cell">C-06</div>
+            <div class="cell">C-07</div>
+            <div class="cell active">C-08</div>
+            <div class="cell">D-09</div>
+            <div class="cell">D-10</div>
+            <div class="cell active">D-11</div>
+            <div class="cell">D-12</div>
+            <div class="cell">E-13</div>
+            <div class="cell active">E-14</div>
+            <div class="cell">E-15</div>
+            <div class="cell">F-16</div>
+            <div class="cell active">F-17</div>
+            <div class="cell">F-18</div>
+            <div class="cell active">G-19</div>
+            <div class="cell">G-20</div>
+            <div class="cell">G-21</div>
+            <div class="cell active">H-22</div>
+            <div class="cell">H-23</div>
+            <div class="cell">H-24</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section frame" id="notes">
+        <div class="section-head">
+          <div class="micro-label">Notes / how to use this file</div>
+          <div>
+            <h2>Replace, not redesign.</h2>
+            <p>
+              The point of this template is to give you an already contemporary spatial logic. You only need to replace the placeholders with your own images, diagrams, motion systems, text and metadata. The structure is already closer to a digital lab or developer interface than to a conventional project page.
+            </p>
+          </div>
+        </div>
+
+        <div class="lab-columns">
+          <div class="panel">
+            <div class="micro-label">Swap first</div>
+            <h4>Core identity</h4>
+            <ul>
+              <li>Project title and subtitle</li>
+              <li>Abstract and research statement</li>
+              <li>Metadata in top bar and side panels</li>
+              <li>Hero diagram or live visual system</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="micro-label">Replace next</div>
+            <h4>Visual evidence</h4>
+            <ul>
+              <li>Fake diagrams with real images or videos</li>
+              <li>Archive grid with real process fragments</li>
+              <li>Signal graph with actual data or animation</li>
+              <li>Sequence stages with your experiments</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="micro-label">Add later</div>
+            <h4>Motion layer</h4>
+            <ul>
+              <li>Canvas or WebGL background</li>
+              <li>Scroll-triggered state changes</li>
+              <li>Shader morphs for image transitions</li>
+              <li>Interactive nodes, maps or timelines</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer frame">
+      <div class="footer-box">
+        <div>
+          Template / Experimental publication shell
+          <strong>Built as a dark research interface for project pages, papers, atlases and digital archives.</strong>
+        </div>
+        <a href="#top" class="ghost-btn">Back to top</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('system-bg');
+    const ctx = canvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+    let nodes = [];
+    const NODE_COUNT = 76;
+    let pointer = { x: 0, y: 0, active: false };
+
+    function resizeCanvas() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      createNodes();
+    }
+
+    function createNodes() {
+      nodes = Array.from({ length: NODE_COUNT }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.28,
+        vy: (Math.random() - 0.5) * 0.28,
+        r: Math.random() * 1.4 + 0.6
+      }));
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+
+      for (const n of nodes) {
+        n.x += n.vx;
+        n.y += n.vy;
+
+        if (n.x < -20) n.x = width + 20;
+        if (n.x > width + 20) n.x = -20;
+        if (n.y < -20) n.y = height + 20;
+        if (n.y > height + 20) n.y = -20;
+      }
+
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(182,198,255,0.32)';
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(116,240,215,${0.08 * (1 - dist / 140)})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+
+        if (pointer.active) {
+          const pdx = a.x - pointer.x;
+          const pdy = a.y - pointer.y;
+          const pd = Math.hypot(pdx, pdy);
+          if (pd < 160) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(pointer.x, pointer.y);
+            ctx.strokeStyle = `rgba(182,198,255,${0.12 * (1 - pd / 160)})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('mousemove', (e) => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      pointer.active = true;
+    });
+    window.addEventListener('mouseleave', () => {
+      pointer.active = false;
+    });
+
+    resizeCanvas();
+    draw();
+  </script>
+</body>
+</html>
