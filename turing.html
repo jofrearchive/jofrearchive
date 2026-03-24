@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Turing Jar Viewer</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+    #app { width: 100%; height: 100%; }
+    .label {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      color: rgba(255,255,255,0.82);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      z-index: 10;
+      pointer-events: none;
+      background: rgba(0,0,0,0.35);
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .hint {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      color: rgba(255,255,255,0.55);
+      font-size: 11px;
+      z-index: 10;
+      pointer-events: none;
+      background: rgba(0,0,0,0.28);
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="label">Turing / labyrinth surface</div>
+  <div class="hint">drag to orbit · wheel to zoom</div>
+  <div id="app"></div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.161.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js';
+
+    const MODEL_URL = 'https://jofrearchive.com/assets/3D/turing-jar.glb';
+
+    const app = document.getElementById('app');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.01, 100);
+    camera.position.set(0, 0.2, 3);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    app.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.2, 0);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.65);
+    scene.add(hemi);
+
+    const dir1 = new THREE.DirectionalLight(0xffffff, 1.2);
+    dir1.position.set(2.8, 3.2, 2.4);
+    scene.add(dir1);
+
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.45);
+    dir2.position.set(-2.2, 1.5, -2.8);
+    scene.add(dir2);
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    function makeTuringMaterial() {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x0a0a0a,
+        roughness: 0.88,
+        metalness: 0.02
+      });
+
+      mat.onBeforeCompile = (shader) => {
+        shader.uniforms.uTime = { value: 0 };
+        shader.uniforms.uScale = { value: 7.5 };
+        shader.uniforms.uContrast = { value: 1.35 };
+        shader.uniforms.uLineWidth = { value: 0.18 };
+
+        shader.vertexShader = shader.vertexShader
+          .replace('#include <common>', `
+            #include <common>
+            varying vec3 vWorldPos;
+            varying vec3 vObjPos;
+          `)
+          .replace('#include <worldpos_vertex>', `
+            #include <worldpos_vertex>
+            vWorldPos = worldPosition.xyz;
+            vObjPos = position.xyz;
+          `);
+
+        shader.fragmentShader = shader.fragmentShader
+          .replace('#include <common>', `
+            #include <common>
+            varying vec3 vWorldPos;
+            varying vec3 vObjPos;
+            uniform float uTime;
+            uniform float uScale;
+            uniform float uContrast;
+            uniform float uLineWidth;
+
+            float hash21(vec2 p) {
+              p = fract(p * vec2(123.34, 345.45));
+              p += dot(p, p + 34.345);
+              return fract(p.x * p.y);
+            }
+
+            mat2 rot(float a) {
+              float s = sin(a), c = cos(a);
+              return mat2(c, -s, s, c);
+            }
+
+            float mazeField(vec2 p) {
+              p *= uScale;
+              vec2 q = p;
+              q += 0.17 * vec2(
+                sin(p.y * 1.7 + 0.5 * sin(p.x * 0.9)),
+                sin(p.x * 1.5 + 0.5 * sin(p.y * 1.1))
+              );
+              q = rot(0.35) * q;
+
+              float a = sin(q.x * 1.25 + sin(q.y * 1.45));
+              float b = sin(q.y * 1.18 + sin(q.x * 1.72));
+              float c = sin((q.x + q.y) * 0.92 + sin(q.x * 0.7 - q.y * 0.6));
+              float d = sin(length(q * vec2(0.9, 1.15)) * 1.3);
+
+              float f = 0.46 * a + 0.42 * b + 0.34 * c + 0.18 * d;
+              f += 0.07 * sin(q.x * 4.2) * sin(q.y * 4.6);
+              return f;
+            }
+
+            float contourMaze(vec2 p) {
+              float f = mazeField(p);
+              float fw = max(fwidth(f), 0.001);
+              float line = 1.0 - smoothstep(uLineWidth - fw, uLineWidth + fw, abs(f));
+              line = pow(clamp(line, 0.0, 1.0), uContrast);
+              return line;
+            }
+          `)
+          .replace('#include <map_fragment>', `
+            #include <map_fragment>
+
+            vec3 n = normalize(normal);
+            vec3 blend = abs(n);
+            blend = pow(blend, vec3(5.0));
+            blend /= max(blend.x + blend.y + blend.z, 0.0001);
+
+            vec2 uvX = vObjPos.yz;
+            vec2 uvY = vObjPos.xz;
+            vec2 uvZ = vObjPos.xy;
+
+            float px = contourMaze(uvX);
+            float py = contourMaze(uvY);
+            float pz = contourMaze(uvZ);
+            float pattern = px * blend.x + py * blend.y + pz * blend.z;
+
+            vec3 baseCol = vec3(0.02, 0.02, 0.02);
+            vec3 lineCol = vec3(0.86, 0.86, 0.82);
+            diffuseColor.rgb = mix(baseCol, lineCol, pattern);
+          `);
+
+        mat.userData.shader = shader;
+      };
+
+      return mat;
+    }
+
+    const loader = new GLTFLoader();
+    loader.load(
+      MODEL_URL,
+      (gltf) => {
+        const model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 1.8 / maxDim;
+        model.scale.setScalar(scale);
+
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.material = makeTuringMaterial();
+            child.castShadow = false;
+            child.receiveShadow = false;
+            if (child.geometry) child.geometry.computeVertexNormals();
+          }
+        });
+
+        group.add(model);
+
+        const fitBox = new THREE.Box3().setFromObject(group);
+        const fitSize = fitBox.getSize(new THREE.Vector3());
+        const fitCenter = fitBox.getCenter(new THREE.Vector3());
+        const radius = fitSize.length() * 0.33;
+        camera.position.set(fitCenter.x + radius * 0.15, fitCenter.y + radius * 0.25, fitCenter.z + radius * 2.3);
+        controls.target.copy(fitCenter);
+        controls.update();
+      },
+      undefined,
+      (err) => {
+        console.error(err);
+        document.querySelector('.label').textContent = 'error loading model';
+      }
+    );
+
+    function resize() {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    }
+    addEventListener('resize', resize);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      group.rotation.y += 0.0025;
+      group.traverse((obj) => {
+        if (obj.isMesh && obj.material?.userData?.shader) {
+          obj.material.userData.shader.uniforms.uTime.value = t;
+        }
+      });
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
