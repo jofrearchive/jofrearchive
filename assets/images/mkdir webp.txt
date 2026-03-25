@@ -1,0 +1,5 @@
+- Right click and open Power Shell in the folder.
+- Create folder: mkdir webp
+- Convert files:
+
+magick mogrify -path webp -resize 1800x1800^> -auto-level -quality 82 -format webp *.jpg *.jpeg *.png *.CR2 *.NEF *.ARW *.DNG *.RAF *.RW2
