@@ -105,6 +105,7 @@ const room1Items = [
     year: {{ item.year | jsonify }},
     materials: {{ item.materials | default: item.material | jsonify }},
     gallery_type: {{ item.gallery_type | default: item.type | jsonify }},
+    size: {{ item.size | default: item.dimensions | jsonify }},
     abstract: {{ item.abstract | default: item.subtitle | default: "" | jsonify }},
     model: {{ item.model | default: "" | jsonify }},
     image: {{ item.image | default: "" | jsonify }}
@@ -119,6 +120,7 @@ const room2Items = [
     year: {{ item.year | jsonify }},
     materials: {{ item.materials | default: item.material | jsonify }},
     gallery_type: {{ item.gallery_type | default: item.type | jsonify }},
+    size: {{ item.size | default: item.dimensions | jsonify }},
     abstract: {{ item.abstract | default: item.subtitle | default: "" | jsonify }},
     image: {{ item.image | default: "" | jsonify }}
   }{% unless forloop.last %},{% endunless %}
@@ -382,7 +384,10 @@ function metaHTML(item){
     if(Array.isArray(item.materials)) lines.push(`materials. ${item.materials.join(' · ')}`);
     else lines.push(`materials. ${item.materials}`);
   }
-  if(item.gallery_type) lines.push(`class. ${item.gallery_type}`);
+  if(item.size){
+    if(Array.isArray(item.size)) lines.push(`size. ${item.size.join(' · ')}`);
+    else lines.push(`size. ${item.size}`);
+  }
   return lines.join('<br>');
 }
 
@@ -390,7 +395,7 @@ function updateCartela(){
   const data = currentRoom===1 ? room1Items : room2Items;
   const active = currentRoom===1 ? room1Index : room2Index;
   const item = data[active] || null;
-  if(!item || (!item.title && !item.year && !item.materials && !item.gallery_type && !item.abstract)){
+  if(!item || (!item.title && !item.year && !item.materials && !item.size && !item.abstract)){
     titleEl.textContent='';
     metaEl.innerHTML='';
     descEl.textContent='';
