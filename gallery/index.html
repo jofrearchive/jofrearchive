@@ -62,8 +62,8 @@ body.mobile .dot{width:7px;height:7px}
 body.mobile .room-toggle{min-width:102px;top:10px;right:10px}
 body.mobile .room-item{font-size:9px;padding:9px 11px}
 
-.canvas-preview{position:fixed;z-index:11;pointer-events:none;overflow:hidden;border:0;display:none;background:#000;transform-origin:center center;mix-blend-mode:normal;opacity:1}
-.canvas-preview iframe{width:100%;height:100%;border:0;display:block;background:#000;opacity:1}
+.canvas-preview{position:fixed;z-index:6;pointer-events:none;overflow:hidden;border:0;display:none;background:#000;transform-origin:center center}
+.canvas-preview iframe{width:100%;height:100%;border:0;display:block;pointer-events:none;background:#000}
 </style>
 </head>
 <body>
@@ -90,7 +90,7 @@ body.mobile .room-item{font-size:9px;padding:9px 11px}
 </div>
 
 <div class="slider-ref" id="dots"></div>
-<div class="canvas-preview" id="canvasPreview"><iframe id="canvasPreviewFrame" loading="eager" referrerpolicy="no-referrer" allow="autoplay; fullscreen; xr-spatial-tracking" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-pointer-lock"></iframe></div>
+<div class="canvas-preview" id="canvasPreview"><iframe id="canvasPreviewFrame" loading="lazy" referrerpolicy="no-referrer"></iframe></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -126,8 +126,8 @@ const room2Items = [
     gallery_type: {{ item.gallery_type | default: item.type | jsonify }},
     size: {{ item.size | default: item.dimensions | jsonify }},
     abstract: {{ item.abstract | default: item.subtitle | default: "" | jsonify }},
-    image: {{ item.image | default: "" | jsonify }},
-    canvas: {{ item.canvas | default: item.canvas_page | default: item.canvas_url | default: item.project_url | default: item.url | default: item.link | default: item.page | default: "" | jsonify }}
+    image: {{ item.image | default: item.model | default: "" | jsonify }},
+    canvas: {{ item.canvas | default: item.canvas_page | default: item.canvas_url | default: "" | jsonify }}
   }{% unless forloop.last %},{% endunless %}
 {% endfor %}
 ];
@@ -419,13 +419,6 @@ function updateCartela(){
 function hideCanvasPreview(){
   canvasPreviewEl.style.display='none';
   canvasPreviewFrame.removeAttribute('src');
-  canvasPreviewFrame.dataset.src='';
-}
-
-function resolveCanvasURL(url){
-  if(!url) return '';
-  try{ return new URL(url, window.location.origin).href; }
-  catch(_){ return url; }
 }
 
 function updateCanvasPreview(){
@@ -441,20 +434,19 @@ function updateCanvasPreview(){
   const pos = artPlane.getWorldPosition(new THREE.Vector3()).project(camera);
   const screenX = (pos.x * 0.5 + 0.5) * window.innerWidth;
   const screenY = (-pos.y * 0.5 + 0.5) * window.innerHeight;
-  const visibleHeight = 5.22;
+  const visibleHeight = isPortrait() ? 5.22 : 5.22;
   const dist = camera.position.distanceTo(artPlane.getWorldPosition(new THREE.Vector3()));
   const worldScreenHeight = window.innerHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   const pxHeight = Math.abs((visibleHeight / dist) * worldScreenHeight);
   const pxWidth = pxHeight * (4.02 / 5.22);
-  const resolvedURL = resolveCanvasURL(item.canvas);
   canvasPreviewEl.style.width = `${pxWidth}px`;
   canvasPreviewEl.style.height = `${pxHeight}px`;
   canvasPreviewEl.style.left = `${screenX - pxWidth/2}px`;
   canvasPreviewEl.style.top = `${screenY - pxHeight/2}px`;
   canvasPreviewEl.style.display='block';
-  if(canvasPreviewFrame.dataset.src !== resolvedURL){
-    canvasPreviewFrame.src = resolvedURL;
-    canvasPreviewFrame.dataset.src = resolvedURL;
+  if(canvasPreviewFrame.dataset.src !== item.canvas){
+    canvasPreviewFrame.src = item.canvas;
+    canvasPreviewFrame.dataset.src = item.canvas;
   }
 }
 
