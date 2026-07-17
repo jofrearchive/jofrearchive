@@ -1,0 +1,54 @@
+# jofrearchive.com — archive of Jofre Oliveras
+# Open to search engines and AI assistants. We want to be indexed and cited.
+
+User-agent: *
+Allow: /
+
+# --- AI search / retrieval crawlers (answer-time) — explicitly welcome ---
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# --- AI training crawlers — allowed (opt-in to be part of model knowledge) ---
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+Sitemap: https://jofrearchive.com/sitemap.xml
