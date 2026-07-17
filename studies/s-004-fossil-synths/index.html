@@ -1,0 +1,251 @@
+---
+layout: none
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Fossil Synths — Jofre Oliveras</title>
+<meta name="description" content="Fossil Synths by Jofre Oliveras: a family of functional PCB instruments in fossil form — circuit boards whose copper is drawn as fossil anatomy. Ammonode (ammonite) and Trilobeat (trilobite). Gold on black, anatomy as routing, touch as interface." />
+<link rel="canonical" href="https://jofrearchive.com/studies/s-004-fossil-synths/" />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Jofre Oliveras — Archive" />
+<meta property="og:title" content="Fossil Synths — Jofre Oliveras" />
+<meta property="og:description" content="Functional PCB instruments in fossil form: circuit boards whose copper is drawn as fossil anatomy. Ammonode and Trilobeat." />
+<meta property="og:url" content="https://jofrearchive.com/studies/s-004-fossil-synths/" />
+<meta property="og:image" content="https://jofrearchive.com/assets/images/bs.mural.webp" />
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"CreativeWork",
+  "name":"Fossil Synths",
+  "url":"https://jofrearchive.com/studies/s-004-fossil-synths/",
+  "dateCreated":"2026",
+  "creator":{"@type":"Person","name":"Jofre Oliveras","url":"https://jofrearchive.com/"},
+  "keywords":["PCB art","electronic sculpture","synthesizer","fossil","ammonite","trilobite","cymatics","open source hardware"],
+  "description":"A family of functional printed circuit board instruments whose copper is drawn as fossil anatomy — Ammonode (ammonite harmonic touch synthesizer) and Trilobeat (trilobite step sequencer).",
+  "hasPart":[
+    {"@type":"CreativeWork","name":"Ammonode","description":"Harmonic touch synthesizer in the shell of an ammonite; 18 chamber electrodes, capacitive sensing, cymatics."},
+    {"@type":"CreativeWork","name":"Trilobeat","description":"Step sequencer / groovebox in the body of a trilobite; 20 segment steps, OLED, encoders."}
+  ]
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a08; --ink:#e2ddd4; --ink2:rgba(226,221,212,.74); --ink3:rgba(200,184,154,.62);
+  --accent:#c8b89a; --accent2:#e8d5b0; --amber:rgba(255,187,88,.92);
+  --border:rgba(200,184,154,.16);
+  --serif:'EB Garamond',serif; --mono:'Source Code Pro',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
+  background-image:radial-gradient(circle at 24% 8%,rgba(200,184,154,.03),transparent 40%),
+    radial-gradient(circle at 80% 60%,rgba(200,184,154,.02),transparent 46%),
+    repeating-linear-gradient(0deg,rgba(200,184,154,.01) 0,rgba(200,184,154,.01) 1px,transparent 1px,transparent 5px);}
+a{color:inherit;text-decoration:none}
+.top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:16px clamp(16px,3vw,36px);background:linear-gradient(180deg,rgba(10,10,8,.85),transparent);pointer-events:none}
+.top a,.top span{pointer-events:auto}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3)}
+.back{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);opacity:.75}
+.back:hover{opacity:1;color:var(--accent2)}
+/* hero */
+.hero{position:relative;height:82vh;min-height:520px;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#gl:active{cursor:grabbing}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 42%,transparent 46%,rgba(0,0,0,.5) 100%),linear-gradient(180deg,transparent 62%,var(--bg));z-index:2}
+.heroCap{position:absolute;left:clamp(16px,4vw,54px);bottom:clamp(24px,6vh,60px);z-index:3;max-width:640px;pointer-events:none}
+.heroKick{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.heroTitle{font-family:var(--serif);font-weight:500;font-size:clamp(44px,8vw,92px);line-height:.98;letter-spacing:.01em;margin:0}
+.heroSub{margin-top:14px;font-size:clamp(16px,2vw,20px);color:var(--ink2);font-style:italic}
+.heroTags{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px}
+.heroTags span{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);border:1px solid var(--border);padding:6px 9px}
+.orbitHint{position:absolute;right:clamp(16px,4vw,40px);bottom:24px;z-index:3;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);opacity:.6}
+/* content */
+main{max-width:820px;margin:0 auto;padding:clamp(30px,6vw,72px) clamp(18px,4vw,24px) 40px}
+section{margin-bottom:clamp(40px,7vw,80px)}
+.secNo{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(26px,4vw,38px);line-height:1.05;margin:0 0 22px}
+p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0 18px;max-width:64ch}
+.lead{color:var(--ink);font-size:clamp(18px,2.4vw,22px);line-height:1.5}
+/* collection */
+.coll{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:8px}
+.card{border:1px solid var(--border);background:rgba(12,12,10,.6);padding:20px}
+.card h3{font-family:var(--serif);font-weight:600;font-size:22px;margin:0 0 4px}
+.card .org{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px}
+.card p{font-size:15px;margin:0}
+/* spec tables */
+.spec{border-top:1px solid var(--border);margin-top:10px}
+.spec .row{display:grid;grid-template-columns:130px 1fr;gap:14px;padding:9px 0;border-bottom:1px solid rgba(200,184,154,.08)}
+.spec .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.spec .v{font-size:15px;color:var(--ink2)}
+.archGrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,44px)}
+.archGrid h3{font-family:var(--serif);font-weight:600;font-size:20px;margin:0 0 4px}
+.archGrid .org{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+/* dossier / pdf */
+.dossHead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.dl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);border:1px solid rgba(200,184,154,.34);padding:12px 16px;display:inline-flex;gap:10px;align-items:center;transition:.2s}
+.dl:hover{background:rgba(255,187,88,.1);border-color:var(--amber)}
+#pdf{display:flex;flex-direction:column;gap:14px;align-items:center}
+#pdf canvas{max-width:100%;height:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(200,184,154,.1)}
+#pdfMsg{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);opacity:.6;padding:20px}
+footer{border-top:1px solid var(--border);padding:30px clamp(18px,4vw,24px);text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+footer a{color:var(--accent2)}
+@media(max-width:680px){ .coll,.archGrid{grid-template-columns:1fr} .hero{height:70vh} }
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">Jofre Oliveras — Studies</span>
+  <a class="back" href="https://jofrearchive.com/studies/">← Studies</a>
+</div>
+
+<section class="hero">
+  <canvas id="gl"></canvas>
+  <div class="heroCap">
+    <div class="heroKick">S-004 · 2026 · Instruments</div>
+    <h1 class="heroTitle">Fossil Synths</h1>
+    <div class="heroSub">Functional PCB instruments in fossil form.</div>
+    <div class="heroTags"><span>open source</span><span>resonance</span><span>tactile</span><span>expressive</span><span>cymatics</span></div>
+  </div>
+  <div class="orbitHint">drag to orbit</div>
+</section>
+
+<main>
+  <section>
+    <span class="secNo">01 — The project</span>
+    <h2>Anatomy as circuit</h2>
+    <p class="lead">Fossil Synths is a family of playable art objects: real, manufacturable printed circuit boards whose copper is drawn as fossil anatomy. The trace routing follows the logic of the organism — chambers, segments, ribs — so that the electrical function and the fossil form are one and the same drawing.</p>
+    <p>The choice of fossils is the concept, not a style. A fossil is time made mineral: life that endured for hundreds of millions of years and survives only as an imprint in stone. Redrawing these creatures as state-of-the-art electronics makes the prehistoric futuristic — and turns the same gaze back on us. Every device we manufacture today is a fossil in waiting: our circuit boards will one day be read in the strata as the index fossils of the digital age, ruins of a civilisation that measured itself in gigahertz. Fossil Synths plays with that double time — instruments that sound in the present, drawn as what they will inevitably become.</p>
+    <p>Each board is a self-contained electronic instrument. Exposed gold copper (ENIG) on matte black solder mask makes the circuit legible as engraving: the component becomes ornament, the ornament is functional, and every creature is a production-ready file, not a rendering. The series also carries an inversion — creatures that geology compressed into fossil fuel return here as instruments, and, in the closing proposal, as candidates to draw part of their life from ambient light instead of burning anything.</p>
+  </section>
+
+  <section>
+    <span class="secNo">The collection</span>
+    <h2>Two creatures, one language</h2>
+    <div class="coll">
+      <div class="card">
+        <h3>Ammonode</h3>
+        <div class="org">Ammonite — chambered spiral shell</div>
+        <p>A harmonic touch synthesizer. Eighteen chambers of the shell are touch electrodes — each fires a note, and sequences climb the spiral as arpeggios of sound and light. Cymatics and a Schumann coil.</p>
+      </div>
+      <div class="card">
+        <h3>Trilobeat</h3>
+        <div class="org">Trilobite — segmented exoskeleton</div>
+        <p>A step sequencer / groovebox. The twenty segments of the exoskeleton are touch-sensitive steps; patterns run down the animal's back as light, with an OLED and encoders in the cephalon.</p>
+      </div>
+    </div>
+    <p style="margin-top:20px">Both instruments share a design language — gold on black, anatomy as routing, touch as the primary interface — and are conceived for exhibition, live performance and limited production.</p>
+  </section>
+
+  <section>
+    <span class="secNo">02 / 03 — Architecture</span>
+    <h2>How they are built</h2>
+    <div class="archGrid">
+      <div>
+        <h3>Ammonode</h3>
+        <div class="org">Harmonic touch synthesizer</div>
+        <div class="spec">
+          <div class="row"><div class="k">MCU</div><div class="v">STM32L496 — native capacitive sensing, USB</div></div>
+          <div class="row"><div class="k">Touch</div><div class="v">18 chamber electrodes, read by the MCU</div></div>
+          <div class="row"><div class="k">Light</div><div class="v">18 × SK6812 MINI-E, one per chamber</div></div>
+          <div class="row"><div class="k">Audio</div><div class="v">PCM5102 DAC → 3.5 mm line out</div></div>
+          <div class="row"><div class="k">Motion</div><div class="v">LIS3DH — tilt changes arpeggio mode</div></div>
+        </div>
+      </div>
+      <div>
+        <h3>Trilobeat</h3>
+        <div class="org">Step sequencer / groovebox</div>
+        <div class="spec">
+          <div class="row"><div class="k">MCU</div><div class="v">STM32H743ZI — 480 MHz, audio synthesis</div></div>
+          <div class="row"><div class="k">Touch</div><div class="v">4 × MPR121 — segment electrodes</div></div>
+          <div class="row"><div class="k">Light</div><div class="v">20 × WS2812B addressable LEDs</div></div>
+          <div class="row"><div class="k">Display</div><div class="v">OLED SSD1322, 256×64, 16-level yellow</div></div>
+          <div class="row"><div class="k">Audio</div><div class="v">PCM5102A DAC → 3.5 mm line out</div></div>
+          <div class="row"><div class="k">Controls</div><div class="v">3 × EC11 encoders + expansion header</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="dossHead">
+      <div><span class="secNo">Dossier</span><h2 style="margin:0">Read the full dossier</h2></div>
+      <a class="dl" href="https://jofrearchive.com/assets/dossiers/fossil-synths.pdf" download>Download PDF ↓</a>
+    </div>
+    <div id="pdf"><div id="pdfMsg">Loading dossier…</div></div>
+  </section>
+</main>
+
+<footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a></footer>
+
+<script>
+/* ---------- Ammonode 3D hero ---------- */
+(function(){
+  const cv=document.getElementById('gl');
+  if(typeof THREE==='undefined')return;
+  const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  r.setPixelRatio(Math.min(devicePixelRatio,2));r.outputEncoding=THREE.sRGBEncoding;
+  r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;
+  const sc=new THREE.Scene();
+  if(THREE.RoomEnvironment){const pm=new THREE.PMREMGenerator(r);sc.environment=pm.fromScene(new THREE.RoomEnvironment(),0.04).texture;}
+  sc.add(new THREE.HemisphereLight(0xfff2d8,0x14140f,0.4));
+  const k=new THREE.DirectionalLight(0xfff4e0,1.4);k.position.set(3,5,4);sc.add(k);
+  const f=new THREE.DirectionalLight(0x8090b0,0.3);f.position.set(-4,-2,-3);sc.add(f);
+  const cam=new THREE.PerspectiveCamera(38,1,.1,100);cam.position.set(0,0,3.05);
+  const ctrl=new THREE.OrbitControls(cam,cv);ctrl.enableDamping=true;ctrl.enableZoom=false;ctrl.enablePan=false;ctrl.autoRotate=true;ctrl.autoRotateSpeed=.7;
+  function size(){const w=cv.clientWidth,h=cv.clientHeight;if(w&&h&&(cv.width!==w*devicePixelRatio||cv.height!==h*devicePixelRatio)){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}}
+  const loader=new THREE.GLTFLoader();
+  if(THREE.DRACOLoader){const d=new THREE.DRACOLoader();d.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/');loader.setDRACOLoader(d);}
+  loader.load('https://jofrearchive.com/assets/3D/ammonode.glb',g=>{
+    const o=g.scene;
+    o.traverse(n=>{ if(!n.isMesh)return; const ms=Array.isArray(n.material)?n.material:[n.material];
+      ms.forEach(m=>{ if(!m)return; const nm=m.name||'';
+        if(nm==='mat_0'){m.color&&m.color.setHex(0xf0c257);m.metalness=0.8;m.roughness=0.32;m.envMapIntensity=0.9;m.emissive&&m.emissive.setHex(0x35240a);}
+        else if(nm==='mat_3'||nm==='mat_1'){m.color&&m.color.setHex(0x080807);m.metalness=0;m.roughness=0.92;m.envMapIntensity=0.18;}
+        else {m.color&&m.color.setHex(0x0e0e0c);m.metalness=0.1;m.roughness=0.85;m.envMapIntensity=0.2;}
+        m.transparent=false;m.opacity=1;m.needsUpdate=true;
+      });
+    });
+    const box=new THREE.Box3().setFromObject(o),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());
+    o.position.sub(c);const md=Math.max(s.x,s.y,s.z)||1;
+    const pivot=new THREE.Group();pivot.add(o);pivot.scale.setScalar(2.1/md);pivot.rotation.x=-Math.PI/2;sc.add(pivot);
+  },null,e=>{console.warn('glb',e);});
+  (function loop(){requestAnimationFrame(loop);size();ctrl.update();r.render(sc,cam);})();
+})();
+
+/* ---------- Dossier PDF.js ---------- */
+(function(){
+  if(typeof pdfjsLib==='undefined')return;
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const wrap=document.getElementById('pdf'),msg=document.getElementById('pdfMsg');
+  const url='https://jofrearchive.com/assets/dossiers/fossil-synths.pdf';
+  pdfjsLib.getDocument(url).promise.then(async pdf=>{
+    if(msg)msg.remove();
+    const target=Math.min(820,(wrap.clientWidth||820));
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const base=page.getViewport({scale:1});
+      const scale=(target/base.width)*Math.min(devicePixelRatio||1,2);
+      const vp=page.getViewport({scale});
+      const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+      canvas.width=vp.width;canvas.height=vp.height;canvas.style.width=(vp.width/(Math.min(devicePixelRatio||1,2)))+'px';
+      wrap.appendChild(canvas);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+    }
+  }).catch(e=>{ if(msg)msg.textContent='Dossier available for download above.'; console.warn('pdf',e); });
+})();
+</script>
+</body>
+</html>
