@@ -1,10 +1,12 @@
 # Jofre Oliveras
 
-> Jofre Oliveras (Girona, Spain, 1989) is a transnational artist, artistic director and
-> project manager working at the intersection of public-space art, ecology and technology.
-> jofrearchive.com is his working archive: research-driven projects documented as studies,
-> objects and public interventions. Founder of Persona Archive; artistic director of the
-> Underline Public Art Festival (Amman, Beirut, Barcelona).
+> Jofre Oliveras (Girona, Spain, 1989) is an artist and researcher working at the intersection
+> of art, ecology and technology. His projects — from biomimetic solar energy and interspecies
+> archaeology to electronic sculpture — investigate how living and technical systems co-evolve.
+> This research extends into public space through murals and site-specific interventions, and
+> into large-format productions he leads as an artistic director (founder of Persona Archive;
+> artistic director of the Underline Public Art Festival in Amman, Beirut and Barcelona).
+> jofrearchive.com is his working archive.
 
 ## Sections
 - [Archive (home)](https://jofrearchive.com/): entry point to the full body of work
