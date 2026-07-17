@@ -141,7 +141,7 @@ a{color:inherit;text-decoration:none}
 const STUDIES=[
   {id:"S-001",title:"Interspecies Archaeology",year:2025,category:"BioSystems",
    abstract:"An archive for non-human agency: relics grown, eroded and indexed as if they were evidence of species that never signed their work.",
-   model:"https://jofrearchive.com/assets/3D/skull.glb",url:"https://jofrearchive.com/studies/s-003-interspecies-archaeology/"},
+   model:"https://jofrearchive.com/assets/3D/skull.glb",img:"https://jofrearchive.com/assets/images/interspecies/skull-fungi.jpg",url:"https://jofrearchive.com/studies/s-003-interspecies-archaeology/"},
   {id:"S-002",title:"Biomimetic Solar",year:2025,category:"BioSystems",
    abstract:"Solar panels made from organic and regenerative materials through biomimetic design and DIY production methods — reimagining energy technology as ecological and cultural artefact.",
    model:"https://jofrearchive.com/assets/3D/turingvase.glb",url:"https://jofrearchive.com/studies/s-001-biomimetic-solar/"},
@@ -162,7 +162,7 @@ let active=0;
 const cards=STUDIES.map((p,i)=>{
   const el=document.createElement('a');el.className='fc';el.href=p.url;el.dataset.i=i;
   el.innerHTML=`<div class="tab">${p.id}</div><div class="notch"></div>
-    <div class="hero"><div class="crt"></div><div class="sweep"></div></div>
+    <div class="hero"${p.img?` style="background-image:url('${p.img}');background-size:cover;background-position:center"`:''}><div class="crt"></div><div class="sweep"></div></div>
     <div class="body"><div class="meta"><span class="n">${p.id}</span><span>${p.year}</span><span>${p.category}</span></div>
     <h2 class="ttl">${p.title}</h2><p class="abs">${p.abstract}</p>
     <span class="open">Open project →</span></div>`;
@@ -186,7 +186,10 @@ function layout(){
   document.querySelectorAll('.ix').forEach((e,i)=>e.classList.toggle('on',i===active));
   document.querySelectorAll('.dot').forEach((e,i)=>e.classList.toggle('on',i===active));
   posEl.textContent=String(active+1).padStart(2,'0')+"/"+String(N).padStart(2,'0');
-  positionGL();loadModel(STUDIES[active].model);
+  positionGL();
+  const cur=STUDIES[active];
+  if(cur.img){ gl.style.display='none'; if(object){scene.remove(object);object=null;} }
+  else { gl.style.display=''; loadModel(cur.model); }
 }
 function go(i){active=((i%N)+N)%N;layout();}
 function next(){go(active+1);}function prev(){go(active-1);}
