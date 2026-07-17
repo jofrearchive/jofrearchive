@@ -1,0 +1,172 @@
+---
+layout: none
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Biomimetic Solar — Jofre Oliveras</title>
+<meta name="description" content="Biomimetic Solar by Jofre Oliveras: solar panels made from organic and regenerative materials through biomimetic design and DIY production methods — reimagining energy technology as ecological and cultural artefact." />
+<link rel="canonical" href="https://jofrearchive.com/studies/s-001-biomimetic-solar/" />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Jofre Oliveras — Archive" />
+<meta property="og:title" content="Biomimetic Solar — Jofre Oliveras" />
+<meta property="og:description" content="Solar panels from organic and regenerative materials through biomimetic design — energy technology as ecological and cultural artefact." />
+<meta property="og:url" content="https://jofrearchive.com/studies/s-001-biomimetic-solar/" />
+<meta property="og:image" content="https://jofrearchive.com/assets/images/bs.mural.webp" />
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"CreativeWork",
+  "name":"Biomimetic Solar",
+  "url":"https://jofrearchive.com/studies/s-001-biomimetic-solar/",
+  "dateCreated":"2025",
+  "creator":{"@type":"Person","name":"Jofre Oliveras","url":"https://jofrearchive.com/"},
+  "keywords":["biomimetic design","solar energy","ecology","sustainability","DIY technology","posthumanism","mycelium","renewable energy art"],
+  "description":"Research into solar panels made from organic and regenerative materials through biomimetic design and DIY production methods, reimagining solar technology as an ecological, aesthetic and symbolic artefact."
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a08; --ink:#e2ddd4; --ink2:rgba(226,221,212,.74); --ink3:rgba(200,184,154,.62);
+  --accent:#c8b89a; --accent2:#e8d5b0; --amber:rgba(255,187,88,.92);
+  --border:rgba(200,184,154,.16);
+  --serif:'EB Garamond',serif; --mono:'Source Code Pro',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
+  background-image:radial-gradient(circle at 24% 8%,rgba(200,184,154,.03),transparent 40%),
+    radial-gradient(circle at 80% 60%,rgba(200,184,154,.02),transparent 46%),
+    repeating-linear-gradient(0deg,rgba(200,184,154,.01) 0,rgba(200,184,154,.01) 1px,transparent 1px,transparent 5px);}
+a{color:inherit;text-decoration:none}
+.top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:16px clamp(16px,3vw,36px);background:linear-gradient(180deg,rgba(10,10,8,.85),transparent);pointer-events:none}
+.top a,.top span{pointer-events:auto}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3)}
+.back{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);opacity:.75}
+.back:hover{opacity:1;color:var(--accent2)}
+.hero{position:relative;height:82vh;min-height:520px;overflow:hidden;
+  background:#0a0a08 center/cover no-repeat;}
+.hero::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,10,8,.35) 0,transparent 30%,transparent 45%,rgba(10,10,8,.85) 100%)}
+.heroCap{position:absolute;left:clamp(16px,4vw,54px);bottom:clamp(24px,6vh,60px);z-index:3;max-width:680px}
+.heroKick{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.heroTitle{font-family:var(--serif);font-weight:500;font-size:clamp(44px,8vw,92px);line-height:.98;margin:0}
+.heroSub{margin-top:14px;font-size:clamp(16px,2vw,20px);color:var(--ink2);font-style:italic}
+main{max-width:820px;margin:0 auto;padding:clamp(30px,6vw,72px) clamp(18px,4vw,24px) 40px}
+section{margin-bottom:clamp(38px,6vw,66px)}
+.secNo{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px}
+h2{font-family:var(--serif);font-weight:500;font-size:clamp(24px,3.6vw,34px);line-height:1.06;margin:0 0 18px}
+p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0 18px;max-width:64ch}
+.lead{color:var(--ink);font-size:clamp(18px,2.4vw,22px);line-height:1.5}
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:6px}
+.chips span{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border:1px solid var(--border);padding:6px 9px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,4vw,40px)}
+.two h3{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.two ul{margin:0;padding-left:18px}.two li{font-size:15px;line-height:1.7;color:var(--ink2)}
+.dossHead{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.dl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);border:1px solid rgba(200,184,154,.34);padding:12px 16px;display:inline-flex;gap:10px;align-items:center;transition:.2s}
+.dl:hover{background:rgba(255,187,88,.1);border-color:var(--amber)}
+#pdf{display:flex;flex-direction:column;gap:14px;align-items:center}
+#pdf canvas{max-width:100%;height:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);border:1px solid rgba(200,184,154,.1)}
+#pdfMsg{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);opacity:.6;padding:20px}
+footer{border-top:1px solid var(--border);padding:30px clamp(18px,4vw,24px);text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+footer a{color:var(--accent2)}
+@media(max-width:680px){ .two{grid-template-columns:1fr} .hero{height:66vh} }
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">Jofre Oliveras — Studies</span>
+  <a class="back" href="https://jofrearchive.com/studies/">← Studies</a>
+</div>
+
+<section class="hero" style="background-image:linear-gradient(0deg,rgba(10,10,8,.2),rgba(10,10,8,.2)),url('https://jofrearchive.com/assets/images/bs.mural.webp')">
+  <div class="heroCap">
+    <div class="heroKick">S-001 · 2025 · BioSystems</div>
+    <h1 class="heroTitle">Biomimetic Solar</h1>
+    <div class="heroSub">Process documentation · mycelium growth · time as material.</div>
+  </div>
+</section>
+
+<main>
+  <section>
+    <span class="secNo">Abstract</span>
+    <p class="lead">This research explores the development of solar panels made from organic and regenerative materials through biomimetic design and DIY production methods — reimagining solar technology as an ecological, aesthetic and symbolic artefact rather than a neutral industrial device.</p>
+  </section>
+
+  <section>
+    <span class="secNo">01 — Introduction</span>
+    <h2>Energy as a field of experimentation</h2>
+    <p>The climate crisis and global energy inequality are symptoms of a system that concentrates technological capacity and energy sovereignty in the hands of a minority. In response, artistic practices increasingly engage with energy infrastructures not only as objects of critique but as fields of experimentation. This project proposes that solar panels — usually treated as neutral technical devices — can be reconceptualised as cultural, aesthetic and symbolic artefacts. Through biomimetic design and the use of organic materials, the research explores how solar technologies might become decentralised, accessible and embedded within ecological and community contexts.</p>
+  </section>
+
+  <section>
+    <span class="secNo">02 — Conceptual framework</span>
+    <h2>Biomimetics, posthumanism, ecosophy</h2>
+    <p>The project draws on three main conceptual perspectives. Biomimetics offers strategies for understanding how plant morphologies optimise light capture and energy distribution through structures such as branching networks, helicoidal arrangements and fractal geometries. Posthumanist thought shifts the focus away from the human as the central agent of technological development, proposing instead hybrid ecologies where vegetal, mineral and technological systems co-evolve. Ecosophy introduces an ethical and political dimension, emphasising the interconnected relations between environmental, social and subjective ecologies.</p>
+  </section>
+
+  <section>
+    <span class="secNo">03 — Methodology</span>
+    <h2>From plant morphology to photovoltaic device</h2>
+    <p>The methodology combines artistic practice, material experimentation and ecological observation. The research begins with the documentation of plant morphologies using photography, 3D scanning and botanical references. These patterns are then translated into geometric and structural models through digital design tools and physical prototyping. Experimental solar panels are constructed using accessible and natural materials, including cellulose substrates, plant fibres, mycelium composites and mineral pigments. The prototypes function both as symbolic artefacts and as experimental photovoltaic devices, testing alternative forms of solar capture and distributed energy production.</p>
+    <div class="two">
+      <div><h3>Materials</h3><ul><li>Plant fibres</li><li>Cellulose substrate</li><li>Mycelium</li><li>Mineral pigments</li></ul></div>
+      <div><h3>Technologies</h3><ul><li>Biomimetic design</li><li>Solar experimentation</li><li>DIY photovoltaic systems</li><li>Open energy technologies</li></ul></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="secNo">04 — Objectives</span>
+    <h2>Decentralised, accessible, embedded</h2>
+    <p>The project aims to investigate how vegetal morphologies can inform alternative solar infrastructures that are decentralised, accessible and ecologically embedded. Specific objectives include identifying plant structures that maximise solar exposure, translating these patterns into artificial energy systems, developing functional prototypes using low-tech materials, and exploring open or DIY frameworks for the replication of such systems. The project also seeks to articulate a critical perspective on technocapitalist models of renewable energy that reproduce extractivist dynamics and technological dependency.</p>
+  </section>
+
+  <section>
+    <span class="secNo">05 — Hypothesis</span>
+    <h2>Solar as ecological and cultural artefact</h2>
+    <p>Solar technologies can be reimagined as ecological and cultural artefacts rather than purely industrial devices. By integrating biomimetic design, organic materials and open technological practices, it is possible to develop solar infrastructures that are simultaneously functional, symbolic and socially empowering. These devices act not only as tools for energy generation but as pedagogical and political objects that redistribute technological knowledge and propose alternative imaginaries for ecological futures.</p>
+    <div class="chips"><span>energy</span><span>biomimicry</span><span>solar</span><span>ecology</span><span>DIY technology</span></div>
+  </section>
+
+  <section>
+    <div class="dossHead">
+      <div><span class="secNo">Dossier</span><h2 style="margin:0">Read the full dossier</h2></div>
+      <a class="dl" href="https://jofrearchive.com/assets/dossiers/biomimetic-solar.pdf" download>Download PDF ↓</a>
+    </div>
+    <div id="pdf"><div id="pdfMsg">Loading dossier…</div></div>
+  </section>
+</main>
+
+<footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a></footer>
+
+<script>
+(function(){
+  if(typeof pdfjsLib==='undefined')return;
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const wrap=document.getElementById('pdf'),msg=document.getElementById('pdfMsg');
+  const url='https://jofrearchive.com/assets/dossiers/biomimetic-solar.pdf';
+  pdfjsLib.getDocument(url).promise.then(async pdf=>{
+    if(msg)msg.remove();
+    const target=Math.min(820,(wrap.clientWidth||820));
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const base=page.getViewport({scale:1});
+      const dpr=Math.min(devicePixelRatio||1,2);
+      const vp=page.getViewport({scale:(target/base.width)*dpr});
+      const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+      canvas.width=vp.width;canvas.height=vp.height;canvas.style.width=(vp.width/dpr)+'px';
+      wrap.appendChild(canvas);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+    }
+  }).catch(e=>{ if(msg)msg.textContent='Dossier available for download above.'; console.warn('pdf',e); });
+})();
+</script>
+</body>
+</html>
