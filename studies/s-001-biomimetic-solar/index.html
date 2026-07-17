@@ -78,6 +78,26 @@ p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0
 footer{border-top:1px solid var(--border);padding:30px clamp(18px,4vw,24px);text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
 footer a{color:var(--accent2)}
 @media(max-width:680px){ .two{grid-template-columns:1fr} .hero{height:66vh} }
+/* --- Turing / reaction-diffusion interactive --- */
+.sim-figure{position:relative;height:clamp(360px,52vh,460px);margin-top:24px;border:1px solid var(--border);overflow:hidden;background:#0c0c0a}
+.sim-figure canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.turing-controls{position:absolute;top:14px;right:14px;width:188px;padding:12px;background:rgba(8,8,6,.9);backdrop-filter:blur(6px);border:1px solid rgba(200,184,154,.16);z-index:3;display:flex;flex-direction:column;gap:6px}
+.turing-controls h3{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin:0 0 6px;padding-bottom:8px;border-bottom:1px solid rgba(200,184,154,.1);font-weight:400}
+.sim-row{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}
+.sim-row label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.sim-row label span{color:var(--accent2);font-variant-numeric:tabular-nums}
+.sim-row input[type=range]{width:100%;cursor:pointer;-webkit-appearance:none;appearance:none;background:transparent}
+.sim-row input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(255,255,255,.14)}
+.sim-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;margin-top:-6px;width:4px;height:12px;border:1px solid rgba(255,255,255,.1);background:#8a7f6a}
+.sim-row input[type=range]::-moz-range-track{height:2px;background:rgba(255,255,255,.14)}
+.sim-row input[type=range]::-moz-range-thumb{width:4px;height:12px;border:1px solid rgba(255,255,255,.1);background:#8a7f6a}
+.sim-presets{display:flex;flex-wrap:wrap;gap:4px;padding-top:8px;border-top:1px solid rgba(200,184,154,.1);margin-top:2px}
+.sim-presets button{background:rgba(200,184,154,.04);border:1px solid rgba(200,184,154,.14);color:var(--ink3);padding:4px 7px;cursor:pointer;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;transition:.2s}
+.sim-presets button:hover{background:rgba(200,184,154,.1);color:var(--accent2);border-color:rgba(200,184,154,.26)}
+.sim-presets button.reseed{border-color:rgba(200,184,154,.28);color:var(--ink)}
+.sim-hint{position:absolute;bottom:12px;left:16px;font-family:var(--mono);font-size:9px;color:rgba(200,184,154,.4);letter-spacing:.08em;text-transform:uppercase;z-index:2;pointer-events:none}
+.sim-fps{position:absolute;bottom:12px;right:16px;font-family:var(--mono);font-size:9px;color:rgba(200,184,154,.3);z-index:2;pointer-events:none}
+@media(max-width:680px){.turing-controls{width:150px;padding:9px}}
 </style>
 </head>
 <body>
@@ -110,6 +130,32 @@ footer a{color:var(--accent2)}
     <span class="secNo">02 — Conceptual framework</span>
     <h2>Biomimetics, posthumanism, ecosophy</h2>
     <p>The project draws on three main conceptual perspectives. Biomimetics offers strategies for understanding how plant morphologies optimise light capture and energy distribution through structures such as branching networks, helicoidal arrangements and fractal geometries. Posthumanist thought shifts the focus away from the human as the central agent of technological development, proposing instead hybrid ecologies where vegetal, mineral and technological systems co-evolve. Ecosophy introduces an ethical and political dimension, emphasising the interconnected relations between environmental, social and subjective ecologies.</p>
+  </section>
+
+  <section>
+    <span class="secNo">Interactive · Morphogenesis</span>
+    <h2>Turing patterns — reaction &amp; diffusion</h2>
+    <p>Alan Turing's reaction–diffusion model shows how two competing substances, spreading and reacting across a surface, spontaneously organise into the spots, stripes and branching found throughout living tissue — the same morphogenetic logic this research borrows to shape light-capturing surfaces. Move the parameters, choose a preset, or click and drag on the field to seed it, and watch the pattern grow.</p>
+    <div class="sim-figure">
+      <canvas id="t-canvas"></canvas>
+      <div class="sim-controls turing-controls">
+        <h3>Turing</h3>
+        <div class="sim-row"><label>Feed <span id="t-lF">0.055</span></label><input id="t-iF" max="0.075" min="0.020" step="0.001" type="range" value="0.055"/></div>
+        <div class="sim-row"><label>Kill <span id="t-lK">0.062</span></label><input id="t-iK" max="0.072" min="0.050" step="0.001" type="range" value="0.062"/></div>
+        <div class="sim-row"><label>Diff A <span id="t-lDA">1.00</span></label><input id="t-iDA" max="1.0" min="0.5" step="0.01" type="range" value="1.0"/></div>
+        <div class="sim-row"><label>Diff B <span id="t-lDB">0.50</span></label><input id="t-iDB" max="0.7" min="0.1" step="0.01" type="range" value="0.5"/></div>
+        <div class="sim-presets">
+          <button onclick="turingPreset('spots')">Spots</button>
+          <button onclick="turingPreset('stripes')">Stripes</button>
+          <button onclick="turingPreset('worms')">Worms</button>
+          <button onclick="turingPreset('mitosis')">Mitosis</button>
+          <button onclick="turingPreset('coral')">Coral</button>
+          <button class="reseed" onclick="turingSeedRandom()">↺ Reseed</button>
+        </div>
+      </div>
+      <div class="sim-hint">Click / drag to seed</div>
+      <div class="sim-fps" id="t-fps"></div>
+    </div>
   </section>
 
   <section>
@@ -166,6 +212,110 @@ footer a{color:var(--accent2)}
       await page.render({canvasContext:ctx,viewport:vp}).promise;
     }
   }).catch(e=>{ if(msg)msg.textContent='Dossier available for download above.'; console.warn('pdf',e); });
+})();
+</script>
+
+<script>
+// ── Turing / Gray-Scott reaction–diffusion (Canvas 2D, self-contained) ──
+(function(){
+  const canvas = document.getElementById('t-canvas');
+  if(!canvas) return;
+  const ctx    = canvas.getContext('2d');
+  const wrap   = canvas.parentElement;
+  const PRESETS = {
+    spots:   { f:0.035, k:0.064, dA:1.0, dB:0.50 },
+    stripes: { f:0.060, k:0.062, dA:1.0, dB:0.50 },
+    worms:   { f:0.058, k:0.065, dA:1.0, dB:0.45 },
+    mitosis: { f:0.028, k:0.062, dA:1.0, dB:0.50 },
+    coral:   { f:0.055, k:0.062, dA:1.0, dB:0.50 },
+  };
+  let P = { f:0.055, k:0.062, dA:1.0, dB:0.5 };
+  let S = { ...P };
+  const LERP = 0.015, SCALE = 2;
+  let W, H, gridW, gridH, A, B, nA, nB, imgData, buf32;
+  let mouse = { down:false, x:-1, y:-1 };
+  function lerpParams(){ S.f+=(P.f-S.f)*LERP; S.k+=(P.k-S.k)*LERP; S.dA+=(P.dA-S.dA)*LERP; S.dB+=(P.dB-S.dB)*LERP; }
+  window.turingPreset = function(name){
+    const p=PRESETS[name]; P.f=p.f; P.k=p.k; P.dA=p.dA; P.dB=p.dB;
+    document.getElementById('t-iF').value=p.f; document.getElementById('t-iK').value=p.k;
+    document.getElementById('t-iDA').value=p.dA; document.getElementById('t-iDB').value=p.dB;
+    syncT(); turingSeedRandom();
+  };
+  function syncT(){
+    document.getElementById('t-lF').textContent=P.f.toFixed(3);
+    document.getElementById('t-lK').textContent=P.k.toFixed(3);
+    document.getElementById('t-lDA').textContent=P.dA.toFixed(2);
+    document.getElementById('t-lDB').textContent=P.dB.toFixed(2);
+  }
+  document.getElementById('t-iF').oninput=e=>{P.f=+e.target.value;syncT();};
+  document.getElementById('t-iK').oninput=e=>{P.k=+e.target.value;syncT();};
+  document.getElementById('t-iDA').oninput=e=>{P.dA=+e.target.value;syncT();};
+  document.getElementById('t-iDB').oninput=e=>{P.dB=+e.target.value;syncT();};
+  syncT();
+  function allocGrids(){ gridW=Math.ceil(W/SCALE); gridH=Math.ceil(H/SCALE);
+    const n=gridW*gridH; A=new Float32Array(n); B=new Float32Array(n); nA=new Float32Array(n); nB=new Float32Array(n); }
+  window.turingSeedRandom = function(){
+    const n=gridW*gridH;
+    for(let i=0;i<n;i++){A[i]=1;B[i]=0;}
+    const patches=Math.floor(n/500);
+    for(let p=0;p<patches;p++){
+      const cx=(Math.random()*gridW)|0, cy=(Math.random()*gridH)|0, r=2+((Math.random()*5)|0);
+      for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+        if(dx*dx+dy*dy<=r*r){ const x=((cx+dx)%gridW+gridW)%gridW, y=((cy+dy)%gridH+gridH)%gridH; B[y*gridW+x]=1; A[y*gridW+x]=0; }
+      }
+    }
+  };
+  function allocBuffer(){ imgData=ctx.createImageData(W,H); buf32=new Uint32Array(imgData.data.buffer); }
+  function colormap(b){ const t=Math.max(0,Math.min(1,b)); let r,g,bl;
+    if(t<0.30){const s=t/0.30;r=(s*52)|0;g=(s*42)|0;bl=(s*18)|0;}
+    else if(t<0.62){const s=(t-0.30)/0.32;r=(52+s*108)|0;g=(42+s*90)|0;bl=(18+s*14)|0;}
+    else{const s=(t-0.62)/0.38;r=(160+s*78)|0;g=(132+s*97)|0;bl=(32+s*180)|0;}
+    return(0xFF<<24)|(bl<<16)|(g<<8)|r;
+  }
+  function getXY(e){ const t=e.touches?e.touches[0]:e,r=canvas.getBoundingClientRect();
+    return{x:((t.clientX-r.left)/SCALE)|0,y:((t.clientY-r.top)/SCALE)|0}; }
+  canvas.addEventListener('mousedown',e=>{mouse.down=true;const p=getXY(e);mouse.x=p.x;mouse.y=p.y;});
+  canvas.addEventListener('mousemove',e=>{if(mouse.down){const p=getXY(e);mouse.x=p.x;mouse.y=p.y;}});
+  canvas.addEventListener('mouseup',()=>mouse.down=false);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();mouse.down=true;const p=getXY(e);mouse.x=p.x;mouse.y=p.y;},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();const p=getXY(e);mouse.x=p.x;mouse.y=p.y;},{passive:false});
+  canvas.addEventListener('touchend',()=>mouse.down=false);
+  function applyMouse(){ if(!mouse.down||mouse.x<0)return; const R=5;
+    for(let dy=-R;dy<=R;dy++) for(let dx=-R;dx<=R;dx++) if(dx*dx+dy*dy<=R*R){
+      const x=((mouse.x+dx)%gridW+gridW)%gridW,y=((mouse.y+dy)%gridH+gridH)%gridH,i=y*gridW+x; B[i]=1;A[i]=0; }
+  }
+  function stepGS(){ const gW=gridW,gH=gridH,f=S.f,k=S.k,dA=S.dA*0.2,dB=S.dB*0.2;
+    for(let y=0;y<gH;y++){ const ym=((y-1+gH)%gH)*gW,yp=((y+1)%gH)*gW,yc=y*gW;
+      for(let x=0;x<gW;x++){ const xm=(x-1+gW)%gW,xp=(x+1)%gW,i=yc+x,a=A[i],b=B[i];
+        const lapA=A[yc+xm]+A[yc+xp]+A[ym+x]+A[yp+x]-4*a;
+        const lapB=B[yc+xm]+B[yc+xp]+B[ym+x]+B[yp+x]-4*b;
+        const rxn=a*b*b;
+        nA[i]=Math.max(0,Math.min(1,a+dA*lapA-rxn+f*(1-a)));
+        nB[i]=Math.max(0,Math.min(1,b+dB*lapB+rxn-(f+k)*b));
+      }
+    }
+    const tA=A;A=nA;nA=tA; const tB=B;B=nB;nB=tB;
+  }
+  function render(){ const gW=gridW,gH=gridH;
+    for(let gy=0;gy<gH;gy++) for(let gx=0;gx<gW;gx++){
+      const c=colormap(B[gy*gW+gx]*3.5);
+      for(let py=0;py<SCALE;py++){ const row=(gy*SCALE+py)*W;
+        for(let px=0;px<SCALE;px++) buf32[row+gx*SCALE+px]=c;
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+  }
+  function resize(){ W=canvas.width=wrap.clientWidth; H=canvas.height=wrap.clientHeight; allocGrids(); turingSeedRandom(); allocBuffer(); }
+  let lastT=0,fcT=0;
+  function loop(ts){ lerpParams(); applyMouse();
+    for(let s=0;s<6;s++) stepGS();
+    render(); fcT++;
+    if(ts-lastT>1000){document.getElementById('t-fps').textContent=fcT+' fps';fcT=0;lastT=ts;}
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('resize',resize);
+  resize();
+  requestAnimationFrame(loop);
 })();
 </script>
 </body>
