@@ -1,9 +1,20 @@
 title: Jofre Archive
+tagline: "Jofre Oliveras — artist & artistic director"
+description: >-
+  The working archive of Jofre Oliveras (Girona, 1989), transnational artist and artistic
+  director working across public-space art, ecology and technology: research studies, objects
+  and site-specific interventions.
+author:
+  name: Jofre Oliveras
 url: "https://jofrearchive.com"
 baseurl: ""
+lang: en
 
 markdown: kramdown
 permalink: pretty
+
+plugins:
+  - jekyll-sitemap
 
 collections:
 
