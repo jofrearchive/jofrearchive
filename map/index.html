@@ -164,6 +164,7 @@ body::before{
   box-shadow:0 0 40px rgba(0,0,0,.28), inset 0 0 0 1px rgba(200,184,154,.03);
   display:flex;
   flex-direction:column;
+  max-height:calc(100vh - 40px);
 }
 .panel.open{
   transform:translateY(-50%) translateX(0);
@@ -183,6 +184,8 @@ body::before{
 .panel-scroll{
   overflow-y:auto;
   scrollbar-width:none;
+  flex:1 1 auto;
+  min-height:0;
 }
 .panel-scroll::-webkit-scrollbar{ display:none; }
 .ph{
