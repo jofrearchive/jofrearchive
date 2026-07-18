@@ -62,9 +62,16 @@ p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0
 .lead{color:var(--ink);font-size:clamp(18px,2.4vw,22px);line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
 .chips span{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border:1px solid var(--border);padding:6px 9px}
-.work{margin-top:40px}
-.work img{width:100%;height:auto;display:block;border:1px solid var(--border)}
-.work .cap{margin-top:12px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.work{margin-top:46px}
+.gallery{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;height:min(58vh,500px);
+  scrollbar-width:thin;scrollbar-color:rgba(200,184,154,.3) transparent}
+.gallery::-webkit-scrollbar{height:6px}
+.gallery::-webkit-scrollbar-thumb{background:rgba(200,184,154,.3);border-radius:3px}
+.gallery img{flex:0 0 auto;height:100%;width:auto;max-width:100%;display:block;object-fit:cover;scroll-snap-align:center;border:1px solid var(--border)}
+.gallery.single{height:auto}
+.gallery.single img{width:100%;height:auto;max-height:min(64vh,560px);object-fit:contain}
+.ghint{margin-top:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);opacity:.55}
+.work .cap{margin-top:14px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .work .t{font-family:var(--serif);font-weight:500;font-size:clamp(20px,2.6vw,26px);line-height:1}
 .work .t em{font-style:italic;color:var(--accent2);font-weight:400}
 .work .meta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);text-align:right}
@@ -81,7 +88,7 @@ footer a{color:var(--accent2)}
   <a class="back" href="https://jofrearchive.com/studies/">← Studies</a>
 </div>
 
-<section class="hero" style="background-image:url('https://jofrearchive.com/assets/images/bio-architecture/nest.jpg')">
+<section class="hero" style="background-image:url('https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg')">
   <div class="heroCap">
     <div class="heroKick">S-005 · Study</div>
     <h1 class="heroTitle">Bio-architecture</h1>
@@ -102,25 +109,28 @@ footer a{color:var(--accent2)}
     <h2>Structures grown from the landscape</h2>
 
     <div class="work">
-      <img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Bio-architecture — wooden structure built in the forest" loading="lazy"/>
-      <div class="cap"><div class="t">Bio-architecture</div><div class="meta">Spain · natural wood <span class="todo">· confirm details</span></div></div>
-      <p>A structure built directly within the forest from felled branches and natural wood — architecture that emerges from, and dissolves back into, its surroundings.</p>
+      <div class="gallery single"><img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Bio-architecture — coffin habitat built in the forest" loading="lazy"/></div>
+      <div class="cap"><div class="t">Bio-architecture — Coffin Habitat</div><div class="meta">Spain · natural wood <span class="todo">· hi-res + more photos pending</span></div></div>
+      <p>A coffin-shaped habitat built directly within the forest from felled branches and natural wood — a shelter that emerges from, and dissolves back into, its surroundings; a home and a grave at once.</p>
     </div>
 
     <div class="work">
-      <img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/>
+      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/nest-2.jpg" alt="Nest — detail" loading="lazy"/></div>
+      <div class="ghint">← scroll · 2 images</div>
       <div class="cap"><div class="t">Nest</div><div class="meta">Spain · vegetable latticework · land art</div></div>
       <p>A giant nest suspended on a tree, built through bioconstruction with a vegetable latticework — a reflection on the fragility of the home.</p>
     </div>
 
     <div class="work">
-      <img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/>
+      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower-2.jpg" alt="Power Tower I — construction" loading="lazy"/></div>
+      <div class="ghint">← scroll · 2 images</div>
       <div class="cap"><div class="t">Power Tower I</div><div class="meta">Spain · natural materials · 12 m · land art</div></div>
       <p>A contemporary monolith raised from natural materials — a vertical land-art installation standing twelve metres high.</p>
     </div>
 
     <div class="work">
-      <img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace.jpg" alt="Reinterpretation of a fireplace — nest built into a façade" loading="lazy"/>
+      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace.jpg" alt="Reinterpretation of a fireplace — nest built into a façade" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace-2.jpg" alt="Reinterpretation of a fireplace — another view" loading="lazy"/></div>
+      <div class="ghint">← scroll · 2 images</div>
       <div class="cap"><div class="t">Reinterpretation of a fireplace <em>· 2016</em></div><div class="meta">Spain · branches</div></div>
       <p>A nest of branches grown into the architecture of a building — the domestic hearth reimagined as a living, permeable structure.</p>
     </div>
