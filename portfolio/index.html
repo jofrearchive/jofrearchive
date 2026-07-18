@@ -1,0 +1,111 @@
+---
+layout: none
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Portfolio — Jofre Oliveras</title>
+<meta name="description" content="The complete artwork selection of Jofre Oliveras: public art and murals, canvas, digital ruins and installations across 18 countries. Browse or download the full portfolio (PDF)." />
+<link rel="canonical" href="https://jofrearchive.com/portfolio/" />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Jofre Oliveras — Archive" />
+<meta property="og:title" content="Portfolio — Jofre Oliveras" />
+<meta property="og:description" content="Public art, murals, canvas and installations across 18 countries. The full artwork selection." />
+<meta property="og:url" content="https://jofrearchive.com/portfolio/" />
+<meta property="og:image" content="https://jofrearchive.com/assets/images/bs.mural.webp" />
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"CreativeWork",
+  "name":"Jofre Oliveras — Portfolio 2026",
+  "url":"https://jofrearchive.com/portfolio/",
+  "author":{"@type":"Person","name":"Jofre Oliveras","url":"https://jofrearchive.com/"},
+  "about":{"@type":"Person","name":"Jofre Oliveras"},
+  "keywords":["portfolio","public art","murals","canvas","installation","land art","contemporary art"],
+  "description":"The complete artwork selection of Jofre Oliveras — public art, murals, canvas, digital ruins and installations across 18 countries and 25 cities.",
+  "associatedMedia":{"@type":"MediaObject","contentUrl":"https://jofrearchive.com/assets/portfolio-2026.pdf","encodingFormat":"application/pdf"}
+}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a08; --ink:#e2ddd4; --ink2:rgba(226,221,212,.74); --ink3:rgba(200,184,154,.62);
+  --accent:#c8b89a; --accent2:#e8d5b0; --amber:rgba(255,187,88,.92); --border:rgba(200,184,154,.16);
+  --serif:'EB Garamond',serif; --mono:'Source Code Pro',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);
+  background-image:radial-gradient(circle at 24% 8%,rgba(200,184,154,.03),transparent 40%),
+    radial-gradient(circle at 80% 60%,rgba(200,184,154,.02),transparent 46%),
+    repeating-linear-gradient(0deg,rgba(200,184,154,.01) 0,rgba(200,184,154,.01) 1px,transparent 1px,transparent 5px);}
+a{color:inherit;text-decoration:none}
+.top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:16px clamp(16px,3vw,36px);background:linear-gradient(180deg,rgba(10,10,8,.9),transparent);pointer-events:none}
+.top a,.top span{pointer-events:auto}
+.brand{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3)}
+.back{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);opacity:.75}
+.back:hover{opacity:1;color:var(--accent2)}
+header.intro{max-width:960px;margin:0 auto;padding:clamp(80px,14vh,140px) clamp(18px,4vw,24px) 20px}
+.kick{font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,7vw,72px);line-height:1;margin:0}
+.sub{margin-top:16px;font-size:clamp(16px,2vw,20px);color:var(--ink2);font-style:italic;max-width:60ch}
+p{font-size:clamp(15px,1.9vw,17px);line-height:1.6;color:var(--ink2);max-width:70ch;margin:16px 0 0}
+.dl{margin-top:26px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent2);
+  border:1px solid rgba(200,184,154,.34);padding:14px 20px;display:inline-flex;gap:10px;align-items:center;transition:.2s}
+.dl:hover{background:rgba(255,187,88,.1);border-color:var(--amber)}
+.stats{margin-top:22px;display:flex;gap:26px;flex-wrap:wrap;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+.stats b{color:var(--accent2);font-weight:500}
+#pdf{max-width:960px;margin:40px auto 30px;padding:0 clamp(18px,4vw,24px);display:flex;flex-direction:column;gap:18px;align-items:center}
+#pdf canvas{width:100%;max-width:900px;height:auto;box-shadow:0 24px 70px rgba(0,0,0,.55);border:1px solid rgba(200,184,154,.1)}
+#pdfMsg{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);opacity:.6;padding:30px}
+footer{border-top:1px solid var(--border);padding:30px clamp(18px,4vw,24px);text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+footer a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="top">
+  <span class="brand">Jofre Oliveras — Archive</span>
+  <a class="back" href="https://jofrearchive.com/">← Archive</a>
+</div>
+
+<header class="intro">
+  <div class="kick">Portfolio · 2026</div>
+  <h1>Artwork Selection</h1>
+  <div class="sub">Public art and murals, canvas, digital ruins and installations by Jofre Oliveras — mapped across 18 countries and 25 cities.</div>
+  <p>Jofre Oliveras (b. 1989, Girona, Spain) is a transnational artist and researcher working primarily in public space, from large-scale murals to land-art installations. This selection gathers works produced between 2013 and 2026 across Europe, the Middle East, South Asia and the Americas — including projects in Madrid, Barcelona, Amman, Beirut, Coimbatore, Mumbai, Stavanger, Aberdeen, Covilha and Miami.</p>
+  <a class="dl" href="https://jofrearchive.com/assets/portfolio-2026.pdf" download>Download portfolio (PDF) ↓</a>
+  <div class="stats"><span><b>18</b> countries</span><span><b>25</b> cities</span><span><b>2013 – 2026</b></span><span>Public art · Canvas · Installation</span></div>
+</header>
+
+<section id="pdf"><div id="pdfMsg">Loading portfolio…</div></section>
+
+<footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a> · <a href="https://jofrearchive.com/map/">Public Art Map</a></footer>
+
+<script>
+(function(){
+  if(typeof pdfjsLib==='undefined')return;
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const wrap=document.getElementById('pdf'),msg=document.getElementById('pdfMsg');
+  const url='https://jofrearchive.com/assets/portfolio-2026.pdf';
+  pdfjsLib.getDocument(url).promise.then(async pdf=>{
+    if(msg)msg.remove();
+    const target=Math.min(900,(wrap.clientWidth||900));
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const base=page.getViewport({scale:1});const dpr=Math.min(devicePixelRatio||1,2);
+      const vp=page.getViewport({scale:(target/base.width)*dpr});
+      const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+      canvas.width=vp.width;canvas.height=vp.height;canvas.style.width=(vp.width/dpr)+'px';
+      wrap.appendChild(canvas);
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+    }
+  }).catch(e=>{ if(msg)msg.textContent='Portfolio available for download above.'; console.warn('pdf',e); });
+})();
+</script>
+</body>
+</html>
