@@ -94,6 +94,9 @@ footer a{color:var(--accent2)}
 .ref{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--ink3);opacity:.72;margin-top:16px;text-transform:none}
 .ref em{font-style:italic}
 .figrow.pair{grid-template-columns:1fr 1fr}
+.figrow.pair figure{display:flex;flex-direction:column;align-items:center;text-align:center}
+.figrow.pair img{width:auto;max-width:100%;height:240px;object-fit:contain}
+.figrow.pair figcaption{text-align:center}
 @media(max-width:680px){.figrow{grid-template-columns:1fr}.figrow img{height:auto;max-height:56vh}}
 @media(max-width:680px){ .two{grid-template-columns:1fr} .hero{height:70vh} }
 </style>
@@ -124,38 +127,7 @@ footer a{color:var(--accent2)}
   </section>
 
   <section>
-    <span class="secNo">01 — The atomic pyramid</span>
-    <h2>Proportions, atom by atom</h2>
-    <p>The structure is built at the scale of individual gold atoms, in two possible configurations — one tuned to the golden ratio and 2π, one derived from the slope angle alone.</p>
-    <div class="two">
-      <div>
-        <h3>Tuned to φ and 2π</h3>
-        <div class="spec">
-          <div class="row"><span class="k">Atoms per base side</span><span class="v">23</span></div>
-          <div class="row"><span class="k">Atoms in height</span><span class="v">15</span></div>
-          <div class="row"><span class="k">Height (H)</span><span class="v">4.21 nm</span></div>
-          <div class="row"><span class="k">Perimeter (P)</span><span class="v">26.5 nm</span></div>
-          <div class="row"><span class="k">Golden ratio (φ)</span><span class="v">1.271</span></div>
-          <div class="row"><span class="k">P / H (2π)</span><span class="v">6.295</span></div>
-          <div class="row"><span class="k">Slope angle</span><span class="v">51.8°</span></div>
-        </div>
-      </div>
-      <div>
-        <h3>From the angle alone</h3>
-        <div class="spec">
-          <div class="row"><span class="k">Atoms per base side</span><span class="v">4</span></div>
-          <div class="row"><span class="k">Atoms in height</span><span class="v">3</span></div>
-          <div class="row"><span class="k">Height (H)</span><span class="v">0.732 nm</span></div>
-          <div class="row"><span class="k">Perimeter (P)</span><span class="v">4.61 nm</span></div>
-          <div class="row"><span class="k">P / H (2π)</span><span class="v">6.295</span></div>
-          <div class="row"><span class="k">Slope angle</span><span class="v">51.8°</span></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <span class="secNo">02 — The Great Pyramid of Giza</span>
+    <span class="secNo">01 — The Great Pyramid of Giza</span>
     <h2>The reference</h2>
     <div class="spec" style="max-width:520px">
       <div class="row"><span class="k">Height (h)</span><span class="v">146.6 m</span></div>
@@ -171,7 +143,7 @@ footer a{color:var(--accent2)}
   </section>
 
   <section>
-    <span class="secNo">03 — The relations</span>
+    <span class="secNo">02 — The relations</span>
     <h2>Where geometry meets the cosmos</h2>
     <ul class="relList">
       <li><span class="rn">I</span>The ratio between the perimeter and the height reflects a design based on the relationship between the triangle, the circle and the square — which in turn are the sphere, the cube and the pyramid.
@@ -185,7 +157,7 @@ footer a{color:var(--accent2)}
   </section>
 
   <section>
-    <span class="secNo">04 — Production</span>
+    <span class="secNo">03 — Production</span>
     <h2>A pyramid that grows itself</h2>
     <p>For production at a larger nanoscale, the pyramid is not carved but grown. Drawing on advances in the self-assembly of polyhedral nanocrystals, shape-controlled gold nanocrystals — octahedra and corner-truncated octahedra, tens of nanometres across — are suspended with a surfactant (CTAC) and left to organise as a droplet of solution slowly evaporates on a substrate. Because the particles' own shape dictates the geometry of the resulting supercrystal, these gold polyhedra settle layer upon layer into square-pyramidal supercrystals: a monument that assembles itself from the bottom up. A complementary surfactant-diffusion route can grow free-standing supercrystals directly in solution.</p>
     <div class="figrow" id="pyrFigs">
