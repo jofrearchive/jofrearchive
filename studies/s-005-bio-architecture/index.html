@@ -62,7 +62,13 @@ p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0
 .lead{color:var(--ink);font-size:clamp(18px,2.4vw,22px);line-height:1.5}
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
 .chips span{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);border:1px solid var(--border);padding:6px 9px}
-.work{margin-top:46px}
+.work{margin-top:clamp(44px,7vw,72px);padding-top:clamp(30px,5vw,44px);border-top:1px solid var(--border)}
+.work:first-of-type{border-top:0;padding-top:0;margin-top:30px}
+.work .wh{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.work h3{font-family:var(--serif);font-weight:500;font-size:clamp(22px,3vw,30px);line-height:1;margin:0}
+.work h3 .wy{font-style:italic;color:var(--accent2);font-weight:400;font-size:.72em}
+.work .wmeta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);text-align:right}
+.work>p{margin:14px 0 18px;font-size:16px;max-width:66ch}
 .gallery{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;height:min(58vh,500px);
   scrollbar-width:thin;scrollbar-color:rgba(200,184,154,.3) transparent}
 .gallery::-webkit-scrollbar{height:6px}
@@ -105,34 +111,35 @@ footer a{color:var(--accent2)}
   </section>
 
   <section>
-    <span class="secNo">Works</span>
+    <span class="secNo">Works · chronological</span>
     <h2>Structures grown from the landscape</h2>
 
     <div class="work">
-      <div class="gallery single"><img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Bio-architecture — coffin habitat built in the forest" loading="lazy"/></div>
-      <div class="cap"><div class="t">Bio-architecture — Coffin Habitat</div><div class="meta">Spain · natural wood <span class="todo">· hi-res + more photos pending</span></div></div>
-      <p>A coffin-shaped habitat built directly within the forest from felled branches and natural wood — a shelter that emerges from, and dissolves back into, its surroundings; a home and a grave at once.</p>
-    </div>
-
-    <div class="work">
-      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/nest-2.jpg" alt="Nest — detail" loading="lazy"/></div>
-      <div class="ghint">← scroll · 2 images</div>
-      <div class="cap"><div class="t">Nest</div><div class="meta">Spain · vegetable latticework · land art</div></div>
-      <p>A giant nest suspended on a tree, built through bioconstruction with a vegetable latticework — a reflection on the fragility of the home.</p>
-    </div>
-
-    <div class="work">
-      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower-2.jpg" alt="Power Tower I — construction" loading="lazy"/></div>
-      <div class="ghint">← scroll · 2 images</div>
-      <div class="cap"><div class="t">Power Tower I</div><div class="meta">Spain · natural materials · 12 m · land art</div></div>
-      <p>A contemporary monolith raised from natural materials — a vertical land-art installation standing twelve metres high.</p>
-    </div>
-
-    <div class="work">
+      <div class="wh"><h3>Reinterpretation of a Fireplace <span class="wy">· 2016</span></h3><div class="wmeta">Spain · branches</div></div>
+      <p>One of the earliest bio-architecture gestures. A nest of interwoven branches is built directly into the fabric of a building, reinterpreting the domestic hearth: the fireplace — symbolic centre of the home — becomes a living, permeable structure that belongs as much to the birds and the weather as to the house.</p>
       <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace.jpg" alt="Reinterpretation of a fireplace — nest built into a façade" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace-2.jpg" alt="Reinterpretation of a fireplace — another view" loading="lazy"/></div>
       <div class="ghint">← scroll · 2 images</div>
-      <div class="cap"><div class="t">Reinterpretation of a fireplace <em>· 2016</em></div><div class="meta">Spain · branches</div></div>
-      <p>A nest of branches grown into the architecture of a building — the domestic hearth reimagined as a living, permeable structure.</p>
+    </div>
+
+    <div class="work">
+      <div class="wh"><h3>Power Tower I</h3><div class="wmeta">Spain · natural materials · 12 m · land art</div></div>
+      <p>A contemporary monolith raised on site from natural materials and standing around twelve metres high. Borrowing the language of ancient standing stones, the tower reinterprets the monument through the fragility of organic construction — a vertical land-art work left to weather and decay in place.</p>
+      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower-2.jpg" alt="Power Tower I — construction" loading="lazy"/></div>
+      <div class="ghint">← scroll · 2 images</div>
+    </div>
+
+    <div class="work">
+      <div class="wh"><h3>Nest</h3><div class="wmeta">Spain · vegetable latticework · land art</div></div>
+      <p>A giant nest suspended on a lone tree, built through bioconstruction with a woven vegetable latticework of plant fibres and branches. Conceived for a land-art itinerary, it reflects on the fragility of the home and on shelter as something grown rather than built — inhabited by the landscape as much as by us.</p>
+      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/nest-2.jpg" alt="Nest — detail" loading="lazy"/></div>
+      <div class="ghint">← scroll · 2 images</div>
+    </div>
+
+    <div class="work">
+      <div class="wh"><h3>Coffin Habitat <span class="wy">· 2025</span></h3><div class="wmeta">Spain · felled branches, natural wood</div></div>
+      <p>The most recent piece: a coffin-shaped habitat assembled directly within the forest from felled branches and natural wood. Home and grave at once, it collapses the distance between shelter and decay — an architecture that emerges from the landscape and is designed to return to it.</p>
+      <div class="gallery single"><img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Coffin Habitat — structure built in the forest" loading="lazy"/></div>
+      <div class="ghint todo">hi-res + full photo set pending</div>
     </div>
   </section>
 </main>
