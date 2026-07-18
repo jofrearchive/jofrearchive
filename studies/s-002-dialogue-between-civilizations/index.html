@@ -93,6 +93,13 @@ footer a{color:var(--accent2)}
 .figure{margin:6px 0 0}
 .figure img{width:100%;height:auto;display:block;border:1px solid var(--border);background:#0c0c0a}
 .figcap{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-top:10px;opacity:.75}
+.figrow{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.figrow figure{margin:0}
+.figrow img{width:100%;height:180px;object-fit:contain;display:block;background:#0c0c0a;border:1px solid var(--border)}
+.figrow figcaption{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:8px;opacity:.7;line-height:1.45}
+.ref{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--ink3);opacity:.72;margin-top:16px;text-transform:none}
+.ref em{font-style:italic}
+@media(max-width:680px){.figrow{grid-template-columns:1fr}.figrow img{height:auto;max-height:56vh}}
 @media(max-width:680px){ .two{grid-template-columns:1fr} .hero{height:70vh} }
 </style>
 </head>
@@ -115,7 +122,8 @@ footer a{color:var(--accent2)}
 <main>
   <section>
     <span class="secNo">Abstract</span>
-    <p class="lead">Dialogue Between Civilizations is an atomic-scale sculpture inspired by the Great Pyramid of Giza. Gold atoms are meticulously arranged to reflect the mathematical proportions of the pyramid — including its relationships with π, φ and the tangent of 51.8°. The project explores the intersection between ancestral knowledge and contemporary nanotechnology, symbolising a timeless search for understanding.</p>
+    <p class="lead">Dialogue Between Civilizations is, most likely, the smallest sculpture in the world: a replica of the Great Pyramid of Giza built at the scale of atoms. Gold atoms are meticulously arranged to reflect the mathematical proportions of the pyramid — its relationships with π, φ and the tangent of 51.8°.</p>
+    <p>Gold is not incidental. The original pyramids are believed to have been crowned with gold capstones — emblems of divinity and power — so here the entire monument is rebuilt in gold, atom by atom. Bridging Ancient Egypt and contemporary nanotechnology, the work becomes a reflection on scale, on cultural memory and on what endures as the measure of a monument shifts from the colossal to the imperceptible.</p>
     <figure class="figure">
       <img src="https://jofrearchive.com/assets/images/dialogue/sample.jpg" alt="Dialogue Between Civilizations — the physical sample on a microscopy grid, held with tweezers" loading="lazy"/>
       <figcaption class="figcap">The physical sample on a microscopy grid.</figcaption>
@@ -177,6 +185,24 @@ footer a{color:var(--accent2)}
       <li><span class="rn">IV</span>The 51.84° face angle carries several implications. tan(51.84°) ≈ 4/3 — the ratio between the height and the semi-base, a simple and elegant proportion. The angle sits close to key divisions in sacred geometry: the regular pentagon (linked to φ), the Kepler triangle (which combines π and φ), and the angles used in constructions related to the Platonic solids such as the tetrahedron and the icosahedron. Some researchers suggest the pyramid's angles could reflect cosmic relationships, such as the angle between the plane of Earth's orbit and the galactic plane.
         <div class="eq">tan(θ) = h / a ≈ 51.8°</div></li>
     </ul>
+  </section>
+
+  <section>
+    <span class="secNo">04 — The process</span>
+    <h2>Sculpting with atoms</h2>
+    <p>At its smallest, the sculpture is written directly into matter with a scanning tunnelling microscope (STM) — an instrument whose atomically sharp tip can both image a surface and displace single atoms, one at a time. Built this way, fabrication becomes a form of drawing at the physical limit: every atom is placed deliberately, and the finished piece is imperceptible to the eye, existing as high-resolution microscopy and as the idea of itself.</p>
+  </section>
+
+  <section>
+    <span class="secNo">05 — Production</span>
+    <h2>A pyramid that grows itself</h2>
+    <p>For production at a larger nanoscale, the pyramid is not carved but grown. Drawing on advances in the self-assembly of polyhedral nanocrystals, shape-controlled gold nanocrystals — octahedra and corner-truncated octahedra, tens of nanometres across — are suspended with a surfactant (CTAC) and left to organise as a droplet of solution slowly evaporates on a substrate. Because the particles' own shape dictates the geometry of the resulting supercrystal, these gold polyhedra settle layer upon layer into square-pyramidal supercrystals: a monument that assembles itself from the bottom up. A complementary surfactant-diffusion route can grow free-standing supercrystals directly in solution.</p>
+    <div class="figrow" id="pyrFigs">
+      <figure><img src="https://jofrearchive.com/assets/images/dialogue/pyr-1.jpg" alt="Gold pyramidal supercrystals scattered across a substrate (SEM)" loading="lazy"/><figcaption>Gold pyramidal supercrystals on the substrate</figcaption></figure>
+      <figure><img src="https://jofrearchive.com/assets/images/dialogue/pyr-2.jpg" alt="A single triangular-pyramidal gold supercrystal (SEM)" loading="lazy"/><figcaption>A single pyramidal supercrystal</figcaption></figure>
+      <figure><img src="https://jofrearchive.com/assets/images/dialogue/pyr-3.jpg" alt="An octahedral gold supercrystal (SEM)" loading="lazy"/><figcaption>Octahedral (bipyramidal) supercrystal</figcaption></figure>
+    </div>
+    <p class="ref">Production method after M. H. Huang &amp; S. Thoka, “Formation of supercrystals through self-assembly of polyhedral nanocrystals,” <em>Nano Today</em> 10 (2015) 81–92.</p>
   </section>
 
   <section>
