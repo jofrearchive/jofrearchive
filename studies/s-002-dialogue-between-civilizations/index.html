@@ -31,11 +31,6 @@ layout: none
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
@@ -99,6 +94,7 @@ footer a{color:var(--accent2)}
 .figrow figcaption{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-top:8px;opacity:.7;line-height:1.45}
 .ref{font-family:var(--mono);font-size:10px;letter-spacing:.03em;color:var(--ink3);opacity:.72;margin-top:16px;text-transform:none}
 .ref em{font-style:italic}
+.figrow.pair{grid-template-columns:1fr 1fr}
 @media(max-width:680px){.figrow{grid-template-columns:1fr}.figrow img{height:auto;max-height:56vh}}
 @media(max-width:680px){ .two{grid-template-columns:1fr} .hero{height:70vh} }
 </style>
@@ -109,14 +105,12 @@ footer a{color:var(--accent2)}
   <a class="back" href="https://jofrearchive.com/studies/">← Studies</a>
 </div>
 
-<section class="hero">
-  <canvas id="gl"></canvas>
+<section class="hero" style="background:#12110f url('https://jofrearchive.com/assets/images/dialogue/giza-hero.jpg') center/cover no-repeat">
   <div class="heroCap">
     <div class="heroKick">S-002 · 2025 · BioSystems</div>
     <h1 class="heroTitle">Dialogue Between Civilizations</h1>
     <div class="heroSub">An atomic-scale sculpture inspired by the Great Pyramid of Giza.</div>
   </div>
-  <div class="orbitHint">drag to orbit</div>
 </section>
 
 <main>
@@ -171,6 +165,10 @@ footer a{color:var(--accent2)}
       <div class="row"><span class="k">Perimeter (P)</span><span class="v">921.6 m</span></div>
       <div class="row"><span class="k">Face slope angle</span><span class="v">51.8°</span></div>
     </div>
+    <div class="figrow pair">
+      <figure><img src="https://jofrearchive.com/assets/images/dialogue/giza-aerial.jpg" alt="Aerial view of the pyramids of Giza and the plateau" loading="lazy"/><figcaption>The pyramids of Giza — the monumental reference</figcaption></figure>
+      <figure><img src="https://jofrearchive.com/assets/images/dialogue/nano-pyramids.jpg" alt="Pyramidal gold nanocrystals under electron microscopy" loading="lazy"/><figcaption>The same form at the scale of atoms</figcaption></figure>
+    </div>
   </section>
 
   <section>
@@ -217,32 +215,6 @@ footer a{color:var(--accent2)}
 <footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a></footer>
 
 <script>
-/* ---------- Gold-atom pyramid 3D hero ---------- */
-(function(){
-  const cv=document.getElementById('gl'); if(typeof THREE==='undefined')return;
-  const r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
-  r.setPixelRatio(Math.min(devicePixelRatio,2));r.outputEncoding=THREE.sRGBEncoding;
-  r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.02;
-  const sc=new THREE.Scene();
-  if(THREE.RoomEnvironment){const pm=new THREE.PMREMGenerator(r);sc.environment=pm.fromScene(new THREE.RoomEnvironment(),0.04).texture;}
-  sc.add(new THREE.HemisphereLight(0xfff2d8,0x14140f,0.35));
-  const k=new THREE.DirectionalLight(0xfff4e0,1.5);k.position.set(3,5,4);sc.add(k);
-  const f=new THREE.DirectionalLight(0x8090b0,0.3);f.position.set(-4,-2,-3);sc.add(f);
-  const cam=new THREE.PerspectiveCamera(38,1,.1,100);cam.position.set(0,0,3.4);
-  const ctrl=new THREE.OrbitControls(cam,cv);ctrl.enableDamping=true;ctrl.enableZoom=false;ctrl.enablePan=false;ctrl.autoRotate=true;ctrl.autoRotateSpeed=.75;
-  function size(){const w=cv.clientWidth,h=cv.clientHeight;if(w&&h&&(cv.width!==w*devicePixelRatio||cv.height!==h*devicePixelRatio)){r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}}
-  const loader=new THREE.GLTFLoader();
-  if(THREE.DRACOLoader){const d=new THREE.DRACOLoader();d.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/gltf/');loader.setDRACOLoader(d);}
-  loader.load('https://jofrearchive.com/assets/3D/dialogue.glb',g=>{
-    const o=g.scene;
-    o.traverse(n=>{ if(n.isMesh){ n.material=new THREE.MeshStandardMaterial({color:new THREE.Color(0xe6b84e),metalness:0.85,roughness:0.3,envMapIntensity:0.9}); } });
-    const box=new THREE.Box3().setFromObject(o),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());
-    o.position.sub(c);const md=Math.max(s.x,s.y,s.z)||1;
-    const pivot=new THREE.Group();pivot.add(o);pivot.scale.setScalar(2.0/md);sc.add(pivot);
-  },null,e=>{console.warn('glb',e);});
-  (function loop(){requestAnimationFrame(loop);size();ctrl.update();r.render(sc,cam);})();
-})();
-
 /* ---------- Document PDF.js ---------- */
 (function(){
   if(typeof pdfjsLib==='undefined')return;
