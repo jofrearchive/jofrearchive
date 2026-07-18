@@ -31,7 +31,6 @@ layout: none
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Source+Code+Pro:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{
   --bg:#0a0a08; --ink:#e2ddd4; --ink2:rgba(226,221,212,.74); --ink3:rgba(200,184,154,.62);
@@ -116,8 +115,8 @@ footer a{color:var(--accent2)}
 <main>
   <section>
     <span class="secNo">Abstract</span>
-    <p class="lead">Dialogue Between Civilizations is, most likely, the smallest sculpture in the world: a replica of the Great Pyramid of Giza built at the scale of atoms. Gold atoms are meticulously arranged to reflect the mathematical proportions of the pyramid — its relationships with π, φ and the tangent of 51.8°.</p>
-    <p>Gold is not incidental. The original pyramids are believed to have been crowned with gold capstones — emblems of divinity and power — so here the entire monument is rebuilt in gold, atom by atom. Bridging Ancient Egypt and contemporary nanotechnology, the work becomes a reflection on scale, on cultural memory and on what endures as the measure of a monument shifts from the colossal to the imperceptible.</p>
+    <p class="lead">Dialogue Between Civilizations is a replica of the Great Pyramid of Giza rebuilt at the nanoscale, in gold. Its proportions follow those of the pyramid — the relationships with π, φ and the 51.8° slope — carried down to a structure invisible to the naked eye.</p>
+    <p>Gold is not incidental. The original pyramids are believed to have been crowned with gold capstones — emblems of divinity and power — so here the entire monument is rebuilt in gold. Bridging Ancient Egypt and contemporary nanotechnology, the work becomes a reflection on scale, on cultural memory and on what endures as the measure of a monument shifts from the colossal to the imperceptible.</p>
     <figure class="figure">
       <img src="https://jofrearchive.com/assets/images/dialogue/sample.jpg" alt="Dialogue Between Civilizations — the physical sample on a microscopy grid, held with tweezers" loading="lazy"/>
       <figcaption class="figcap">The physical sample on a microscopy grid.</figcaption>
@@ -186,13 +185,7 @@ footer a{color:var(--accent2)}
   </section>
 
   <section>
-    <span class="secNo">04 — The process</span>
-    <h2>Sculpting with atoms</h2>
-    <p>At its smallest, the sculpture is written directly into matter with a scanning tunnelling microscope (STM) — an instrument whose atomically sharp tip can both image a surface and displace single atoms, one at a time. Built this way, fabrication becomes a form of drawing at the physical limit: every atom is placed deliberately, and the finished piece is imperceptible to the eye, existing as high-resolution microscopy and as the idea of itself.</p>
-  </section>
-
-  <section>
-    <span class="secNo">05 — Production</span>
+    <span class="secNo">04 — Production</span>
     <h2>A pyramid that grows itself</h2>
     <p>For production at a larger nanoscale, the pyramid is not carved but grown. Drawing on advances in the self-assembly of polyhedral nanocrystals, shape-controlled gold nanocrystals — octahedra and corner-truncated octahedra, tens of nanometres across — are suspended with a surfactant (CTAC) and left to organise as a droplet of solution slowly evaporates on a substrate. Because the particles' own shape dictates the geometry of the resulting supercrystal, these gold polyhedra settle layer upon layer into square-pyramidal supercrystals: a monument that assembles itself from the bottom up. A complementary surfactant-diffusion route can grow free-standing supercrystals directly in solution.</p>
     <div class="figrow" id="pyrFigs">
@@ -202,39 +195,8 @@ footer a{color:var(--accent2)}
     </div>
     <p class="ref">Production method after M. H. Huang &amp; S. Thoka, “Formation of supercrystals through self-assembly of polyhedral nanocrystals,” <em>Nano Today</em> 10 (2015) 81–92.</p>
   </section>
-
-  <section>
-    <div class="dossHead">
-      <div><span class="secNo">Document</span><h2 style="margin:0">Full document</h2></div>
-      <a class="dl" href="https://jofrearchive.com/assets/dossiers/dialogue-between-civilizations.pdf" download>Download PDF ↓</a>
-    </div>
-    <div id="pdf"><div id="pdfMsg">Loading document…</div></div>
-  </section>
 </main>
 
 <footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a></footer>
-
-<script>
-/* ---------- Document PDF.js ---------- */
-(function(){
-  if(typeof pdfjsLib==='undefined')return;
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const wrap=document.getElementById('pdf'),msg=document.getElementById('pdfMsg');
-  const url='https://jofrearchive.com/assets/dossiers/dialogue-between-civilizations.pdf';
-  pdfjsLib.getDocument(url).promise.then(async pdf=>{
-    if(msg)msg.remove();
-    const target=Math.min(720,(wrap.clientWidth||720));
-    for(let p=1;p<=pdf.numPages;p++){
-      const page=await pdf.getPage(p);
-      const base=page.getViewport({scale:1});const dpr=Math.min(devicePixelRatio||1,2);
-      const vp=page.getViewport({scale:(target/base.width)*dpr});
-      const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
-      canvas.width=vp.width;canvas.height=vp.height;canvas.style.width=(vp.width/dpr)+'px';
-      wrap.appendChild(canvas);
-      await page.render({canvasContext:ctx,viewport:vp}).promise;
-    }
-  }).catch(e=>{ if(msg)msg.textContent='Document available for download above.'; console.warn('pdf',e); });
-})();
-</script>
 </body>
 </html>
