@@ -69,14 +69,22 @@ p{font-size:clamp(16px,2vw,18.5px);line-height:1.62;color:var(--ink2);margin:0 0
 .work h3 .wy{font-style:italic;color:var(--accent2);font-weight:400;font-size:.72em}
 .work .wmeta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);text-align:right}
 .work>p{margin:14px 0 18px;font-size:16px;max-width:66ch}
-.gallery{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;height:min(58vh,500px);
-  scrollbar-width:thin;scrollbar-color:rgba(200,184,154,.3) transparent}
-.gallery::-webkit-scrollbar{height:6px}
-.gallery::-webkit-scrollbar-thumb{background:rgba(200,184,154,.3);border-radius:3px}
-.gallery img{flex:0 0 auto;height:100%;width:auto;max-width:100%;display:block;object-fit:cover;scroll-snap-align:center;border:1px solid var(--border)}
-.gallery.single{height:auto}
-.gallery.single img{width:100%;height:auto;max-height:min(64vh,560px);object-fit:contain}
-.ghint{margin-top:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);opacity:.55}
+.carousel{position:relative;margin-top:16px;background:#0c0c0a;border:1px solid var(--border);overflow:hidden;height:min(62vh,540px)}
+.carousel .track{display:flex;height:100%;transition:transform .45s cubic-bezier(.4,0,.2,1)}
+.carousel .track img{flex:0 0 100%;width:100%;height:100%;object-fit:contain;display:block}
+.carousel .arw{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+  background:rgba(10,10,8,.55);border:1px solid var(--border);color:var(--accent2);font-size:20px;line-height:1;cursor:pointer;backdrop-filter:blur(4px);transition:.2s}
+.carousel .arw:hover{background:rgba(10,10,8,.82);border-color:var(--amber)}
+.carousel .arw[disabled]{opacity:.22;cursor:default}
+.carousel .prev{left:12px}.carousel .next{right:12px}
+.carousel .cn{position:absolute;top:12px;right:14px;z-index:3;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink3)}
+.carousel .cdots{position:absolute;bottom:12px;left:0;right:0;z-index:3;display:flex;gap:7px;justify-content:center}
+.carousel .cdot{width:7px;height:7px;border:1px solid rgba(200,184,154,.5);background:transparent;transform:rotate(45deg);cursor:pointer;padding:0}
+.carousel .cdot.on{background:var(--amber);border-color:var(--amber)}
+@media(max-width:680px){.carousel{height:52vh}.carousel .arw{width:40px;height:40px}}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.duo img{width:100%;height:min(56vh,480px);object-fit:contain;background:#0c0c0a;border:1px solid var(--border);display:block}
+@media(max-width:680px){.duo{grid-template-columns:1fr}.duo img{height:auto;max-height:60vh}}
 .work .cap{margin-top:14px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .work .t{font-family:var(--serif);font-weight:500;font-size:clamp(20px,2.6vw,26px);line-height:1}
 .work .t em{font-style:italic;color:var(--accent2);font-weight:400}
@@ -94,7 +102,7 @@ footer a{color:var(--accent2)}
   <a class="back" href="https://jofrearchive.com/studies/">← Studies</a>
 </div>
 
-<section class="hero" style="background-image:url('https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg')">
+<section class="hero" style="background-image:url('https://jofrearchive.com/assets/images/bio-architecture/habitat.jpg');background-position:center 64%">
   <div class="heroCap">
     <div class="heroKick">S-005 · Study</div>
     <h1 class="heroTitle">Bio-architecture</h1>
@@ -117,33 +125,50 @@ footer a{color:var(--accent2)}
     <div class="work">
       <div class="wh"><h3>Reinterpretation of a Fireplace <span class="wy">· 2016</span></h3><div class="wmeta">Spain · branches</div></div>
       <p>One of the earliest bio-architecture gestures. A nest of interwoven branches is built directly into the fabric of a building, reinterpreting the domestic hearth: the fireplace — symbolic centre of the home — becomes a living, permeable structure that belongs as much to the birds and the weather as to the house.</p>
-      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace.jpg" alt="Reinterpretation of a fireplace — nest built into a façade" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace-2.jpg" alt="Reinterpretation of a fireplace — another view" loading="lazy"/></div>
-      <div class="ghint">← scroll · 2 images</div>
+      <div class="carousel"><div class="track"><img src="https://jofrearchive.com/assets/images/bio-architecture/reinterpretation-3.jpg" alt="Reinterpretation of a fireplace — façade with branch nests" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace.jpg" alt="Reinterpretation of a fireplace — nest built into a niche" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/fireplace-2.jpg" alt="Reinterpretation of a fireplace — another view" loading="lazy"/></div><button class="arw prev" aria-label="Previous">&lsaquo;</button><button class="arw next" aria-label="Next">&rsaquo;</button><div class="cn"></div><div class="cdots"></div></div>
     </div>
 
     <div class="work">
       <div class="wh"><h3>Power Tower I</h3><div class="wmeta">Spain · natural materials · 12 m · land art</div></div>
       <p>A contemporary monolith raised on site from natural materials and standing around twelve metres high. Borrowing the language of ancient standing stones, the tower reinterprets the monument through the fragility of organic construction — a vertical land-art work left to weather and decay in place.</p>
-      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower-2.jpg" alt="Power Tower I — construction" loading="lazy"/></div>
-      <div class="ghint">← scroll · 2 images</div>
+      <div class="duo"><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower.jpg" alt="Power Tower I — monolith of natural materials" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/power-tower-2.jpg" alt="Power Tower I — construction" loading="lazy"/></div>
     </div>
 
     <div class="work">
       <div class="wh"><h3>Nest</h3><div class="wmeta">Spain · vegetable latticework · land art</div></div>
       <p>A giant nest suspended on a lone tree, built through bioconstruction with a woven vegetable latticework of plant fibres and branches. Conceived for a land-art itinerary, it reflects on the fragility of the home and on shelter as something grown rather than built — inhabited by the landscape as much as by us.</p>
-      <div class="gallery"><img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/nest-2.jpg" alt="Nest — detail" loading="lazy"/></div>
-      <div class="ghint">← scroll · 2 images</div>
+      <div class="carousel"><div class="track"><img src="https://jofrearchive.com/assets/images/bio-architecture/nest.jpg" alt="Nest — giant nest built with vegetable latticework" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/nest-2.jpg" alt="Nest — detail" loading="lazy"/></div><button class="arw prev" aria-label="Previous">&lsaquo;</button><button class="arw next" aria-label="Next">&rsaquo;</button><div class="cn"></div><div class="cdots"></div></div>
     </div>
 
     <div class="work">
       <div class="wh"><h3>Coffin Habitat <span class="wy">· 2025</span></h3><div class="wmeta">Spain · felled branches, natural wood</div></div>
       <p>The most recent piece: a coffin-shaped habitat assembled directly within the forest from felled branches and natural wood. Home and grave at once, it collapses the distance between shelter and decay — an architecture that emerges from the landscape and is designed to return to it.</p>
-      <div class="gallery single"><img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Coffin Habitat — structure built in the forest" loading="lazy"/></div>
-      <div class="ghint todo">hi-res + full photo set pending</div>
+      <div class="carousel"><div class="track"><img src="https://jofrearchive.com/assets/images/bio-architecture/habitat.jpg" alt="Coffin Habitat — the coffin in the forest" loading="lazy"/><img src="https://jofrearchive.com/assets/images/bio-architecture/bio-architecture.jpg" alt="Coffin Habitat — forest context" loading="lazy"/></div><button class="arw prev" aria-label="Previous">&lsaquo;</button><button class="arw next" aria-label="Next">&rsaquo;</button><div class="cn"></div><div class="cdots"></div></div>
+      <div class="ghint todo">more Instagram photos pending (login-walled)</div>
     </div>
   </section>
 </main>
 
 <footer>Jofre Oliveras — <a href="https://jofrearchive.com/">Archive</a> · <a href="https://jofrearchive.com/studies/">Studies</a></footer>
+<script>
+document.querySelectorAll('.carousel').forEach(c=>{
+  const track=c.querySelector('.track'),imgs=track.children,n=imgs.length;
+  const prev=c.querySelector('.prev'),next=c.querySelector('.next'),cn=c.querySelector('.cn'),dw=c.querySelector('.cdots');
+  let idx=0;
+  if(n<=1){[prev,next,cn,dw].forEach(e=>{if(e)e.style.display='none'});return;}
+  for(let i=0;i<n;i++){const d=document.createElement('button');d.className='cdot'+(i===0?' on':'');d.setAttribute('aria-label','Image '+(i+1));d.addEventListener('click',()=>go(i));dw.appendChild(d);}
+  const dots=dw.children;
+  function go(i){idx=Math.max(0,Math.min(n-1,i));track.style.transform='translateX(-'+(idx*100)+'%)';
+    if(cn)cn.textContent=(idx+1)+' / '+n;
+    for(let k=0;k<dots.length;k++)dots[k].classList.toggle('on',k===idx);
+    prev.disabled=idx===0;next.disabled=idx===n-1;}
+  prev.addEventListener('click',()=>go(idx-1));
+  next.addEventListener('click',()=>go(idx+1));
+  let sx=null;
+  c.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+  c.addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>40)go(dx<0?idx+1:idx-1);sx=null;},{passive:true});
+  go(0);
+});
+</script>
 </body>
 </html>
